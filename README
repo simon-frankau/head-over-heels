@@ -1,0 +1,14 @@
+Head Over Heels reverse engineering
+===================================
+
+This is my attempt to reverse engineer the ZX Spectrum version of Head
+Over Heels. I made a start before, but this time I'm trying to keep
+some more notes, script it, source control it, etc. so that I've got a
+better hope of tracking it all.
+
+Contents
+--------
+
+tape - This directory holds my attempts to extract the contents from a
+       tzx file. Somewhat abortive effort.
+
