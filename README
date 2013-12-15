@@ -12,3 +12,6 @@ Contents
 tape - This directory holds my attempts to extract the contents from a
        tzx file. Somewhat abortive effort.
 
+memimage - This holds a memory dump from the game on start-up, plus tools
+           to extract and disassemble the dump, creating a baseline
+           disassembly.
