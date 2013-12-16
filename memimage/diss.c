@@ -493,17 +493,17 @@ CHAR            ireg[3];        // temp.Indexregister
                 break;
             case 0x02:
                 strcpy(s,"DJNZ\t");
-                sprintf(stemp,"%4.4Xh",adr+2+(BYTE)Opcodes[adr+1]);strcat(s,stemp);
+                sprintf(stemp,"$%4.4X",adr+2+(BYTE)Opcodes[adr+1]);strcat(s,stemp);
                 break;
             case 0x03:
                 strcpy(s,"JR\t\t");
-                sprintf(stemp,"%4.4Xh",adr+2+(BYTE)Opcodes[adr+1]);strcat(s,stemp);
+                sprintf(stemp,"$%4.4X",adr+2+(BYTE)Opcodes[adr+1]);strcat(s,stemp);
                 break;
             default:
                 strcpy(s,"JR\t\t");
                 strcat(s,cond[d & 3]);
                 strcat(s,",");
-                sprintf(stemp,"%4.4Xh",adr+2+(BYTE)Opcodes[adr+1]);strcat(s,stemp);
+                sprintf(stemp,"$%4.4X",adr+2+(BYTE)Opcodes[adr+1]);strcat(s,stemp);
                 break;
             }
             break;
@@ -515,7 +515,7 @@ CHAR            ireg[3];        // temp.Indexregister
                 strcpy(s,"LD\t\t");
                 strcat(s,dreg[d >> 1]);
                 strcat(s,",");
-                sprintf(stemp,"%4.4Xh",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
+                sprintf(stemp,"$%4.4X",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
             }
             break;
         case 0x02:
@@ -534,22 +534,22 @@ CHAR            ireg[3];        // temp.Indexregister
                 break;
             case 0x04:
                 strcpy(s,"LD\t\t(");
-                sprintf(stemp,"%4.4Xh",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
+                sprintf(stemp,"$%4.4X",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
                 strcat(s,"),HL");
                 break;
             case 0x05:
                 strcpy(s,"LD\t\tHL,(");
-                sprintf(stemp,"%4.4Xh",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
+                sprintf(stemp,"$%4.4X",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
                 strcat(s,")");
                 break;
             case 0x06:
                 strcpy(s,"LD\t\t(");
-                sprintf(stemp,"%4.4Xh",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
+                sprintf(stemp,"$%4.4X",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
                 strcat(s,"),A");
                 break;
             case 0x07:
                 strcpy(s,"LD\t\tA,(");
-                sprintf(stemp,"%4.4Xh",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
+                sprintf(stemp,"$%4.4X",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
                 strcat(s,")");
                 break;
             }
@@ -573,7 +573,7 @@ CHAR            ireg[3];        // temp.Indexregister
             strcpy(s,"LD\t\t");
             strcat(s,reg[d]);
             strcat(s,",");
-            sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+            sprintf(stemp,"$%2.2X",Opcodes[adr+1]);strcat(s,stemp);
             break;
         case 0x07:
             {
@@ -584,7 +584,7 @@ CHAR            ireg[3];        // temp.Indexregister
         }
         break;
     case 0x40:                          // LD   d,s
-        if(d == e) {
+        if(a == 0x76) {
             strcpy(s,"HALT");
         } else {
             strcpy(s,"LD\t\t");
@@ -631,13 +631,13 @@ CHAR            ireg[3];        // temp.Indexregister
             strcpy(s,"JP\t\t");
             strcat(s,cond[d]);
             strcat(s,",");
-            sprintf(stemp,"%4.4Xh",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
+            sprintf(stemp,"$%4.4X",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
             break;
         case 0x03:
             switch(d) {
             case 0x00:
                 strcpy(s,"JP\t\t");
-                sprintf(stemp,"%4.4Xh",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
+                sprintf(stemp,"$%4.4X",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
                 break;
             case 0x01:                  // 0xCB
                 a = Opcodes[++adr];     // Erweiterungsopcode holen
@@ -675,12 +675,12 @@ CHAR            ireg[3];        // temp.Indexregister
                 break;
             case 0x02:
                 strcpy(s,"OUT\t\t(");
-                sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                sprintf(stemp,"$%2.2X",Opcodes[adr+1]);strcat(s,stemp);
                 strcat(s,"),A");
                 break;
             case 0x03:
                 strcpy(s,"IN\t\tA,(");
-                sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                sprintf(stemp,"$%2.2X",Opcodes[adr+1]);strcat(s,stemp);
                 strcat(s,")");
                 break;
             case 0x04:
@@ -701,14 +701,14 @@ CHAR            ireg[3];        // temp.Indexregister
             strcpy(s,"CALL\t");
             strcat(s,cond[d]);
             strcat(s,",");
-            sprintf(stemp,"%4.4Xh",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
+            sprintf(stemp,"$%4.4X",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
             break;
         case 0x05:
             if(d & 1) {
                 switch(d >> 1) {
                 case 0x00:
                     strcpy(s,"CALL\t");
-                    sprintf(stemp,"%4.4Xh",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
+                    sprintf(stemp,"$%4.4X",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
                     break;
                 case 0x02:              // 0xED
                     a = Opcodes[++adr]; // Erweiterungsopcode holen
@@ -739,11 +739,11 @@ CHAR            ireg[3];        // temp.Indexregister
                                 strcpy(s,"LD\t\t");
                                 strcat(s,dreg[d >> 1]);
                                 strcat(s,",(");
-                                sprintf(stemp,"%4.4Xh",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
+                                sprintf(stemp,"$%4.4X",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
                                 strcat(s,")");
                             } else {
                                 strcpy(s,"LD\t\t(");
-                                sprintf(stemp,"%4.4Xh",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
+                                sprintf(stemp,"$%4.4X",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
                                 strcat(s,"),");
                                 strcat(s,dreg[d >> 1]);
                             }
@@ -802,11 +802,11 @@ CHAR            ireg[3];        // temp.Indexregister
                         strcpy(s,"LD\t\t");
                         strcat(s,ireg);
                         strcat(s,",");
-                        sprintf(stemp,"%4.4Xh",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
+                        sprintf(stemp,"$%4.4X",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
                         break;
                     case 0x22:
                         strcpy(s,"LD\t\t(");
-                        sprintf(stemp,"%4.4Xh",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
+                        sprintf(stemp,"$%4.4X",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
                         strcat(s,"),");
                         strcat(s,ireg);
                         break;
@@ -824,7 +824,7 @@ CHAR            ireg[3];        // temp.Indexregister
                         strcpy(s,"LD\t\t");
                         strcat(s,ireg);
                         strcat(s,",(");
-                        sprintf(stemp,"%4.4Xh",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
+                        sprintf(stemp,"$%4.4X",Opcodes[adr+1]+(Opcodes[adr+2]<<8));strcat(s,stemp);
                         strcat(s,")");
                         break;
                     case 0x2B:
@@ -834,24 +834,24 @@ CHAR            ireg[3];        // temp.Indexregister
                     case 0x34:
                         strcpy(s,"INC\t\t(");
                         strcat(s,ireg);
-                        strcat(s,"+");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                        strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+1] >= 0x80 ? 0x100-((int)Opcodes[adr+1]) : Opcodes[adr+1]);strcat(s,stemp);
                         strcat(s,")");
                         break;
                     case 0x35:
                         strcpy(s,"DEC\t\t(");
                         strcat(s,ireg);
-                        strcat(s,"+");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
-                        strcat(s,")");
+                        strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+1] >= 0x80 ? 0x100-((int)Opcodes[adr+1]) : Opcodes[adr+1]);strcat(s,stemp);
+						strcat(s,")");
                         break;
                     case 0x36:
                         strcpy(s,"LD\t\t(");
                         strcat(s,ireg);
-                        strcat(s,"+");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                        strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+1] >= 0x80 ? 0x100-((int)Opcodes[adr+1]) : Opcodes[adr+1]);strcat(s,stemp);
                         strcat(s,"),");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+2]);strcat(s,stemp);
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+2]);strcat(s,stemp);
                         break;
                     case 0x39:
                         strcpy(s,"ADD\t\t");
@@ -868,8 +868,8 @@ CHAR            ireg[3];        // temp.Indexregister
                         strcat(s,reg[(a>>3)&7]);
                         strcat(s,",(");
                         strcat(s,ireg);
-                        strcat(s,"+");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                        strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+1] >= 0x80 ? 0x100-((int)Opcodes[adr+1]) : Opcodes[adr+1]);strcat(s,stemp);
                         strcat(s,")");
                         break;
                     case 0x70:
@@ -881,72 +881,77 @@ CHAR            ireg[3];        // temp.Indexregister
                     case 0x77:
                         strcpy(s,"LD\t\t(");
                         strcat(s,ireg);
-                        strcat(s,"+");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                        strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+1] >= 0x80 ? 0x100-((int)Opcodes[adr+1]) : Opcodes[adr+1]);strcat(s,stemp);
                         strcat(s,"),");
                         strcat(s,reg[a & 7]);
                         break;
-                    case 0x7E:
+                    case 0x7D:
+                        strcpy(s,"LD\t\tA,");
+                        strcat(s,ireg);
+                        strcat(s,"L");
+                        break;
+					case 0x7E:
                         strcpy(s,"LD\t\tA,(");
                         strcat(s,ireg);
-                        strcat(s,"+");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                        strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+1] >= 0x80 ? 0x100-((int)Opcodes[adr+1]) : Opcodes[adr+1]);strcat(s,stemp);
                         strcat(s,")");
                         break;
                     case 0x86:
                         strcpy(s,"ADD\t\tA,(");
                         strcat(s,ireg);
-                        strcat(s,"+");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                        strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+1] >= 0x80 ? 0x100-((int)Opcodes[adr+1]) : Opcodes[adr+1]);strcat(s,stemp);
                         strcat(s,")");
                         break;
                     case 0x8E:
                         strcpy(s,"ADC\t\tA,(");
                         strcat(s,ireg);
-                        strcat(s,"+");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                        strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+1] >= 0x80 ? 0x100-((int)Opcodes[adr+1]) : Opcodes[adr+1]);strcat(s,stemp);
                         strcat(s,")");
                         break;
                     case 0x96:
                         strcpy(s,"SUB\t\t(");
                         strcat(s,ireg);
-                        strcat(s,"+");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                        strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+1] >= 0x80 ? 0x100-((int)Opcodes[adr+1]) : Opcodes[adr+1]);strcat(s,stemp);
                         strcat(s,")");
                         break;
                     case 0x9E:
                         strcpy(s,"SBC\t\tA,(");
                         strcat(s,ireg);
-                        strcat(s,"+");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                        strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+1] >= 0x80 ? 0x100-((int)Opcodes[adr+1]) : Opcodes[adr+1]);strcat(s,stemp);
                         strcat(s,")");
                         break;
                     case 0xA6:
                         strcpy(s,"AND\t\tA,(");
                         strcat(s,ireg);
-                        strcat(s,"+");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                        strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+1] >= 0x80 ? 0x100-((int)Opcodes[adr+1]) : Opcodes[adr+1]);strcat(s,stemp);
                         strcat(s,")");
                         break;
                     case 0xAE:
                         strcpy(s,"XOR\t\tA,(");
                         strcat(s,ireg);
-                        strcat(s,"+");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                        strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+1] >= 0x80 ? 0x100-((int)Opcodes[adr+1]) : Opcodes[adr+1]);strcat(s,stemp);
                         strcat(s,")");
                         break;
                     case 0xB6:
                         strcpy(s,"OR\t\tA,(");
                         strcat(s,ireg);
-                        strcat(s,"+");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                        strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+1] >= 0x80 ? 0x100-((int)Opcodes[adr+1]) : Opcodes[adr+1]);strcat(s,stemp);
                         strcat(s,")");
                         break;
                     case 0xBE:
                         strcpy(s,"CP\t\tA,(");
                         strcat(s,ireg);
-                        strcat(s,"+");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                        strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+1] >= 0x80 ? 0x100-((int)Opcodes[adr+1]) : Opcodes[adr+1]);strcat(s,stemp);
                         strcat(s,")");
                         break;
                     case 0xE1:
@@ -1003,8 +1008,8 @@ CHAR            ireg[3];        // temp.Indexregister
                         }
                         strcat(s,"(");
                         strcat(s,ireg);
-                        strcat(s,"+");
-                        sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+                        strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
+                        sprintf(stemp,"$%2.2X",Opcodes[adr+1] >= 0x80 ? 0x100-((int)Opcodes[adr+1]) : Opcodes[adr+1]);strcat(s,stemp);
                         strcat(s,")");
                         break;
                     }
@@ -1020,11 +1025,11 @@ CHAR            ireg[3];        // temp.Indexregister
             break;
         case 0x06:
             strcpy(s,arith[d]);
-            sprintf(stemp,"%2.2Xh",Opcodes[adr+1]);strcat(s,stemp);
+            sprintf(stemp,"$%2.2X",Opcodes[adr+1]);strcat(s,stemp);
             break;
         case 0x07:
             strcpy(s,"RST\t\t");
-            sprintf(stemp,"%2.2Xh",a & 0x38);strcat(s,stemp);
+            sprintf(stemp,"$%2.2X",a & 0x38);strcat(s,stemp);
             break;
         }
         break;
@@ -1145,8 +1150,7 @@ CHAR    s[80];          // Ausgabestring
 	ParseOpcodes(0x9FBB);
 	ParseOpcodes(0x9FF3);
 	ParseOpcodes(0xA02B);
-	// B24B: Some plausible parts in here?! FIXME
-	ParseOpcodes(0xB24B);
+	// B24B: Probably not code?
 	// B378 looks like start of jump table.
 	ParseOpcodes(0xB39F);
 	ParseOpcodes(0xB3C0);
@@ -1189,7 +1193,7 @@ ParseOpcodes(0xBA40);
             fprintf(f,"L%4.4X:\tDEFB",(UWORD)adr);
             for(i=0;i<16;i++) {
                 if((OpcodesFlags[adr+i] & 0x0F) != Data) break;
-                fprintf(f,"%c%2.2Xh",(i)?',':' ',Opcodes[adr+i]);
+                fprintf(f,"%c$%2.2X",(i)?',':' ',Opcodes[adr+i]);
             }
             fprintf(f,"\n");
             adr += i;
