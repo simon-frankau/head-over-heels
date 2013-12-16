@@ -9,6 +9,10 @@ better hope of tracking it all.
 Contents
 --------
 
+HOH.asm - The dissassembly of Head Over Heels.
+
+check.sh - Script to assemble HOH.asm and check it against the baseline.
+
 tape - This directory holds my attempts to extract the contents from a
        tzx file. Somewhat abortive effort.
 
