@@ -1140,7 +1140,7 @@ L72F3:	PUSH	DE
 		LD		($AF78),HL
 		LD		HL,$AF82
 		LD		BC,$0008
-		JP		$A277
+		JP		FillZero
 L7314:	LD		HL,$A294
 		BIT		0,(HL)
 		LD		HL,$A2C0
@@ -1482,7 +1482,7 @@ L761C:	CALL	$75E5
 		LD		HL,$BF20
 		LD		E,$FF
 		LD		BC,$0009
-		CALL	$A279
+		CALL	FillValue
 L762E:	CALL	GetInput
 		JR		NZ,$762E
 		LD		A,B
@@ -1549,7 +1549,7 @@ L769B:	LD		($768D),A
 L769E:	PUSH	AF
 		LD		HL,$F944
 		LD		BC,$0094
-		CALL	$A277
+		CALL	FillZero
 		XOR		A
 		LD		($9EE1),A
 		DEC		A
@@ -1609,7 +1609,7 @@ L7752:	LD		IY,$7718
 		LDIR
 		LD		HL,$BA00
 		LD		BC,$0040
-		CALL	$A277
+		CALL	FillZero
 		CALL	$A260
 		CALL	$7A2E
 		LD		A,$00
@@ -2374,7 +2374,7 @@ L7D7E:	CALL	$7E11
 		RET
 L7D8D:	DEFB $00,$03,$09,$09,$A0
 L7D92:	CALL	$964F
-		CALL	$9507
+		CALL	ScreenWipe
 		LD		A,$BA
 		CALL	$B682
 		CALL	$7CCC
@@ -3462,7 +3462,7 @@ L8C30:	LD		A,E
 		RET
 L8C47:	LD		HL,$8AE2
 		LD		BC,$012D
-		JP		$A277
+		JP		FillZero
 L8C50:	CALL	$708B
 		PUSH	AF
 		CALL	$8C1F
@@ -3672,7 +3672,7 @@ L8DC2:	LD		A,$C6
 		CALL	$8E32
 L8DDF:	CALL	$75CB
 		CALL	$8DED
-		CALL	$9507
+		CALL	ScreenWipe
 		LD		B,$C1
 		JP		$9675
 L8DED:	LD		HL,$A800
@@ -3770,7 +3770,7 @@ L8EAC:	LD		($ADA5),A
 		JP		$93E8
 L8ECF:	LD		HL,$B800
 		LD		BC,$0100
-		JP		$A277
+		JP		FillZero
 L8ED8:	DEFB $00,$FF,$FF
 L8EDB:	LD		A,(IY+$0C)
 		LD		(IY+$0C),$FF
@@ -4584,47 +4584,54 @@ L94EF:	LD		A,B
 		RLCA
 		LD		E,A
 		RET
-	;; FIXME: Screen-wipe loop?
-L9507:	LD		E,$04
-L9509:	LD		HL,$4000
-		LD		BC,$1800
+	
+	;; Screen-wipe loop
+ScreenWipe:	LD	E,$04
+SW_0:		LD	HL,$4000
+		LD	BC,$1800
 		PUSH	AF
-L9510:	POP		AF
-		LD		A,(HL)
+		; This loop smears to the right...
+SW_1:		POP	AF
+		LD	A,(HL)
 		RRA
 		PUSH	AF
-		AND		(HL)
-		LD		(HL),A
-		LD		D,$0C
-L9518:	DEC		D
-		JR		NZ,$9518
-		INC		HL
-		DEC		BC
-		LD		A,B
-		OR		C
-		JR		NZ,$9510
-		LD		BC,$1800
-L9524:	DEC		HL
-		POP		AF
-		LD		A,(HL)
+		AND	(HL)
+		LD	(HL),A
+		; (Delay loop)
+		LD	D,$0C
+SW_2:		DEC	D
+		JR	NZ,SW_2
+		INC	HL
+		DEC	BC
+		LD	A,B
+		OR	C
+		JR	NZ,SW_1
+		; This loop smears to the left...
+		LD	BC,$1800
+SW_3:		DEC	HL
+		POP	AF
+		LD	A,(HL)
 		RLA
 		PUSH	AF
-		AND		(HL)
-		LD		(HL),A
-		LD		D,$0C
-L952D:	DEC		D
-		JR		NZ,$952D
-		DEC		BC
-		LD		A,B
-		OR		C
-		JR		NZ,$9524
-		POP		AF
-		DEC		E
-		JR		NZ,$9509
-		LD		HL,$4000
-		LD		BC,$1800
-		JP		$A277
-L9542:	PUSH	AF
+		AND	(HL)
+		LD	(HL),A
+		; (Delay loop)
+		LD	D,$0C
+SW_4:		DEC	D
+		JR	NZ,SW_4
+		DEC	BC
+		LD	A,B
+		OR	C
+		JR	NZ,SW_3
+		POP	AF
+		DEC	E
+		; And loop until fully wiped...
+		JR	NZ,SW_0
+		LD	HL,$4000
+		LD	BC,$1800
+		JP	FillZero 	; Tail call
+
+L9542:		PUSH	AF
 		PUSH	BC
 		PUSH	DE
 		XOR		A
@@ -5840,7 +5847,7 @@ L9D84:	LD		A,($9D83)
 		PUSH	BC
 		PUSH	DE
 		LD		BC,$0094
-		CALL	$A277
+		CALL	FillZero
 		POP		DE
 		POP		BC
 		POP		HL
@@ -6677,14 +6684,17 @@ LA268:	NEG
 		LD		(HL),A
 LA273:	LD		A,(HL)
 		JP		$84E4
-LA277:	LD		E,$00
-LA279:	LD		(HL),E
-		INC		HL
-		DEC		BC
-		LD		A,B
-		OR		C
-		JR		NZ,$A279
+
+FillZero:	LD	E,$00
+	;; HL = Dest, BC = Size, E = value
+FillValue:	LD	(HL),E
+		INC	HL
+		DEC	BC
+		LD	A,B
+		OR	C
+		JR	NZ,FillValue
 		RET
+
 LA281:	DEFB $09,$00,$00,$00,$00,$00,$08,$08,$00,$00,$00,$00,$00,$00,$00,$04
 LA291:	DEFB $04,$00,$00,$03,$01,$00,$00,$03,$02,$03,$00,$00,$FF,$00,$00,$FF
 LA2A1:	DEFB $02,$00,$00,$00,$00,$03,$00,$00,$00,$00,$00,$00,$20,$28,$0B,$C0
@@ -9249,6 +9259,8 @@ LB669:	LD		BC,$0401
 		RET
 LB66D:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 LB67D:	DEFB $02,$40,$80,$00,$FF
+
+	;; FIXME: Joystick selection screen?
 LB682:	JP		$B685
 LB685:	CP		$80
 		JR		NC,$B6BA
@@ -9288,7 +9300,7 @@ LB6CB:	ADD		A,$20
 		CP		$05
 		JR		NC,$B702
 		AND		A
-		JP		Z,$9507
+		JP		Z,ScreenWipe
 		SUB		$02
 		JR		C,$B6ED
 		JR		Z,$B6E0
