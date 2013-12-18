@@ -777,7 +777,7 @@ L7020:	DEFB $C7,$D5,$AB,$F7,$F1,$FE,$08,$8D,$21,$A8,$14,$1D,$88,$07,$FF,$00
 	;; Main entry point
 Entry:		LD	SP,$FFF4
 		CALL	InitStuff
-		CALL	InitMoreStuff
+		CALL	InitStick
 		JR	Main
 
 L703B:		DEFB $00,$00,$00,$EF,$FF,$00,$00,$00
@@ -1308,40 +1308,45 @@ L74E4:	DEFB $FF,$FE,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$EF,$F7
 L74F4:	DEFB $FB,$FD,$FE,$FF,$FF,$FF,$FD,$FE,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 L7504:	DEFB $FF,$FF,$FF,$F0,$FF,$FF,$FF,$FF,$FF,$FF,$E0,$FE,$FF,$FF,$EF,$F7
 L7514:	DEFB $FB,$FD,$FE,$FF,$FF,$FF
-L751A:	LD		A,$E2
+
+	;; FIXME: Suspect this is the stick-select screen
+SelectStick:	LD	A,$E2
 		CALL	$B682
-		LD		IX,$752C
+		LD	IX,StickType
 		CALL	$7E2E
-L7526:	CALL	$7E11
-		JR		C,$7526
+SelSt_1:	CALL	$7E11
+		JR	C,SelSt_1
 		RET
-L752C:	DEFB $00,$03,$04,$08,$E4
 	
-InitMoreStuff:	LD	B,$04
-IMS_1:		IN	A,($1F)
+StickType:	DEFB $00
+L752D:		DEFB $03,$04,$08,$E4
+	
+InitStick:	LD	B,$04
+IS_1:		IN	A,($1F)		; Kempston port
 		AND	$1F
 		CP	$1F
-		JR	NC,IMS_2
-		DJNZ	IMS_1
-IMS_2:		SBC	A,A
+		JR	NC,IS_2
+		DJNZ	IS_1
+IS_2:		SBC	A,A
 		AND	$01
-		LD	($752C),A
-		CALL	$751A
-		LD	A,($752C)
+		LD	(StickType),A
+		CALL	SelectStick
+		LD	A,(StickType)
 		SUB	$01
 		RET	C
-		LD	HL,$7564
-		JR	Z,IMS_3
-		LD	HL,$757D
-IMS_3:		LD	($9617),HL
+		LD	HL,Kempston
+		JR	Z,IS_3
+		LD	HL,Fuller
+IS_3:		LD	($9617),HL
 		LD	($75A5),HL
 		XOR	A
 		LD	($75A3),A
 		LD	A,$CD
 		LD	($960F),A
 		RET
-	
-L7564:	IN		A,($1F)
+
+	;;  Joystick handler for Kempston
+Kempston:	IN		A,($1F)
 		LD		B,A
 		RRCA
 		RRA
@@ -1359,7 +1364,9 @@ L7564:	IN		A,($1F)
 		CPL
 		OR		$E0
 		RET
-L757D:	IN		A,($7F)
+
+	;;  Joystick handler for Fuller
+Fuller:		IN		A,($7F)
 		LD		C,A
 		RLCA
 		XOR		C
@@ -1372,28 +1379,31 @@ L757D:	IN		A,($7F)
 		XOR		C
 		OR		$E0
 		RET
-L7590:	LD		HL,$BF20
+	
+GetInput:	LD		HL,$BF20
 		LD		BC,$FEFE
-L7596:	IN		A,(C)
+GI_1:		IN		A,(C)
 		OR		$E0
 		INC		A
-		JR		NZ,$75AC
+		JR		NZ,GI_2
 		INC		HL
 		RLC		B
-		JR		C,$7596
+		JR		C,GI_1
 		INC		A
 		RET
-L75A4:	CALL	$7564
+	
+StickCall:	CALL		Kempston
 		INC		A
-		JR		NZ,$75AC
+		JR		NZ,GI_2
 		DEC		A
 		RET
-L75AC:	DEC		A
+
+GI_2:		DEC		A
 		LD		BC,$FF7F
-L75B0:	RLC		C
+GI_3:		RLC		C
 		INC		B
 		RRA
-		JR		C,$75B0
+		JR		C,GI_3
 		LD		A,L
 		SUB		$20
 		LD		E,A
@@ -1404,7 +1414,8 @@ L75B0:	RLC		C
 		LD		B,A
 		XOR		A
 		RET
-L75C1:	LD		A,B
+	
+L75C1:		LD		A,B
 		ADD		A,$A5
 		LD		L,A
 		ADC		A,$74
@@ -1412,10 +1423,10 @@ L75C1:	LD		A,B
 		LD		H,A
 		LD		A,(HL)
 		RET
-L75CB:	CALL	$7590
+L75CB:	CALL	GetInput
 		JR		Z,$75CB
 		RET
-L75D1:	CALL	$7590
+L75D1:	CALL	GetInput
 		SCF
 		RET		NZ
 		LD		A,B
@@ -1472,7 +1483,7 @@ L761C:	CALL	$75E5
 		LD		E,$FF
 		LD		BC,$0009
 		CALL	$A279
-L762E:	CALL	$7590
+L762E:	CALL	GetInput
 		JR		NZ,$762E
 		LD		A,B
 		CP		$1E
@@ -4573,6 +4584,7 @@ L94EF:	LD		A,B
 		RLCA
 		LD		E,A
 		RET
+	;; FIXME: Screen-wipe loop?
 L9507:	LD		E,$04
 L9509:	LD		HL,$4000
 		LD		BC,$1800
@@ -4791,7 +4803,8 @@ L964F:	LD		A,($964B)
 		RET		Z
 		LD		B,$C3
 		JP		$9675
-IrqFn:	JP		$9723
+	
+IrqFn:		JP	IrqFnCore
 	
 L965D:	DEFB $24,$05,$D9,$04,$93,$04,$51,$04,$12,$04,$D7,$03,$9F,$03,$6B,$03
 L966D:	DEFB $39,$03,$0A,$03,$DE,$02,$B4,$02
@@ -4913,7 +4926,7 @@ L9716:	XOR		A
 		RET
 
 	;;  Interrupt-related
-L9723:	LD		IY,$98B8
+IrqFnCore:	LD		IY,$98B8
 		LD		A,($964B)
 		INC		A
 		RET		Z
@@ -5849,7 +5862,7 @@ L9D9D:	BIT		0,A
 		XOR		$80
 		LD		($9EE1),A
 		LD		B,$4A
-		JP		$9ECE
+		JP		FlipSprite
 L9DBF:	BIT		2,A
 		JR		NZ,$9D9D
 		PUSH	AF
@@ -6049,23 +6062,26 @@ L9EBD:	LD		A,(HL)
 		EXX
 		RET
 L9ECC:	LD		B,$38
-L9ECE:	PUSH	DE
-		LD		D,$B9
+	
+	;; Reverse a two-byte-wide image. Height in B, pointer to data in HL.
+FlipSprite:	PUSH	DE
+		LD	D,$B9
 		PUSH	HL
-L9ED2:	INC		HL
-		LD		E,(HL)
-		LD		A,(DE)
-		DEC		HL
-		LD		E,(HL)
-		LD		(HL),A
-		INC		HL
-		LD		A,(DE)
-		LD		(HL),A
-		INC		HL
-		DJNZ	$9ED2
-		POP		HL
-		POP		DE
+FS_1:		INC	HL
+		LD	E,(HL)
+		LD	A,(DE)
+		DEC	HL
+		LD	E,(HL)
+		LD	(HL),A
+		INC	HL
+		LD	A,(DE)
+		LD	(HL),A
+		INC	HL
+		DJNZ	FS_1
+		POP	HL
+		POP	DE
 		RET
+
 L9EE1:	DEFB $00
 L9EE2:	AND		$03
 		ADD		A,A
@@ -8042,7 +8058,7 @@ LAE51:	JR		Z,$AE67
 		LD		A,C
 		LD		($AF5A),A
 		LD		B,$70
-		JR		$AECD
+		JR		FlipWideSprite
 LAE67:	LD		A,L
 		LD		E,A
 		ADD		A,A
@@ -8081,7 +8097,7 @@ LAE7F:	SUB		$10
 		EXX
 		CALL	$AF2B
 		EXX
-		CALL	NC,$AECD
+		CALL	NC,FlipWideSprite
 		LD		A,($A05C)
 		AND		$02
 		RET		NZ
@@ -8112,29 +8128,32 @@ LAEC5:	EX		DE,HL
 		EXX
 		CALL	$AF2B
 		EXX
-		RET		C
-LAECD:	PUSH	HL
+		RET	C		; NB: Fall-through.
+
+	;; Flip a wide (3 character) sprite. Height in B, source in DE.
+FlipWideSprite:	PUSH	HL
 		PUSH	DE
-		EX		DE,HL
-		LD		D,$B9
-LAED2:	LD		C,(HL)
-		LD		($AEDE),HL
-		INC		HL
-		LD		E,(HL)
-		LD		A,(DE)
-		LD		(HL),A
-		INC		HL
-		LD		E,(HL)
-		LD		A,(DE)
-		LD		($0000),A
-		LD		E,C
-		LD		A,(DE)
-		LD		(HL),A
-		INC		HL
-		DJNZ	$AED2
-		POP		DE
-		POP		HL
+		EX	DE,HL
+		LD	D,$B9
+FWS_1:		LD	C,(HL)
+		LD	(FWS_2+1),HL	; Self-modifying code!
+		INC	HL
+		LD	E,(HL)
+		LD	A,(DE)
+		LD	(HL),A
+		INC	HL
+		LD	E,(HL)
+		LD	A,(DE)
+FWS_2:		LD	($0000),A
+		LD	E,C
+		LD	A,(DE)
+		LD	(HL),A
+		INC	HL
+		DJNZ	FWS_1
+		POP	DE
+		POP	HL
 		RET
+	
 LAEE9:	SUB		$54
 		LD		D,A
 		RLCA
@@ -8156,35 +8175,38 @@ LAEE9:	SUB		$54
 		EXX
 		CALL	$AF2B
 		EXX
-		RET		C
-		PUSH	HL
+		RET	C		; NB: Fall through
+
+	;; Flip a huge (4 character) sprite. Height in B, source in DE.
+FlipHugeSprite:	PUSH	HL
 		PUSH	DE
-		EX		DE,HL
-		LD		D,$B9
-LAF0E:	LD		C,(HL)
-		LD		($AF20),HL
-		INC		HL
-		LD		E,(HL)
-		INC		HL
-		LD		A,(DE)
-		LD		E,(HL)
-		LD		(HL),A
-		DEC		HL
-		LD		A,(DE)
-		LD		(HL),A
-		INC		HL
-		INC		HL
-		LD		E,(HL)
-		LD		A,(DE)
-		LD		($0000),A
-		LD		E,C
-		LD		A,(DE)
-		LD		(HL),A
-		INC		HL
-		DJNZ	$AF0E
-		POP		DE
-		POP		HL
+		EX	DE,HL
+		LD	D,$B9
+FHS_1:		LD	C,(HL)
+		LD	(FHS_2+1),HL	; Self-modifying code
+		INC	HL
+		LD	E,(HL)
+		INC	HL
+		LD	A,(DE)
+		LD	E,(HL)
+		LD	(HL),A
+		DEC	HL
+		LD	A,(DE)
+		LD	(HL),A
+		INC	HL
+		INC	HL
+		LD	E,(HL)
+		LD	A,(DE)
+FHS_2:		LD	($0000),A
+		LD	E,C
+		LD	A,(DE)
+		LD	(HL),A
+		INC	HL
+		DJNZ	FHS_1
+		POP	DE
+		POP	HL
 		RET
+
 LAF2B:	LD		A,($ADA5)
 		LD		C,A
 		AND		$07
@@ -9378,18 +9400,22 @@ LB79D:	LD		C,$FF
 		RET
 
 	;; Called immediately after intalling interrupt handler.
-ShuffleMem:	LD	HL,$FFFE
+ShuffleMem:	; Zero end of top page
+		LD	HL,$FFFE
 		XOR	A
-		LD	(HL),A		; Zero FFFEh
+		LD	(HL),A
+		; Switch to bank 1, write top of page
 		LD	BC,$7FFD
 		LD	D,$10
 		LD	E,$11
-		OUT	(C),E		; FIXME: Write to port $FD? Todo: 128Kism?
-		LD	(HL),$FF	; Now FF it
-		OUT	(C),D		; Write again...
+		OUT	(C),E
+		LD	(HL),$FF
+		; Switch back, see if original overwritten...
+		OUT	(C),D
 		CP	(HL)
 		JR	NZ,Have48K
-	;; Set attribute table to zeros.
+		; Ok, we're 128K...
+		; Zero screen attributes, so no-one can see we're using it as temp space...
 		LD	B,$03
 		LD	HL,$5800
 ShuffleMem_1:	LD	(HL),$00
@@ -9397,27 +9423,28 @@ ShuffleMem_1:	LD	(HL),$00
 		JR	NZ,ShuffleMem_1
 		INC	H
 		DJNZ	ShuffleMem_1
-	;; Stash data in display memory
+		; Stash data in display memory
 		LD	BC,$091B
 		LD	DE,$4000
 		LD	HL,$B884
 		LDIR
-	;; Install IRQ handler again (FIXME: 128k?)
+		; Switch to bank 1
 		LD	A,$11
 		LD	BC,$7FFD
 		OUT	(C),A
+		; Reinitialise IRQ handler there.
 		LD	A,$18
 		LD	($FFFF),A
 		LD	A,$C3
 		LD	($FFF4),A
 		LD	HL,IrqHandler
 		LD	($FFF5),HL
-	;; FIXME: Another memory chunk copy.
+		; FIXME: Another memory chunk copy.
 		LD	BC,$0043
 		LD	DE,$964F
 		LD	HL,$B824
 		LDIR
-	;; FIXME: Repoint interrupt vector.
+		; FIXME: Repoint interrupt vector.
 		DEC	DE
 		LD	E,$00
 		INC	D
@@ -9429,17 +9456,17 @@ ShuffleMem_2:	LD	(DE),A
 		JR	NZ,ShuffleMem_2
 		INC	D
 		LD	(DE),A
-	;; Unstash from display memory
+		; Unstash from display memory
 		LD	BC,$091B
 		LD	DE,$C000
 		LD	HL,$4000
 		LDIR
-	;; FIXME: Flip back?
+		; Switch to bank 0.
 		LD	BC,$7FFD
 		LD	A,$10
 		OUT	(C),A
-	;; Shuffle some more memory
-Have48K:	LD	HL,$C1A0
+Have48K:	; FIXME: Shuffle some more memory
+		LD	HL,$C1A0
 		LD	DE,$C038
 		LD	BC,$390C
 		LDIR
