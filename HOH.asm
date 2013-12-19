@@ -3287,62 +3287,68 @@ L8E47:	LD		D,$01
 		CALL	$8E5F
 		JR		$8E41
 L8E4E:	DEFB $27,$B0,$F0,$28,$44,$F0,$29,$44,$D8,$98,$94,$F0,$1E,$60,$F0
-L8E5D:	LD		D,$03
-L8E5F:	LD		(SpriteCode),A
-		LD		A,B
-		SUB		$48
-		LD		B,A
+	
+L8E5D:		LD	D,$03
+L8E5F:		LD	(SpriteCode),A
+		LD	A,B
+		SUB	$48
+		LD	B,A
 		PUSH	DE
 		PUSH	BC
 		CALL	GetSpriteAddr
-		LD		HL,$180C
-		POP		BC
-		POP		AF
-		AND		A
-		JP		$9542
-L8E74:	LD		L,$00
-		DEC		L
-		INC		L
-		JR		Z,$8E5D
-		LD		(SpriteCode),A
+		LD	HL,$180C
+		POP	BC
+		POP	AF
+		AND	A
+		JP	$9542
+L8E74:		LD	L,$00
+		DEC	L
+		INC	L
+		JR	Z,$8E5D
+		LD	(SpriteCode),A
 		CALL	$8E9B
 		CALL	$8ECF
 		CALL	GetSpriteAddr
-		LD		BC,$B800
+		LD	BC,$B800
 		EXX
-		LD		B,$18
-		CALL	$9A56
-		JP		$93E8
-L8E92:	CALL	$8E9B
+		LD	B,$18
+		CALL	Blit3
+		JP	$93E8
+
+L8E92:		CALL	$8E9B
 		CALL	$8ECF
-		JP		$93E8
-L8E9B:	LD		H,C
-		LD		A,H
-		ADD		A,$0C
-		LD		L,A
-		LD		($A052),HL
-		LD		A,B
-		ADD		A,$18
-		LD		C,A
-		LD		($A054),BC
+		JP	$93E8
+L8E9B:		LD	H,C
+		LD	A,H
+		ADD	A,$0C
+		LD	L,A
+		LD	($A052),HL
+		LD	A,B
+		ADD	A,$18
+		LD	C,A
+		LD	($A054),BC
 		RET
-L8EAC:	LD		(SpriteCode),A
+
+
+L8EAC:		LD	(SpriteCode),A
 		CALL	$8E9B
-		LD		A,B
-		ADD		A,$20
-		LD		($A054),A
+		LD	A,B
+		ADD	A,$20
+		LD	($A054),A
 		CALL	$8ECF
-		LD		A,$02
-		LD		($A05C),A
+		LD	A,$02
+		LD	($A05C),A
 		CALL	GetSpriteAddr
-		LD		BC,$B800
+		LD	BC,$B800
 		EXX
-		LD		B,$20
-		CALL	$9A56
-		JP		$93E8
-L8ECF:	LD		HL,$B800
-		LD		BC,$0100
-		JP		FillZero
+		LD	B,$20
+		CALL	Blit3
+		JP	$93E8
+
+L8ECF:		LD	HL,$B800
+		LD	BC,$0100
+		JP	FillZero 	; Tail call
+
 L8ED8:	DEFB $00,$FF,$FF
 L8EDB:	LD		A,(IY+$0C)
 		LD		(IY+$0C),$FF
@@ -4734,106 +4740,123 @@ L99EF:	DEFB $32,$54,$6A,$52,$6C,$82,$6A,$7A,$92,$FF,$89,$32,$0A,$32,$32,$00
 L99FF:	DEFB $FF,$3A,$52,$32,$54,$6A,$52,$6C,$82,$6A,$7A,$92,$FF,$99,$F6,$FF
 L9A0F:	DEFB $62,$F2,$EA,$DA,$CA,$BA,$B2,$A2,$92,$8A,$7A,$6A,$FF,$61,$50,$53
 L9A1F:	DEFB $34,$34,$FF,$00,$FF,$FF
-L9A25:	EXX
+
+	;; 1-byte-wide masked blit. Height in B.
+	;; Destination BC', image DE', mask HL'.
+	;; Assumes dest buffer is 6 wide, source is 3 wide.
+Blit1of3:	EXX
 		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		HL
-		INC		DE
-		LD		A,C
-		ADD		A,$06
-		LD		C,A
-		INC		HL
-		INC		DE
-		INC		HL
-		INC		DE
+		AND	(HL)
+		EX	DE,HL
+		OR	(HL)
+		EX	DE,HL
+		LD	(BC),A
+		INC	HL
+		INC	DE
+		LD	A,C
+		ADD	A,$06
+		LD	C,A
+		INC	HL
+		INC	DE
+		INC	HL
+		INC	DE
 		EXX
-		DJNZ	$9A25
+		DJNZ	Blit1of3
 		RET
-L9A3A:	EXX
+
+	;; 2-byte-wide masked blit. Height in B.
+	;; Destination BC', image DE', mask HL'.
+	;; Assumes dest buffer is 6 wide, source is 3 wide.
+Blit2of3:	EXX
 		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
+		AND	(HL)
+		EX	DE,HL
+		OR	(HL)
+		EX	DE,HL
+		LD	(BC),A
+		INC	C
+		INC	HL
+		INC	DE
 		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		HL
-		INC		DE
-		LD		A,C
-		ADD		A,$05
-		LD		C,A
-		INC		HL
-		INC		DE
+		AND	(HL)
+		EX	DE,HL
+		OR	(HL)
+		EX	DE,HL
+		LD	(BC),A
+		INC	HL
+		INC	DE
+		LD	A,C
+		ADD	A,$05
+		LD	C,A
+		INC	HL
+		INC	DE
 		EXX
-		DJNZ	$9A3A
+		DJNZ	Blit2of3
 		RET
-L9A56:	EXX
+
+	;; 3-byte-wide masked blit. Height in B.
+	;; Destination BC', image DE', mask HL'.
+	;; Assumes dest buffer is 6 wide.
+Blit3:		EXX
 		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
+		AND	(HL)
+		EX	DE,HL
+		OR	(HL)
+		EX	DE,HL
+		LD	(BC),A
+		INC	C
+		INC	HL
+		INC	DE
 		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
+		AND	(HL)
+		EX	DE,HL
+		OR	(HL)
+		EX	DE,HL
+		LD	(BC),A
+		INC	C
+		INC	HL
+		INC	DE
 		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		HL
-		INC		DE
-		LD		A,C
-		ADD		A,$04
-		LD		C,A
+		AND	(HL)
+		EX	DE,HL
+		OR	(HL)
+		EX	DE,HL
+		LD	(BC),A
+		INC	HL
+		INC	DE
+		LD	A,C
+		ADD	A,$04
+		LD	C,A
 		EXX
-		DJNZ	$9A56
+		DJNZ	Blit3
 		RET
-L9A79:	EXX
+
+	;; 1-byte-wide masked blit. Height in B.
+	;; Destination BC', image DE', mask HL'.
+	;; Assumes dest buffer is 6 wide, source is 4 wide.
+Blit1of4:	EXX
 		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		HL
-		INC		DE
-		LD		A,C
-		ADD		A,$06
-		LD		C,A
-		INC		HL
-		INC		DE
-		INC		HL
-		INC		DE
-		INC		HL
-		INC		DE
+		AND	(HL)
+		EX	DE,HL
+		OR	(HL)
+		EX	DE,HL
+		LD	(BC),A
+		INC	HL
+		INC	DE
+		LD	A,C
+		ADD	A,$06
+		LD	C,A
+		INC	HL
+		INC	DE
+		INC	HL
+		INC	DE
+		INC	HL
+		INC	DE
 		EXX
-		DJNZ	$9A79
+		DJNZ	Blit1
 		RET
-L9A90:	EXX
+
+L9A90:		EXX
 		LD	A,(BC)
 		AND		(HL)
 		EX		DE,HL
@@ -5122,6 +5145,8 @@ L9B8B:	EXX
 		EXX
 		DJNZ	$9B8B
 		RET
+
+	
 L9BBE:	LD		HL,($A052)
 		LD		A,H
 		RRA
@@ -7552,68 +7577,68 @@ RevLoop_2:	RRA
 		RET
 
 LADB7:		LD	(SpriteCode),A
-		AND		$7F
-		CP		$10
-		JR		C,$ADF4
-		LD		DE,$0606
-		LD		H,$12
-		CP		$54
-		JR		C,$ADCE
-		LD		DE,$0808
-		LD		H,$14
+		AND	$7F
+		CP	$10
+		JR	C,$ADF4
+		LD	DE,$0606
+		LD	H,$12
+		CP	$54
+		JR	C,$ADCE
+		LD	DE,$0808
+		LD	H,$14
 LADCE:	CP		$18
-		JR		NC,$ADE1
-		LD		A,($A05C)
-		AND		$02
-		LD		D,$04
-		LD		H,$0C
-		JR		Z,$ADE1
-		LD		D,$00
-		LD		H,$10
+		JR	NC,$ADE1
+		LD	A,($A05C)
+		AND	$02
+		LD	D,$04
+		LD	H,$0C
+		JR	Z,$ADE1
+		LD	D,$00
+		LD	H,$10
 LADE1:	LD		A,B
-		ADD		A,D
-		LD		L,A
-		SUB		D
-		SUB		H
-		LD		H,A
-		LD		A,C
-		ADD		A,E
-		LD		C,A
-		SUB		E
-		SUB		E
-		LD		B,A
-		LD		A,E
-		AND		A
+		ADD	A,D
+		LD	L,A
+		SUB	D
+		SUB	H
+		LD	H,A
+		LD	A,C
+		ADD	A,E
+		LD	C,A
+		SUB	E
+		SUB	E
+		LD	B,A
+		LD	A,E
+		AND	A
 		RRA
-		LD		($ADA4),A
+		LD	($ADA4),A
 		RET
 LADF4:	LD		HL,($A12B)
-		INC		HL
-		INC		HL
-		BIT		5,(HL)
-		EX		AF,AF'
-		LD		A,(HL)
-		SUB		$10
-		CP		$20
-		LD		L,$04
-		JR		NC,$AE07
-		LD		L,$08
+		INC	HL
+		INC	HL
+		BIT	5,(HL)
+		EX	AF,AF'
+		LD	A,(HL)
+		SUB	$10
+		CP	$20
+		LD	L,$04
+		JR	NC,$AE07
+		LD	L,$08
 LAE07:	LD		A,B
-		ADD		A,L
-		LD		L,A
-		SUB		$38
-		LD		H,A
-		EX		AF,AF'
-		LD		A,C
-		LD		B,$08
-		JR		NZ,$AE15
-		LD		B,$04
+		ADD	A,L
+		LD	L,A
+		SUB	$38
+		LD	H,A
+		EX	AF,AF'
+		LD	A,C
+		LD	B,$08
+		JR	NZ,$AE15
+		LD	B,$04
 LAE15:	ADD		A,B
-		LD		C,A
-		SUB		$0C
-		LD		B,A
-		LD		A,$03
-		LD		($ADA4),A
+		LD	C,A
+		SUB	$0C
+		LD	B,A
+		LD	A,$03
+		LD	($ADA4),A
 		RET
 
 	;; Return height in B, image in DE, mask in HL.
