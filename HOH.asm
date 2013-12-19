@@ -2140,8 +2140,8 @@ L7EA3:	DEFB $FF
 L81DC:	PUSH	AF
 		LD		A,L
 		LD		H,$00
-		LD		($ADA5),A
-		CALL	$AE67
+		LD		(SpriteCode),A
+		CALL	Sprite56
 		EX		DE,HL
 		LD		DE,$F9D8
 		PUSH	DE
@@ -2363,7 +2363,9 @@ L8480:	DEFB $01,$5F,$13,$01,$8C,$07,$60,$5A,$16,$01,$5D,$08,$01,$55,$23,$01
 L8490:	DEFB $9C,$CD,$6C,$42,$00,$20,$47,$0A,$00,$2D,$00,$20,$56,$14,$01,$5D
 L84A0:	DEFB $0A,$01,$5D,$01,$01,$98,$4F,$6C,$98,$CD,$6C,$82,$08,$68,$36,$00
 L84B0:	DEFB $20,$37,$00,$20,$1E,$00,$00,$18,$00,$00,$4C,$24,$00,$4C,$A5,$2C
-L84C0:	DEFB $84,$21,$60,$00,$00,$00,$00,$00,$00,$00,$00
+L84C0:	DEFB $84,$21,$60
+PanelBase:	DEFB $00,$00
+	DEFB $00,$00,$00,$00,$00,$00
 L84CB:	CALL	$8603
 		LD		A,C
 		SUB		$06
@@ -2450,7 +2452,7 @@ L8521:	RRA
 		INC		HL
 		LD		H,(HL)
 		LD		L,A
-		LD		($84C3),HL
+		LD		(PanelBase),HL
 		LD		A,$FF
 		EX		AF,AF'
 		LD		A,C
@@ -3286,7 +3288,7 @@ L8E47:	LD		D,$01
 		JR		$8E41
 L8E4E:	DEFB $27,$B0,$F0,$28,$44,$F0,$29,$44,$D8,$98,$94,$F0,$1E,$60,$F0
 L8E5D:	LD		D,$03
-L8E5F:	LD		($ADA5),A
+L8E5F:	LD		(SpriteCode),A
 		LD		A,B
 		SUB		$48
 		LD		B,A
@@ -3302,7 +3304,7 @@ L8E74:	LD		L,$00
 		DEC		L
 		INC		L
 		JR		Z,$8E5D
-		LD		($ADA5),A
+		LD		(SpriteCode),A
 		CALL	$8E9B
 		CALL	$8ECF
 		CALL	$AE20
@@ -3324,7 +3326,7 @@ L8E9B:	LD		H,C
 		LD		C,A
 		LD		($A054),BC
 		RET
-L8EAC:	LD		($ADA5),A
+L8EAC:	LD		(SpriteCode),A
 		CALL	$8E9B
 		LD		A,B
 		ADD		A,$20
@@ -5439,17 +5441,20 @@ L9D9D:	BIT		0,A
 		XOR		$80
 		LD		($9EE1),A
 		LD		B,$4A
-		JP		FlipSprite
-L9DBF:	BIT		2,A
-		JR		NZ,$9D9D
+		JP		FlipSprite 	; Tail call
+
+L9DBF:		BIT	2,A
+		JR	NZ,$9D9D
 		PUSH	AF
 		CALL	$9DD1
-		EX		AF,AF'
-		POP		AF
-		CALL	$9EE2
-		EX		AF,AF'
-		RET		NC
-		JP		$9ECC
+		EX	AF,AF'
+		POP	AF
+		CALL	GetPanelAddr
+		EX	AF,AF'
+		RET	NC
+		JP	FlipPanel 	; Tail call
+
+	
 L9DD1:	LD		C,A
 		LD		HL,($84C5)
 		AND		$03
@@ -5638,8 +5643,9 @@ L9EBD:	LD		A,(HL)
 		DJNZ	$9EBD
 		EXX
 		RET
-L9ECC:	LD		B,$38
-	
+
+	;; Flip a 56-byte-high wall panel
+FlipPanel:	LD		B,$38
 	;; Reverse a two-byte-wide image. Height in B, pointer to data in HL.
 FlipSprite:	PUSH	DE
 		LD	D,$B9
@@ -5660,21 +5666,24 @@ FS_1:		INC	HL
 		RET
 
 L9EE1:	DEFB $00
-L9EE2:	AND		$03
-		ADD		A,A
-		ADD		A,A
-		LD		C,A
-		ADD		A,A
-		ADD		A,A
-		ADD		A,A
-		SUB		C
-		ADD		A,A
-		LD		L,A
-		LD		H,$00
-		ADD		HL,HL
-		LD		BC,($84C3)
-		ADD		HL,BC
+
+	;; Return the panel address in HL, given panel index in A.
+GetPanelAddr:	AND	$03	; Limit to 0-3
+		ADD	A,A
+		ADD	A,A
+		LD	C,A 	; 4x
+		ADD	A,A
+		ADD	A,A
+		ADD	A,A	; 32x
+		SUB	C	; 28x
+		ADD	A,A	; 56x
+		LD	L,A
+		LD	H,$00	; 112x
+		ADD	HL,HL
+		LD	BC,(PanelBase)
+		ADD	HL,BC	; Add on to contents of PanelBase and return.
 		RET
+	
 L9EF6:	DEC		A
 		ADD		A,A
 		EXX
@@ -7524,22 +7533,25 @@ LAD5C:	DEFB $00,$A1,$00,$26,$00,$81,$80,$E9,$00,$84,$00,$B1,$00,$85,$20,$EF
 LAD6C:	DEFB $00,$A4,$F0,$00,$00,$A5,$D0,$88,$D0,$BC,$D0,$DE,$B0,$2D,$D0,$8B
 LAD7C:	DEFB $90,$11,$C0,$E1,$B0,$00,$C0,$E2,$B0,$10,$00,$C1,$F0,$8B,$F0,$00
 LAD8C:	DEFB $30,$97,$20,$EF,$00,$1D,$00,$A8,$70,$BA,$00,$4E,$00,$88,$30,$1B
-LAD9C:	DEFB $00,$4C,$30,$39,$30,$8B,$30,$8D,$04,$00
+LAD9C:	DEFB $00,$4C,$30,$39,$30,$8B,$30,$8D,$04
+
+	;; Current sprite we're drawing.
+SpriteCode:	DEFB $00
 
 	;; Initialise a look-up table of byte reverses.
-InitRevTbl:	LD		HL,$B900
-RevLoop_1:	LD		C,L
-		LD		A,$01
-		AND		A
+InitRevTbl:	LD	HL,$B900
+RevLoop_1:	LD	C,L
+		LD	A,$01
+		AND	A
 RevLoop_2:	RRA
-		RL		C
-		JR		NZ,RevLoop_2
-		LD		(HL),A
-		INC		L
-		JR		NZ,RevLoop_1
+		RL	C
+		JR	NZ,RevLoop_2
+		LD	(HL),A
+		INC	L
+		JR	NZ,RevLoop_1
 		RET
 
-LADB7:	LD		($ADA5),A
+LADB7:		LD	(SpriteCode),A
 		AND		$7F
 		CP		$10
 		JR		C,$ADF4
@@ -7603,15 +7615,16 @@ LAE15:	ADD		A,B
 		LD		A,$03
 		LD		($ADA4),A
 		RET
-LAE20:	LD		A,($ADA5)
+
+LAE20:		LD		A,(SpriteCode)
 		AND		$7F
 		CP		$54
-		JP		NC,$AEE9
+		JP		NC,Sprite28
 		CP		$18
-		JR		NC,$AEAC
+		JR		NC,Sprite24
 		CP		$10
 		LD		H,$00
-		JR		NC,$AE7F
+		JR		NC,Sprite32
 		LD		L,A
 		LD		DE,($A12B)
 		INC		DE
@@ -7619,16 +7632,16 @@ LAE20:	LD		A,($ADA5)
 		LD		A,(DE)
 		OR		$FC
 		INC		A
-		JR		NZ,$AE67
-		LD		A,($ADA5)
+		JR		NZ,Sprite56
+		LD		A,(SpriteCode)
 		LD		C,A
 		RLA
 		LD		A,($770F)
 		JR		C,$AE4F
 		CP		$06
 		JR		$AE51
-LAE4F:	CP		$03
-LAE51:	JR		Z,$AE67
+LAE4F:		CP		$03
+LAE51:		JR		Z,Sprite56
 		LD		A,($AF5A)
 		XOR		C
 		RLA
@@ -7638,73 +7651,79 @@ LAE51:	JR		Z,$AE67
 		LD		A,C
 		LD		($AF5A),A
 		LD		B,$70
-		JR		FlipWideSprite
-LAE67:	LD		A,L
-		LD		E,A
-		ADD		A,A
-		ADD		A,A
-		ADD		A,E
-		ADD		A,A
-		LD		L,A
-		ADD		HL,HL
-		ADD		HL,HL
-		ADD		HL,HL
-		LD		A,E
-		ADD		A,H
-		LD		H,A
-		LD		DE,$C910
-		ADD		HL,DE
-		LD		DE,$00A8
-		LD		B,$70
-		JR		$AEC5
-LAE7F:	SUB		$10
-		LD		L,A
-		ADD		A,A
-		ADD		A,L
-		LD		L,A
-		ADD		HL,HL
-		ADD		HL,HL
-		ADD		HL,HL
-		ADD		HL,HL
-		ADD		HL,HL
-		ADD		HL,HL
-		LD		DE,$CBB0
-		ADD		HL,DE
-		LD		DE,$0060
-		LD		B,$40
-		EX		DE,HL
-		ADD		HL,DE
+		JR		FlipWideSprite ; Tail call
+
+	;; Deal with a sprite 56 pixels high.
+Sprite56:	LD	A,L
+		LD	E,A
+		ADD	A,A 		; 2x
+		ADD	A,A 		; 4x
+		ADD	A,E 		; 5x
+		ADD	A,A 		; 10x
+		LD	L,A
+		ADD	HL,HL 		; 20x
+		ADD	HL,HL 		; 40x
+		ADD	HL,HL 		; 80x
+		LD	A,E
+		ADD	A,H
+		LD	H,A 		; 336x = 3x56x2x
+		LD	DE,$C910
+		ADD	HL,DE
+		LD	DE,$00A8
+		LD	B,$70
+		JR	Sprite3Wide
+
+	;; Deal with a 32 pixel high sprite.
+Sprite32:	SUB	$10
+		LD	L,A
+		ADD	A,A		; 2x
+		ADD	A,L		; 3x
+		LD	L,A
+		ADD	HL,HL		; 3x2x
+		ADD	HL,HL		; 3x4x
+		ADD	HL,HL		; 3x8x
+		ADD	HL,HL		; 3x16x
+		ADD	HL,HL		; 3x32x
+		ADD	HL,HL		; 3x32x2x
+		LD	DE,$CBB0
+		ADD	HL,DE
+		LD	DE,$0060
+		LD	B,$40
+		EX	DE,HL
+		ADD	HL,DE
 		EXX
 		CALL	$AF2B
 		EXX
 		CALL	NC,FlipWideSprite
-		LD		A,($A05C)
-		AND		$02
-		RET		NZ
-		LD		BC,$0030
-		ADD		HL,BC
-		EX		DE,HL
-		ADD		HL,BC
-		EX		DE,HL
+		LD	A,($A05C)
+		AND	$02
+		RET	NZ
+		LD	BC,$0030
+		ADD	HL,BC
+		EX	DE,HL
+		ADD	HL,BC
+		EX	DE,HL
 		RET
-LAEAC:	SUB		$18
-		LD		D,A
-		LD		E,$00
-		LD		H,E
-		ADD		A,A
-		ADD		A,A
-		LD		L,A
-		ADD		HL,HL
-		ADD		HL,HL
-		SRL		D
-		RR		E
-		ADD		HL,DE
-		LD		DE,$CD30
-		ADD		HL,DE
-		LD		DE,$0048
-		LD		B,$30
-LAEC5:	EX		DE,HL
-		ADD		HL,DE
+
+	;; Deal with a 24 pixel high sprite
+Sprite24:	SUB	$18
+		LD	D,A
+		LD	E,$00
+		LD	H,E
+		ADD	A,A 		; 2x
+		ADD	A,A		; 4x
+		LD	L,A
+		ADD	HL,HL		; 8x
+		ADD	HL,HL		; 16x
+		SRL	D
+		RR	E		; 128x
+		ADD	HL,DE		; 144x = 3x24x2x
+		LD	DE,$CD30
+		ADD	HL,DE
+		LD	DE,$0048
+		LD	B,$30
+Sprite3Wide:	EX	DE,HL
+		ADD	HL,DE
 		EXX
 		CALL	$AF2B
 		EXX
@@ -7734,24 +7753,24 @@ FWS_2:		LD	($0000),A
 		POP	HL
 		RET
 	
-LAEE9:	SUB		$54
-		LD		D,A
-		RLCA
-		RLCA
-		LD		H,$00
-		LD		L,A
-		LD		E,H
-		ADD		HL,HL
-		ADD		HL,HL
-		ADD		HL,HL
-		EX		DE,HL
-		SBC		HL,DE
-		LD		DE,$EB90
-		ADD		HL,DE
-		LD		DE,$0070
-		LD		B,$38
-		EX		DE,HL
-		ADD		HL,DE
+Sprite28:	SUB	$54
+		LD	D,A
+		RLCA			; 2x
+		RLCA			; 4x
+		LD	H,$00
+		LD	L,A
+		LD	E,H
+		ADD	HL,HL		; 8x
+		ADD	HL,HL		; 16x
+		ADD	HL,HL		; 32x
+		EX	DE,HL
+		SBC	HL,DE		; 224x = 4x28x2x
+		LD	DE,$EB90
+		ADD	HL,DE
+		LD	DE,$0070
+		LD	B,$38		; 56 high (including image and mask)
+		EX	DE,HL
+		ADD	HL,DE
 		EXX
 		CALL	$AF2B
 		EXX
@@ -7787,13 +7806,13 @@ FHS_2:		LD	($0000),A
 		POP	HL
 		RET
 
-LAF2B:	LD		A,($ADA5)
+LAF2B:		LD		A,(SpriteCode)
 		LD		C,A
 		AND		$07
 		INC		A
 		LD		B,A
 		LD		A,$01
-LAF35:	RRCA
+LAF35:		RRCA
 		DJNZ	$AF35
 		LD		B,A
 		LD		A,C
@@ -7815,13 +7834,14 @@ LAF35:	RRCA
 		AND		(HL)
 		LD		(HL),A
 		RET
-LAF52:	RL		C
+LAF52:		RL		C
 		CCF
 		RET		C
 		LD		A,B
 		OR		(HL)
 		LD		(HL),A
 		RET
+
 LAF5A:	DEFB $00,$1B,$00,$40,$BA,$7E,$AF,$80,$AF,$00,$00,$00,$00,$00,$00,$00
 LAF6A:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$40,$BA
 LAF7A:	DEFB $7E,$AF,$80,$AF,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
