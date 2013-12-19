@@ -2141,7 +2141,7 @@ L81DC:	PUSH	AF
 		LD		A,L
 		LD		H,$00
 		LD		(SpriteCode),A
-		CALL	Sprite56
+		CALL	Sprite3x56
 		EX		DE,HL
 		LD		DE,$F9D8
 		PUSH	DE
@@ -3294,7 +3294,7 @@ L8E5F:	LD		(SpriteCode),A
 		LD		B,A
 		PUSH	DE
 		PUSH	BC
-		CALL	$AE20
+		CALL	GetSpriteAddr
 		LD		HL,$180C
 		POP		BC
 		POP		AF
@@ -3307,7 +3307,7 @@ L8E74:	LD		L,$00
 		LD		(SpriteCode),A
 		CALL	$8E9B
 		CALL	$8ECF
-		CALL	$AE20
+		CALL	GetSpriteAddr
 		LD		BC,$B800
 		EXX
 		LD		B,$18
@@ -3334,7 +3334,7 @@ L8EAC:	LD		(SpriteCode),A
 		CALL	$8ECF
 		LD		A,$02
 		LD		($A05C),A
-		CALL	$AE20
+		CALL	GetSpriteAddr
 		LD		BC,$B800
 		EXX
 		LD		B,$20
@@ -6065,7 +6065,7 @@ LA12F:	CALL	$A1BD
 LA156:	ADD		A,A
 		ADD		A,A
 LA158:	PUSH	AF
-		CALL	$AE20
+		CALL	GetSpriteAddr
 		POP		BC
 		LD		C,B
 		LD		B,$00
@@ -7616,45 +7616,47 @@ LAE15:	ADD		A,B
 		LD		($ADA4),A
 		RET
 
-LAE20:		LD		A,(SpriteCode)
-		AND		$7F
-		CP		$54
-		JP		NC,Sprite28
-		CP		$18
-		JR		NC,Sprite24
-		CP		$10
-		LD		H,$00
-		JR		NC,Sprite32
-		LD		L,A
-		LD		DE,($A12B)
-		INC		DE
-		INC		DE
-		LD		A,(DE)
-		OR		$FC
-		INC		A
-		JR		NZ,Sprite56
-		LD		A,(SpriteCode)
-		LD		C,A
+	;; Return height in B, image in DE, mask in HL.
+GetSpriteAddr:	LD	A,(SpriteCode)
+		AND	$7F
+		CP	$54
+		JP	NC,Sprite4x28
+		CP	$18
+		JR	NC,Sprite3x24
+		CP	$10
+		LD	H,$00
+		JR	NC,Sprite3x32
+	;; TODO: Somewhat mysterious below here...
+		LD	L,A
+		LD	DE,($A12B)
+		INC	DE
+		INC	DE
+		LD	A,(DE)
+		OR	$FC
+		INC	A
+		JR	NZ,Sprite3x56
+		LD	A,(SpriteCode)
+		LD	C,A
 		RLA
-		LD		A,($770F)
-		JR		C,$AE4F
-		CP		$06
-		JR		$AE51
-LAE4F:		CP		$03
-LAE51:		JR		Z,Sprite56
-		LD		A,($AF5A)
-		XOR		C
+		LD	A,($770F)
+		JR	C,GSA_1		; Top bit set?
+		CP	$06
+		JR	GSA_2
+GSA_1:		CP	$03
+GSA_2:		JR	Z,Sprite3x56
+		LD	A,($AF5A)
+		XOR	C
 		RLA
-		LD		DE,$F9D8
-		LD		HL,$FA80
-		RET		NC
-		LD		A,C
-		LD		($AF5A),A
-		LD		B,$70
-		JR		FlipWideSprite ; Tail call
+		LD	DE,$F9D8
+		LD	HL,$FA80
+		RET	NC
+		LD	A,C
+		LD	($AF5A),A
+		LD	B,$70
+		JR	FlipSprite3	; Tail call
 
-	;; Deal with a sprite 56 pixels high.
-Sprite56:	LD	A,L
+	;; Deal with a 3 byte x sprite 56 pixels high.
+Sprite3x56:	LD	A,L
 		LD	E,A
 		ADD	A,A 		; 2x
 		ADD	A,A 		; 4x
@@ -7673,8 +7675,8 @@ Sprite56:	LD	A,L
 		LD	B,$70
 		JR	Sprite3Wide
 
-	;; Deal with a 32 pixel high sprite.
-Sprite32:	SUB	$10
+	;; Deal with a 3 byte x 32 pixel high sprite.
+Sprite3x32:	SUB	$10
 		LD	L,A
 		ADD	A,A		; 2x
 		ADD	A,L		; 3x
@@ -7692,9 +7694,9 @@ Sprite32:	SUB	$10
 		EX	DE,HL
 		ADD	HL,DE
 		EXX
-		CALL	$AF2B
+		CALL	NeedsFlip
 		EXX
-		CALL	NC,FlipWideSprite
+		CALL	NC,FlipSprite3
 		LD	A,($A05C)
 		AND	$02
 		RET	NZ
@@ -7705,8 +7707,8 @@ Sprite32:	SUB	$10
 		EX	DE,HL
 		RET
 
-	;; Deal with a 24 pixel high sprite
-Sprite24:	SUB	$18
+	;; Deal with a 3 byte x 24 pixel high sprite
+Sprite3x24:	SUB	$18
 		LD	D,A
 		LD	E,$00
 		LD	H,E
@@ -7725,17 +7727,16 @@ Sprite24:	SUB	$18
 Sprite3Wide:	EX	DE,HL
 		ADD	HL,DE
 		EXX
-		CALL	$AF2B
+		CALL	NeedsFlip
 		EXX
 		RET	C		; NB: Fall-through.
-
-	;; Flip a wide (3 character) sprite. Height in B, source in DE.
-FlipWideSprite:	PUSH	HL
+	;; Flip a 3-character-wide sprite. Height in B, source in DE.
+FlipSprite3:	PUSH	HL
 		PUSH	DE
 		EX	DE,HL
 		LD	D,$B9
-FWS_1:		LD	C,(HL)
-		LD	(FWS_2+1),HL	; Self-modifying code!
+FS3_1:		LD	C,(HL)
+		LD	(FS3_2+1),HL	; Self-modifying code!
 		INC	HL
 		LD	E,(HL)
 		LD	A,(DE)
@@ -7743,17 +7744,18 @@ FWS_1:		LD	C,(HL)
 		INC	HL
 		LD	E,(HL)
 		LD	A,(DE)
-FWS_2:		LD	($0000),A
+FS3_2:		LD	($0000),A
 		LD	E,C
 		LD	A,(DE)
 		LD	(HL),A
 		INC	HL
-		DJNZ	FWS_1
+		DJNZ	FS3_1
 		POP	DE
 		POP	HL
 		RET
-	
-Sprite28:	SUB	$54
+
+	;; Looks up a 4x28 sprite.
+Sprite4x28:	SUB	$54
 		LD	D,A
 		RLCA			; 2x
 		RLCA			; 4x
@@ -7772,17 +7774,16 @@ Sprite28:	SUB	$54
 		EX	DE,HL
 		ADD	HL,DE
 		EXX
-		CALL	$AF2B
+		CALL	NeedsFlip
 		EXX
 		RET	C		; NB: Fall through
-
-	;; Flip a huge (4 character) sprite. Height in B, source in DE.
-FlipHugeSprite:	PUSH	HL
+	;; Flip a 4-character-wide sprite. Height in B, source in DE.
+FlipSprite4:	PUSH	HL
 		PUSH	DE
 		EX	DE,HL
 		LD	D,$B9
-FHS_1:		LD	C,(HL)
-		LD	(FHS_2+1),HL	; Self-modifying code
+FS4_1:		LD	C,(HL)
+		LD	(FS4_2+1),HL	; Self-modifying code
 		INC	HL
 		LD	E,(HL)
 		INC	HL
@@ -7796,50 +7797,53 @@ FHS_1:		LD	C,(HL)
 		INC	HL
 		LD	E,(HL)
 		LD	A,(DE)
-FHS_2:		LD	($0000),A
+FS4_2:		LD	($0000),A
 		LD	E,C
 		LD	A,(DE)
 		LD	(HL),A
 		INC	HL
-		DJNZ	FHS_1
+		DJNZ	FS4_1
 		POP	DE
 		POP	HL
 		RET
 
-LAF2B:		LD		A,(SpriteCode)
-		LD		C,A
-		AND		$07
-		INC		A
-		LD		B,A
-		LD		A,$01
-LAF35:		RRCA
-		DJNZ	$AF35
-		LD		B,A
-		LD		A,C
+	;; Look up the sprite in the bitmap, returns with C set if the top bit of SpriteCode
+	;; matches the bitmap, otherwise updates the bitmap (assumes that the caller will
+	;; flip the sprite if we return NC). In effect, a simple cache.
+NeedsFlip:	LD	A,(SpriteCode)
+		LD	C,A
+		AND	$07
+		INC	A
+		LD	B,A
+		LD	A,$01
+NF_1:		RRCA
+		DJNZ	NF_1
+		LD	B,A		; B now contains bitmask from low 3 bits of SpriteCode
+		LD	A,C
 		RRA
 		RRA
 		RRA
-		AND		$0F
-		LD		E,A
-		LD		D,$00
-		LD		HL,$C040
-		ADD		HL,DE
-		LD		A,B
-		AND		(HL)
-		JR		Z,$AF52
-		RL		C
-		RET		C
-		LD		A,B
+		AND	$0F		; A contains next 4 bits.
+		LD	E,A
+		LD	D,$00
+		LD	HL,$C040
+		ADD	HL,DE
+		LD	A,B
+		AND	(HL)		; Perform bit-mask look-up
+		JR	Z,NF_2		; Bit set?
+		RL	C		; Bit was non-zero
+		RET	C
+		LD	A,B
 		CPL
-		AND		(HL)
-		LD		(HL),A
+		AND	(HL)
+		LD	(HL),A		; If top bit of SpriteCode wasn't set, reset bit mask
 		RET
-LAF52:		RL		C
+NF_2:		RL	C		; Bit was zero
 		CCF
-		RET		C
-		LD		A,B
-		OR		(HL)
-		LD		(HL),A
+		RET	C
+		LD	A,B
+		OR	(HL)
+		LD	(HL),A		; If top bit of SpriteCode was set, set bit mask
 		RET
 
 LAF5A:	DEFB $00,$1B,$00,$40,$BA,$7E,$AF,$80,$AF,$00,$00,$00,$00,$00,$00,$00
