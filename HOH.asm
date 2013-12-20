@@ -109,14 +109,14 @@ L70FD:	CALL	$9643
 		RET		NZ
 		LD		B,$C0
 		CALL	$9675
-		CALL	$75CB
+		CALL	GetInputWait
 		LD		A,$AC
 		CALL	$B682
 L710E:	CALL	$75D1
 		JR		C,$710E
 		DEC		C
 		JP		Z,$7046
-		CALL	$75CB
+		CALL	GetInputWait
 		CALL	$7BB3
 		LD		HL,$4C50
 L7120:	PUSH	HL
@@ -136,7 +136,7 @@ L7132:	LD		HL,$7169
 		LD		HL,$7176
 L713B:	LD		($715F),HL
 		RET
-L713F:	CALL	$960F
+L713F:	CALL	InputThing
 		BIT		7,A
 		LD		HL,$7040
 		CALL	$718F
@@ -565,53 +565,54 @@ IS_2:		SBC	A,A
 		CALL	SelectStick
 		LD	A,(StickType)
 		SUB	$01
-		RET	C
+		RET	C			; StickType = 0: Keyboard, return
 		LD	HL,Kempston
-		JR	Z,IS_3
-		LD	HL,Fuller
-IS_3:		LD	($9617),HL
-		LD	($75A5),HL
+		JR	Z,IS_3			; StickType = 1: Kempston
+		LD	HL,Fuller		; StickType = 2: Fuller
+IS_3:		LD	(InputThingJoy+1),HL	; Install joystick hooks
+		LD	(StickCall+1),HL
 		XOR	A
-		LD	($75A3),A
+		LD	(GI_Noppable),A		; NOP the RET to fall through
 		LD	A,$CD
-		LD	($960F),A
+		LD	(InputThing),A 		; Make it into a 'CALL', so that it returns.
 		RET
 
 	;;  Joystick handler for Kempston
-Kempston:	IN		A,($1F)
-		LD		B,A
+Kempston:	IN	A,($1F)
+		LD	B,A
 		RRCA
 		RRA
-		RL		C
+		RL	C
 		RLCA
-		RL		C
+		RL	C
 		RRA
 		RRA
-		RL		C
+		RL	C
 		RRA
-		RL		C
+		RL	C
 		RRA
-		RL		C
-		LD		A,C
+		RL	C
+		LD	A,C
 		CPL
-		OR		$E0
+		OR	$E0
 		RET
 
 	;;  Joystick handler for Fuller
-Fuller:		IN		A,($7F)
-		LD		C,A
+Fuller:		IN	A,($7F)
+		LD	C,A
 		RLCA
-		XOR		C
-		AND		$F7
-		XOR		C
-		RL		C
-		RL		C
-		XOR		C
-		AND		$EF
-		XOR		C
-		OR		$E0
+		XOR	C
+		AND	$F7
+		XOR	C
+		RL	C
+		RL	C
+		XOR	C
+		AND	$EF
+		XOR	C
+		OR	$E0
 		RET
-	
+
+	;; FIXME: Work out precisely what this is doing...
 GetInput:	LD		HL,$BF20
 		LD		BC,$FEFE
 GI_1:		IN		A,(C)
@@ -622,14 +623,12 @@ GI_1:		IN		A,(C)
 		RLC		B
 		JR		C,GI_1
 		INC		A
-		RET
-	
+GI_Noppable:	RET				; May get overwritten for fall-through.
 StickCall:	CALL		Kempston
 		INC		A
 		JR		NZ,GI_2
 		DEC		A
 		RET
-
 GI_2:		DEC		A
 		LD		BC,$FF7F
 GI_3:		RLC		C
@@ -655,24 +654,28 @@ L75C1:		LD		A,B
 		LD		H,A
 		LD		A,(HL)
 		RET
-L75CB:	CALL	GetInput
-		JR		Z,$75CB
+
+	;;  Like GetInput, but blocking.
+GetInputWait:	CALL	GetInput
+		JR	Z,GetInputWait
 		RET
-L75D1:	CALL	GetInput
+
+L75D1:		CALL	GetInput
 		SCF
-		RET		NZ
-		LD		A,B
-		LD		C,$00
-		CP		$1E
-		RET		Z
-		INC		C
-		AND		A
-		RET		Z
-		CP		$24
-		RET		Z
-		INC		C
-		XOR		A
+		RET	NZ
+		LD	A,B
+		LD	C,$00
+		CP	$1E
+		RET	Z
+		INC	C
+		AND	A
+		RET	Z
+		CP	$24
+		RET	Z
+		INC	C
+		XOR	A
 		RET
+
 L75E5:	LD		DE,$74D2
 		LD		L,A
 		LD		H,$00
@@ -710,7 +713,7 @@ L760F:	LD		DE,$0008
 		RET
 L761C:	CALL	$75E5
 		PUSH	HL
-		CALL	$75CB
+		CALL	GetInputWait
 		LD		HL,$BF20
 		LD		E,$FF
 		LD		BC,$0009
@@ -731,7 +734,7 @@ L7638:	LD		A,C
 		PUSH	HL
 		LD		A,$A5
 		CALL	$B682
-		CALL	$75CB
+		CALL	GetInputWait
 		POP		HL
 		LD		($B67E),HL
 		LD		A,$C0
@@ -761,7 +764,7 @@ L7677:	EX		AF,AF'
 		EX		AF,AF'
 		DEC		A
 		JR		NZ,$7677
-		JP		$75CB
+		JP		GetInputWait
 L7683:	PUSH	AF
 		LD		A,$82
 		CALL	$B682
@@ -2907,7 +2910,7 @@ L8DC2:	LD		A,$C6
 		LD		DE,($866B)
 		LD		D,$05
 		CALL	$8E32
-L8DDF:	CALL	$75CB
+L8DDF:	CALL	GetInputWait
 		CALL	$8DED
 		CALL	ScreenWipe
 		LD		B,$C1
@@ -4017,48 +4020,60 @@ L960A:	LD		(HL),C
 		INC		L
 		DJNZ	$95FE
 		RET
-L960F:	JP		$961E
-L9612:	DEFB $07,$07,$07,$08,$CD,$64,$75,$06,$00,$5F,$18,$0C
-L961E:	LD		B,$FE
-		LD		A,$FF
-		LD		HL,$74D2
-L9625:	EX		AF,AF'
-		LD		C,$FE
-		IN		E,(C)
-		LD		C,$08
-L962C:	LD		A,(HL)
-		OR		E
-		OR		$E0
-		CP		$FF
+	
+InputThing:	JP	InputThingKbd	; If joystick used, this is rewritten as 'CALL'.
+		RLCA
+		RLCA
+		RLCA
+		EX 	AF,AF'
+InputThingJoy:	CALL 	Kempston	; Rewritten with the appropriate joystick call.
+		LD 	B,0
+		LD 	E,A
+		JR 	IT_2	
+InputThingKbd:	LD	B,$FE
+		LD	A,$FF
+		LD	HL,$74D2
+IT_1:		EX	AF,AF'
+		LD	C,$FE
+		IN	E,(C)
+IT_2:		LD	C,$08
+IT_3:		LD	A,(HL)
+		OR	E
+		OR	$E0
+		CP	$FF
 		CCF
-		RL		D
-		INC		HL
-		DEC		C
-		JR		NZ,$962C
-		EX		AF,AF'
-		AND		D
-		RLC		B
-		JR		C,$9625
+		RL	D
+		INC	HL
+		DEC	C
+		JR	NZ,IT_3
+		EX	AF,AF'
+		AND	D
+		RLC	B
+		JR	C,IT_1
 		RRCA
 		RRCA
 		RRCA
 		RET
-L9643:	LD		A,$BF
-		IN		A,($FE)
-		AND		$10
+
+L9643:		LD	A,$BF
+		IN	A,($FE)
+		AND	$10
 		RET
+
 L964A:	DEFB $00,$FF,$00,$00,$80
-L964F:	LD		A,($964B)
-		CP		$00
-		RET		Z
-		LD		B,$C3
-		JP		$9675
+	
+L964F:		LD	A,($964B)
+		CP	$00
+		RET	Z
+		LD	B,$C3
+		JP	$9675
 	
 IrqFn:		JP	IrqFnCore
 	
 L965D:	DEFB $24,$05,$D9,$04,$93,$04,$51,$04,$12,$04,$D7,$03,$9F,$03,$6B,$03
 L966D:	DEFB $39,$03,$0A,$03,$DE,$02,$B4,$02
-L9675:	LD		A,($964E)
+
+L9675:		LD		A,($964E)
 		RLA
 		RET		NC
 		LD		HL,$964B
@@ -4137,12 +4152,14 @@ L96CD:	LD		E,C
 		RR		C
 		JR		C,$96EB
 		LD		B,$02
-L96EB:	DI
+
+	;; FIXME: Something interrupt-related.
+L96EB:		DI
 		LD		HL,$964A
 		LD		A,(HL)
 		INC		HL
 		LD		(HL),A
-		LD		HL,$98B8
+		LD		HL,IrqFlag1
 		LD		(HL),B
 		INC		HL
 		INC		HL
@@ -4154,6 +4171,7 @@ L96EB:	DI
 		LD		(HL),A
 		EI
 		RET
+
 L9700:	EX		DE,HL
 		LD		B,(HL)
 		INC		HL
@@ -4175,81 +4193,83 @@ L9716:	XOR		A
 		LD		($98B7),A
 		RET
 
-	;;  Interrupt-related
-IrqFnCore:	LD		IY,$98B8
-		LD		A,($964B)
-		INC		A
-		RET		Z
-		LD		IX,($98BA)
-		LD		DE,($98BC)
-		LD		D,$00
-		ADD		IX,DE
-		BIT		1,(IY+$00)
-		JR		NZ,$9764
-		LD		A,($98B9)
-		AND		A
-		JP		NZ,$9863
-		RES		4,(IY+$00)
+	;;  Core interrupt handler.
+IrqFnCore:	LD	IY,IrqFlag1
+		LD	A,($964B)
+		INC	A
+		RET	Z
+		LD	IX,(IrqFlag2)
+		LD	DE,(IrqFlag3)
+		LD	D,$00
+		ADD	IX,DE
+		BIT	1,(IY+$00)
+		JR	NZ,IFC_2
+		LD	A,(IrqFlag1+1)
+		AND	A
+		JP	NZ,$9863
+		RES	4,(IY+$00)
 		CALL	$97AF
-		LD		D,A
-		INC		A
-		JR		NZ,$9790
+		LD	D,A
+		INC	A
+		JR	NZ,IFC_4
 		CALL	$97AF
-		CP		D
-		JR		NZ,$975A
-		LD		($964B),A
+		CP	D
+		JR	NZ,IFC_1
+		LD	($964B),A
 		RET
-L975A:	AND		A
-		JR		NZ,$9764
-		LD		($98BC),A
-		LD		IX,($98BA)
-L9764:	LD		D,(IX+$00)
+IFC_1:		AND	A
+		JR	NZ,IFC_2
+		LD	(IrqFlag3),A
+		LD	IX,(IrqFlag2)
+IFC_2:		LD	D,(IX+$00)
 		CALL	$98A0
-		LD		(IY+$05),D
-		LD		B,$08
-		LD		A,E
-		AND		$02
-		JR		NZ,$977C
-		LD		B,$80
-		RRC		E
-		JR		C,$977C
-		LD		B,$00
-L977C:	LD		A,($98B8)
-		AND		$02
-		OR		B
-		LD		E,A
-		AND		$02
+		LD	(IY+$05),D
+		LD	B,$08
+		LD	A,E
+		AND	$02
+		JR	NZ,IFC_3
+		LD	B,$80
+		RRC	E
+		JR	C,IFC_3
+		LD	B,$00
+IFC_3:		LD	A,(IrqFlag1)
+		AND	$02
+		OR	B
+		LD	E,A
+		AND	$02
 		RLA
 		RLA
 		RLA
-		OR		E
-		LD		($98B8),A
+		OR	E
+		LD	(IrqFlag1),A
 		CALL	$97AF
-		LD		D,A
-L9790:	LD		A,($98B8)
-		AND		$F9
-		LD		($98B8),A
+		LD	D,A
+IFC_4:		LD	A,(IrqFlag1)
+		AND	$F9
+		LD	(IrqFlag1),A
 		CALL	$98A0
-		LD		C,D
-		LD		D,$00
-		LD		HL,$98AF
-		ADD		HL,DE
-		LD		A,(HL)
-		LD		($98B9),A
-		LD		A,C
-		AND		A
-		JR		NZ,$97B8
-		SET		2,(IY+$00)
+		LD	C,D
+		LD	D,$00
+		LD	HL,IrqArray
+		ADD	HL,DE
+		LD	A,(HL)
+		LD	(IrqFlag1+1),A
+		LD	A,C
+		AND	A
+		JR	NZ,$97B8 ; Tail call
+		SET	2,(IY+$00)
 		RET
-L97AF:	INC		IX
-		INC		(IY+$04)
-		LD		A,(IX+$00)
+
+L97AF:		INC	IX
+		INC	(IY+$04)
+		LD	A,(IX+$00)
 		RET
-L97B8:	ADD		A,(IY+$05)
+
+L97B8:		ADD		A,(IY+$05)
 		LD		B,$0C
 		LD		H,$00
 		LD		C,H
-L97C0:	INC		C
+L97C0:		INC		C
 		SUB		B
 		JR		NC,$97C0
 		ADD		A,B
@@ -4263,17 +4283,17 @@ L97C0:	INC		C
 		INC		HL
 		LD		B,C
 		LD		A,$02
-L97D2:	RLCA
-		DJNZ	$97D2
+L97D2:		RLCA
+		DJNZ		$97D2
 		BIT		4,(IY+$00)
 		JR		NZ,$97DE
 		RLCA
 		ADD		A,$08
-L97DE:	LD		($98C2),A
+L97DE:		LD		(IrqFlag6),A
 		LD		B,C
-L97E2:	SRL		D
+L97E2:		SRL		D
 		RR		E
-		DJNZ	$97E2
+		DJNZ		$97E2
 		LD		A,C
 		DEC		A
 		JR		Z,$97FE
@@ -4285,38 +4305,38 @@ L97E2:	SRL		D
 		NEG
 		ADD		A,B
 		LD		B,A
-L97F8:	LD		A,E
+L97F8:		LD		A,E
 		SUB		B
 		LD		E,A
 		JR		NC,$97FE
 		DEC		D
-L97FE:	LD		A,($98B8)
+L97FE:		LD		A,(IrqFlag1)
 		AND		$90
 		CP		$80
 		JR		NZ,$982A
-		LD		($98BE),DE
-		LD		HL,($98C0)
+		LD		(IrqFlag4),DE
+		LD		HL,(IrqFlag5)
 		EX		DE,HL
 		XOR		A
 		SBC		HL,DE
 		LD		A,($98B9)
 		LD		B,$08
-L9817:	RLA
+L9817:		RLA
 		DEC		B
 		JR		NC,$9817
-L981B:	SRA		H
+L981B:		SRA		H
 		RR		L
 		DJNZ	$981B
-		LD		($98C3),HL
+		LD		(IrqFlag7),HL
 		RES		4,(IY+$00)
 		JR		$982E
-L982A:	LD		($98C0),DE
-L982E:	LD		B,(IY+$0A)
-		LD		DE,($98C0)
+L982A:		LD		(IrqFlag5),DE
+L982E:		LD		B,(IY+$0A)
+		LD		DE,(IrqFlag5)
 		LD		A,($98B7)
 		INC		A
 		RET		NZ
-L983A:	LD		A,E
+L983A:		LD		A,E
 		AND		$03
 		NEG
 		ADD		A,$F0
@@ -4329,11 +4349,11 @@ L983A:	LD		A,E
 		INC		HL
 		INC		HL
 		INC		HL
-L9852:	OUT		($FE),A
+L9852:		OUT		($FE),A
 		XOR		$30
 		LD		C,A
 		PUSH	DE
-L9858:	DEC		DE
+L9858:		DEC		DE
 		LD		A,D
 		OR		E
 		JP		NZ,$9858
@@ -4341,25 +4361,25 @@ L9858:	DEC		DE
 		LD		A,C
 		DJNZ	$9852
 		RET
-L9863:	LD		A,($98B8)
+L9863:		LD		A,(IrqFlag1)
 		LD		B,A
 		DEC		(IY+$01)
 		JR		NZ,$9870
 		AND		$80
 		RET		Z
 		LD		A,B
-L9870:	AND		$0C
+L9870:		AND		$0C
 		RET		NZ
 		LD		A,B
 		AND		$90
 		CP		$80
 		JR		NZ,$982E
-		LD		HL,($98C0)
-		LD		DE,($98C3)
+		LD		HL,(IrqFlag5)
+		LD		DE,(IrqFlag7)
 		ADD		HL,DE
 		LD		E,L
 		LD		D,H
-		LD		BC,($98BE)
+		LD		BC,(IrqFlag4)
 		XOR		A
 		SBC		HL,BC
 		RRA
@@ -4367,8 +4387,8 @@ L9870:	AND		$0C
 		RLA
 		JR		C,$989A
 		SET		4,(IY+$00)
-		LD		DE,($98BE)
-L989A:	LD		($98C0),DE
+		LD		DE,(IrqFlag4)
+L989A:	LD		(IrqFlag5),DE
 		JR		$982E
 L98A0:	LD		BC,$0307
 		LD		A,D
@@ -4381,8 +4401,17 @@ L98A0:	LD		BC,$0307
 L98AA:	RRC		D
 		DJNZ	$98AA
 		RET
-L98AF:	DEFB $01,$02,$04,$06,$08,$0C,$10,$20,$FF,$00,$00,$00,$00,$00,$00,$00
-L98BF:	DEFB $00,$00,$00,$00,$00,$00,$E1,$98,$DD,$98,$CB,$98,$09,$99,$14,$99
+
+IrqArray:	DEFB $01,$02,$04,$06,$08,$0C,$10,$20,$FF
+
+IrqFlag1:	DEFW $0000
+IrqFlag2:	DEFW $0000
+IrqFlag3:	DEFW $0000
+IrqFlag4:	DEFW $0000
+IrqFlag5:	DEFW $0000
+IrqFlag6:	DEFB $00
+IrqFlag7:	DEFW $0000
+L98C5:	DEFB $E1,$98,$DD,$98,$CB,$98,$09,$99,$14,$99
 L98CF:	DEFB $1F,$99,$32,$99,$3D,$99,$4A,$99,$4D,$99,$50,$99,$58,$99,$6A,$99
 L98DF:	DEFB $5B,$99,$03,$99,$06,$99,$54,$99,$72,$99,$83,$99,$DD,$99,$9E,$99
 L98EF:	DEFB $A9,$99,$F7,$98,$CD,$99,$D5,$99,$10,$95,$6A,$62,$6A,$7D,$6D,$04
