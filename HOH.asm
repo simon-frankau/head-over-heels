@@ -447,71 +447,86 @@ SkipWriteFrame:	POP	AF
 		EI
 		RET
 	
-L7395:	LD		A,$08
-		CALL	$7404
-		LD		HL,$4048
-		LD		DE,$4857
-L73A0:	PUSH	HL
+L7395:		LD	A,$08
+		CALL	SetAttribs
+		LD	HL,$4048
+		LD	DE,$4857
+L73A0:		PUSH	HL
 		PUSH	DE
 		CALL	$A098
-		POP		DE
-		POP		HL
-		LD		H,L
-		LD		A,L
-		ADD		A,$14
-		LD		L,A
-		CP		$C1
-		JR		C,$73A0
-		LD		HL,$4048
-		LD		D,E
-		LD		A,E
-		ADD		A,$2A
-		LD		E,A
-		JR		NC,$73A0
+		POP	DE
+		POP	HL
+		LD	H,L
+		LD	A,L
+		ADD	A,$14
+		LD	L,A
+		CP	$C1
+		JR	C,$73A0
+		LD	HL,$4048
+		LD	D,E
+		LD	A,E
+		ADD	A,$2A
+		LD	E,A
+		JR	NC,$73A0
 		RET
-L73BB:	DEFB $06,$05,$45,$43,$44,$07,$07,$44,$05,$43,$44,$06,$05,$03,$07,$44
-L73CB:	DEFB $46,$47,$43,$04,$05,$45,$46,$47,$44,$05,$06,$43,$45,$47,$45,$43
-L73DB:	DEFB $07,$44,$46,$47,$47,$45,$06,$43,$45,$46,$46,$44,$07,$43,$44,$45
-L73EB:	DEFB $00,$00,$00,$00,$00,$00,$38,$00,$00,$39,$3A,$3C,$10,$00,$00,$15
-L73FB:	DEFB $16,$17
-L73FD:	CALL	$7404
-		JP		$95B6
-L7403:	DEFB $00
-L7404:	LD		C,A
-		ADD		A,A
-		ADD		A,C
-		ADD		A,A
-		LD		C,A
-		LD		B,$00
-		LD		HL,$73BB
-		ADD		HL,BC
-		LD		A,(HL)
-		LD		($93E4),A
+
+AttribTable:	DEFB $06,$05,$45,$43,$44,$07
+		DEFB $07,$44,$05,$43,$44,$06
+		DEFB $05,$03,$07,$44,$46,$47
+		DEFB $43,$04,$05,$45,$46,$47
+		DEFB $44,$05,$06,$43,$45,$47
+		DEFB $45,$43,$07,$44,$46,$47
+		DEFB $47,$45,$06,$43,$45,$46
+		DEFB $46,$44,$07,$43,$44,$45
+		DEFB $00,$00,$00,$00,$00,$00
+		DEFB $38,$00,$00,$39,$3A,$3C
+		DEFB $10,$00,$00,$15,$16,$17
+	
+L73FD:		CALL	SetAttribs
+		JP	$95B6
+
+	;; The border attribute etc. is saved for the sound routine to modify.
+LastOut:	DEFB $00
+
+SetAttribs:	LD	C,A
+		ADD	A,A
+		ADD	A,C
+		ADD	A,A
+		LD	C,A		; x6
+		LD	B,$00
+		LD	HL,AttribTable
+		ADD	HL,BC
+		LD	A,(HL)		; Index into table
+		LD	(Attrib0),A
 		RRA
 		RRA
 		RRA
-		OUT		($FE),A
-		LD		($7403),A
-		LD		A,(HL)
-		INC		HL
-		LD		E,(HL)
-		INC		HL
-		LD		D,(HL)
-		LD		($743A),DE
-		LD		DE,$93E5
-		INC		HL
-		LDI
-		LDI
-		LDI
-		LD		C,A
-		LD		HL,$5800
-L7432:	LD		(HL),C
-		INC		HL
-		LD		A,H
-		CP		$5B
-		JR		C,$7432
+		OUT	($FE),A		; Output paper colour as border.
+		LD	(LastOut),A
+		LD	A,(HL)
+		INC	HL
+		LD	E,(HL)
+		INC	HL
+		LD	D,(HL)
+		LD	(Attrib1),DE 	; Writes out Attrib2 at the same time
+		LD	DE,Attrib3
+		INC	HL
+		LDI			; Write out Attrib3
+		LDI			; Write out Attrib4
+		LDI			; Write out Attrib5
+	;; Fill the whole screen with Attrib0.
+		LD	C,A
+		LD	HL,$5800
+AttribLoop:	LD	(HL),C
+		INC	HL
+		LD	A,H
+		CP	$5B
+		JR	C,AttribLoop
 		RET
-L743A:	DEFB $00,$00
+
+Attrib1:	DEFB $00
+Attrib2:	DEFB $00
+	
 L743C:	CP		$08
 		JR		C,$7448
 		SUB		$07
@@ -3618,7 +3633,13 @@ L93DD:	LD		A,H
 		OR		L
 		JR		NZ,$93C0
 		RET
-L93E2:	DEFB $00,$00,$00,$43,$45,$46
+L93E2:	DEFB $00,$00
+	
+Attrib0:	DEFB $00
+Attrib3:	DEFB $43
+Attrib4:	DEFB $45
+Attrib5:	DEFB $46
+
 L93E8:	LD		HL,($A052)
 		LD		A,H
 		SUB		$40
@@ -3979,7 +4000,7 @@ L95B6:	LD		BC,($93E2)
 		NEG
 		ADD		A,$20
 		LD		B,A
-		LD		A,($743B)
+		LD		A,(Attrib2)
 		LD		C,A
 		CALL	$95FA
 		POP		HL
@@ -3987,7 +4008,7 @@ L95B6:	LD		BC,($93E2)
 		DEC		L
 		AND		$1F
 		LD		B,A
-		LD		A,($743A)
+		LD		A,(Attrib1)
 		LD		C,A
 		BIT		2,E
 		JR		Z,$95ED
@@ -4346,11 +4367,11 @@ L983A:		LD		A,E
 		RR		E
 		SRL		D
 		RR		E
-		LD		A,($7403)
+		LD		A,(LastOut)
 		INC		HL
 		INC		HL
 		INC		HL
-L9852:		OUT		($FE),A
+L9852:		OUT		($FE),A		; FIXME: Suspiciously soundy
 		XOR		$30
 		LD		C,A
 		PUSH	DE
@@ -8250,7 +8271,8 @@ LB702:	LD		HL,$B71A
 		LD		HL,$B728
 LB711:	LD		($B683),HL
 		RET
-LB715:	CALL	$7404
+	
+LB715:		CALL	SetAttribs
 		JR		$B723
 LB71A:	AND		A
 		LD		($B681),A
