@@ -953,7 +953,7 @@ L784F:	LD		A,(IX-$02)
 		LD		B,$03
 		CALL	$A242
 		LD		($7711),A
-		CALL	$9E18
+		CALL	SetFloorAddr
 L787E:	CALL	$78D4
 		JR		NC,$787E
 		POP		BC
@@ -2974,7 +2974,7 @@ L8E74:		LD	L,$00
 		LD	BC,$B800
 		EXX
 		LD	B,$18
-		CALL	Blit3
+		CALL	Blit3of3
 		JP	$93E8
 
 L8E92:		CALL	$8E9B
@@ -3004,7 +3004,7 @@ L8EAC:		LD	(SpriteCode),A
 		LD	BC,$B800
 		EXX
 		LD	B,$20
-		CALL	Blit3
+		CALL	Blit3of3
 		JP	$93E8
 
 L8ECF:		LD	HL,$B800
@@ -4403,412 +4403,7 @@ L99FF:	DEFB $FF,$3A,$52,$32,$54,$6A,$52,$6C,$82,$6A,$7A,$92,$FF,$99,$F6,$FF
 L9A0F:	DEFB $62,$F2,$EA,$DA,$CA,$BA,$B2,$A2,$92,$8A,$7A,$6A,$FF,$61,$50,$53
 L9A1F:	DEFB $34,$34,$FF,$00,$FF,$FF
 
-	;; 1-byte-wide masked blit. Height in B.
-	;; Destination BC', image DE', mask HL'.
-	;; Assumes dest buffer is 6 wide, source is 3 wide.
-Blit1of3:	EXX
-		LD	A,(BC)
-		AND	(HL)
-		EX	DE,HL
-		OR	(HL)
-		EX	DE,HL
-		LD	(BC),A
-		INC	HL
-		INC	DE
-		LD	A,C
-		ADD	A,$06
-		LD	C,A
-		INC	HL
-		INC	DE
-		INC	HL
-		INC	DE
-		EXX
-		DJNZ	Blit1of3
-		RET
-
-	;; 2-byte-wide masked blit. Height in B.
-	;; Destination BC', image DE', mask HL'.
-	;; Assumes dest buffer is 6 wide, source is 3 wide.
-Blit2of3:	EXX
-		LD	A,(BC)
-		AND	(HL)
-		EX	DE,HL
-		OR	(HL)
-		EX	DE,HL
-		LD	(BC),A
-		INC	C
-		INC	HL
-		INC	DE
-		LD	A,(BC)
-		AND	(HL)
-		EX	DE,HL
-		OR	(HL)
-		EX	DE,HL
-		LD	(BC),A
-		INC	HL
-		INC	DE
-		LD	A,C
-		ADD	A,$05
-		LD	C,A
-		INC	HL
-		INC	DE
-		EXX
-		DJNZ	Blit2of3
-		RET
-
-	;; 3-byte-wide masked blit. Height in B.
-	;; Destination BC', image DE', mask HL'.
-	;; Assumes dest buffer is 6 wide.
-Blit3:		EXX
-		LD	A,(BC)
-		AND	(HL)
-		EX	DE,HL
-		OR	(HL)
-		EX	DE,HL
-		LD	(BC),A
-		INC	C
-		INC	HL
-		INC	DE
-		LD	A,(BC)
-		AND	(HL)
-		EX	DE,HL
-		OR	(HL)
-		EX	DE,HL
-		LD	(BC),A
-		INC	C
-		INC	HL
-		INC	DE
-		LD	A,(BC)
-		AND	(HL)
-		EX	DE,HL
-		OR	(HL)
-		EX	DE,HL
-		LD	(BC),A
-		INC	HL
-		INC	DE
-		LD	A,C
-		ADD	A,$04
-		LD	C,A
-		EXX
-		DJNZ	Blit3
-		RET
-
-	;; 1-byte-wide masked blit. Height in B.
-	;; Destination BC', image DE', mask HL'.
-	;; Assumes dest buffer is 6 wide, source is 4 wide.
-Blit1of4:	EXX
-		LD	A,(BC)
-		AND	(HL)
-		EX	DE,HL
-		OR	(HL)
-		EX	DE,HL
-		LD	(BC),A
-		INC	HL
-		INC	DE
-		LD	A,C
-		ADD	A,$06
-		LD	C,A
-		INC	HL
-		INC	DE
-		INC	HL
-		INC	DE
-		INC	HL
-		INC	DE
-		EXX
-		DJNZ	Blit1of4
-		RET
-
-	;; FIXME
-L9A90:		EXX
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		HL
-		INC		DE
-		LD		A,C
-		ADD		A,$05
-		LD		C,A
-		INC		HL
-		INC		DE
-		INC		HL
-		INC		DE
-		EXX
-		DJNZ	$9A90
-		RET
-L9AAE:	EXX
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		HL
-		INC		DE
-		LD		A,C
-		ADD		A,$04
-		LD		C,A
-		INC		HL
-		INC		DE
-		EXX
-		DJNZ	$9AAE
-		RET
-L9AD3:	EXX
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		HL
-		INC		DE
-		INC		C
-		INC		C
-		INC		C
-		EXX
-		DJNZ	$9AD3
-		RET
-L9AFE:	EXX
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		HL
-		INC		DE
-		LD		A,C
-		ADD		A,$06
-		LD		C,A
-		INC		HL
-		INC		DE
-		INC		HL
-		INC		DE
-		INC		HL
-		INC		DE
-		INC		HL
-		INC		DE
-		EXX
-		DJNZ	$9AFE
-		RET
-L9B17:	EXX
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		HL
-		INC		DE
-		LD		A,C
-		ADD		A,$05
-		LD		C,A
-		INC		HL
-		INC		DE
-		INC		HL
-		INC		DE
-		INC		HL
-		INC		DE
-		EXX
-		DJNZ	$9B17
-		RET
-L9B37:	EXX
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		HL
-		INC		DE
-		LD		A,C
-		ADD		A,$04
-		LD		C,A
-		INC		HL
-		INC		DE
-		INC		HL
-		INC		DE
-		EXX
-		DJNZ	$9B37
-		RET
-L9B5E:	EXX
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		HL
-		INC		DE
-		INC		C
-		INC		C
-		INC		C
-		INC		HL
-		INC		DE
-		EXX
-		DJNZ	$9B5E
-		RET
-L9B8B:	EXX
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		C
-		INC		HL
-		INC		DE
-		LD	A,(BC)
-		AND		(HL)
-		EX		DE,HL
-		OR		(HL)
-		EX		DE,HL
-		LD		(BC),A
-		INC		HL
-		INC		DE
-		INC		C
-		INC		C
-		EXX
-		DJNZ	$9B8B
-		RET
-
+#include "blit.asm"
 	
 L9BBE:	LD		HL,($A052)
 		LD		A,H
@@ -5060,7 +4655,7 @@ L9CFF:	ADD		HL,BC
 		NOP
 		NOP
 		NOP
-L9D45:	LD		HL,($9E2A)
+L9D45:	LD		HL,(FloorAddr)
 		LD		($93E2),BC
 		LD		BC,$000A
 		ADD		HL,BC
@@ -5198,20 +4793,25 @@ L9E0C:	LD		(HL),E
 		EX		DE,HL
 		EXX
 		RET
-L9E18:	LD		C,A
-		ADD		A,A
-		ADD		A,C
-		ADD		A,A
-		ADD		A,A
-		ADD		A,A
-		LD		L,A
-		LD		H,$00
-		ADD		HL,HL
-		LD		DE,$F610
-		ADD		HL,DE
-		LD		($9E2A),HL
+
+	;; Set FloorAddr to the floor sprite indexed in A.
+SetFloorAddr:	LD	C,A
+		ADD	A,A
+		ADD	A,C
+		ADD	A,A
+		ADD	A,A
+		ADD	A,A
+		LD	L,A
+		LD	H,$00
+		ADD	HL,HL		; x $30 (floor tile size)
+		LD	DE,$F610
+		ADD	HL,DE	 	; Add to floor tile base.
+		LD	(FloorAddr),HL
 		RET
-L9E2A:	DEFB $70,$F6
+
+	;; Address of the sprite used to draw the floor.
+FloorAddr:	DEFW $F670
+	
 L9E2C:	PUSH	AF
 		EXX
 		LD		A,(HL)
@@ -5220,7 +4820,7 @@ L9E2C:	PUSH	AF
 		EXX
 		JR		Z,$9E41
 		LD		A,C
-		LD		BC,($9E2A)
+		LD		BC,(FloorAddr)
 		ADD		A,C
 		LD		C,A
 		ADC		A,B
