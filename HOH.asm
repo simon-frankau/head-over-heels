@@ -811,7 +811,9 @@ L76DB:	LDDR
 L76DE:	DEFB $E0,$76,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 L76EE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00
 L76FE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$27,$26,$17,$15,$05,$04,$36
-L770E:	DEFB $34,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+L770E:	DEFB $34,$00,$00
+FloorCode:	DEFB $00
+	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 L771E:	DEFB $00,$00,$00,$00,$00,$00,$08,$08,$48,$48,$08,$10,$48,$40,$08,$18
 L772E:	DEFB $48,$38,$08,$20,$48,$30,$10,$08,$40,$48,$18,$08,$38,$48,$20,$08
 L773E:	DEFB $30,$48,$10,$10,$40,$40,$00,$00,$00,$00,$00,$00,$00,$00,$C0
@@ -952,7 +954,7 @@ L784F:	LD		A,(IX-$02)
 		CALL	$7934
 		LD		B,$03
 		CALL	$A242
-		LD		($7711),A
+		LD	(FloorCode),A
 		CALL	SetFloorAddr
 L787E:	CALL	$78D4
 		JR		NC,$787E
@@ -1605,7 +1607,8 @@ L7D7E:	CALL	$7E11
 		RRA
 		RET
 L7D8D:	DEFB $00,$03,$09,$09,$A0
-L7D92:	CALL	$964F
+	
+L7D92:		CALL	$964F
 		CALL	ScreenWipe
 		LD		A,$BA
 		CALL	$B682
@@ -4811,26 +4814,27 @@ SetFloorAddr:	LD	C,A
 
 	;; Address of the sprite used to draw the floor.
 FloorAddr:	DEFW $F670
-	
-L9E2C:	PUSH	AF
+
+GetFloorAddr:	PUSH	AF
 		EXX
-		LD		A,(HL)
-		OR		$FA
-		INC		A
+		LD	A,(HL)
+		OR	$FA	
+		INC	A	; If bottom two bits are set...
 		EXX
-		JR		Z,$9E41
-		LD		A,C
-		LD		BC,(FloorAddr)
-		ADD		A,C
-		LD		C,A
-		ADC		A,B
-		SUB		C
-		LD		B,A
-		POP		AF
+		JR	Z,GFA_1	; jump.
+		LD	A,C
+		LD	BC,(FloorAddr)
+		ADD	A,C	; Add old C to FloorAddr and return in BC.
+		LD	C,A
+		ADC	A,B
+		SUB	C
+		LD	B,A
+		POP	AF
 		RET
-L9E41:	LD		BC,$F760
-		POP		AF
+GFA_1:		LD	BC,$F760
+		POP	AF
 		RET
+
 L9E46:	LD		B,A
 		LD		A,D
 		BIT		7,(HL)
@@ -4838,7 +4842,7 @@ L9E46:	LD		B,A
 		LD		C,$00
 		JR		Z,$9E51
 		LD		C,$10
-L9E51:	CALL	$9E2C
+L9E51:		CALL	GetFloorAddr
 		AND		$0F
 		ADD		A,A
 		LD		H,$00
@@ -4879,7 +4883,7 @@ L9E80:	LD		B,A
 		LD		C,$00
 		JR		Z,$9E8B
 		LD		C,$10
-L9E8B:	CALL	$9E2C
+L9E8B:		CALL	GetFloorAddr
 		AND		$0F
 		ADD		A,A
 		LD		H,$00
@@ -5520,24 +5524,26 @@ LA231:	LD		A,(HL)
 		ADD		A,$7F
 		LD		B,A
 		RET
-LA242:	LD		DE,$7703
-		LD		A,(DE)
-		LD		HL,($7701)
-		LD		C,A
-		XOR		A
-LA24B:	RL		C
-		JR		Z,$A255
-LA24F:	RLA
+
+LA242:		LD	DE,$7703
+		LD	A,(DE)
+		LD	HL,($7701)
+		LD	C,A
+		XOR	A
+LA24B:		RL	C
+		JR	Z,$A255
+LA24F:		RLA
 		DJNZ	$A24B
-		EX		DE,HL
-		LD		(HL),C
+		EX	DE,HL
+		LD	(HL),C
 		RET
-LA255:	INC		HL
-		LD		($7701),HL
-		LD		C,(HL)
+LA255:		INC	HL
+		LD	($7701),HL
+		LD	C,(HL)
 		SCF
-		RL		C
-		JP		$A24F
+		RL	C
+		JP	$A24F
+
 LA260:	LD		HL,($7748)
 		LD		A,L
 		CP		H
@@ -6468,7 +6474,7 @@ LAAB3:	SCF
 		LD		A,($A2BC)
 		AND		A
 		JR		NZ,$AAF6
-		LD		A,($7711)
+		LD		A,(FloorCode)
 		CP		$06
 		JR		Z,$AAED
 		CP		$07
@@ -6494,7 +6500,7 @@ LAAED:	LD		C,(IY+$09)
 LAAF6:	XOR		A
 		SCF
 		RET
-LAAF9:	LD		A,($7711)
+LAAF9:	LD		A,(FloorCode)
 		CP		$07
 		JR		NZ,$AAF6
 		LD		(IY+$0A),$22
