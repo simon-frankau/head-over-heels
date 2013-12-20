@@ -554,7 +554,7 @@ StickType:	DEFB $00
 L752D:		DEFB $03,$04,$08,$E4
 	
 InitStick:	LD	B,$04
-IS_1:		IN	A,($1F)		; Kempston port
+IS_1:		IN	A,($1F)			; Kempston port
 		AND	$1F
 		CP	$1F
 		JR	NC,IS_2
@@ -1671,40 +1671,41 @@ L7E06:	CALL	$75D1
 		JR		NZ,$7E16
 		AND		A
 		RET
+	
 L7E11:	CALL	$75D1
 		RET		C
 		LD		A,C
-L7E16:	AND		A
+L7E16:		AND		A
 		RET		Z
 		LD		A,(IX+$00)
 		INC		A
 		CP		A,(IX+$01)
 		JR		C,$7E22
 		XOR		A
-L7E22:	LD		(IX+$00),A
+L7E22:	LD	(IX+$00),A
 		PUSH	IX
-		LD		B,$88
+		LD	B,$88
 		CALL	$9675
-		POP		IX
-L7E2E:	LD		B,(IX+$03)
-		RES		7,B
-		LD		C,(IX+$02)
-		LD		($7C88),BC
+		POP	IX
+L7E2E:		LD	B,(IX+$03)
+		RES	7,B
+		LD	C,(IX+$02)
+		LD	($7C88),BC
 		CALL	$B73C
-		LD		B,(IX+$01)
-		LD		C,(IX+$00)
-		INC		C
-L7E44:	LD		A,$AF
-		DEC		C
+		LD	B,(IX+$01)
+		LD	C,(IX+$00)
+		INC	C
+L7E44:		LD	A,$AF
+		DEC	C
 		PUSH	BC
-		JR		NZ,$7E60
-		BIT		7,(IX+$03)
-		JR		NZ,$7E59
-		LD		A,$04
+		JR	NZ,$7E60
+		BIT	7,(IX+$03)
+		JR	NZ,$7E59
+		LD	A,$04
 		CALL	$B682
-		LD		A,$AE
-		JR		$7E60
-L7E59:	LD		A,$03
+		LD	A,$AE
+		JR	$7E60
+L7E59:		LD		A,$03
 		CALL	$B682
 		LD		A,$AE
 L7E60:	CALL	$B682
