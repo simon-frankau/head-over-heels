@@ -135,3 +135,28 @@ BlitScreen5Adj:	LD	A,E
 		LD	D,A
 		DJNZ	BlitScreen5
 		RET
+	
+BlitScreen6:	PUSH	DE
+		LDI
+		LDI
+		LDI
+		LDI
+		LDI
+		LDI
+		POP	DE
+		INC	D
+		LD	A,D
+		AND	$07
+		JR	Z,BlitScreen6Adj
+		DJNZ	BlitScreen6
+		RET
+BlitScreen6Adj:	LD	A,E
+		ADD	A,$20
+		LD	E,A
+		CCF
+		SBC	A,A
+		AND	$F8
+		ADD	A,D
+		LD	D,A
+		DJNZ	BlitScreen6
+		RET
