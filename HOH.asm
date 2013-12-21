@@ -3702,162 +3702,168 @@ L9418:	INC		H
 		SUB		H
 		RES		2,H
 
-	;; FIXME: Some kind of copying with screen location, I think.
-9424:	LDI
-		INC		L
-		INC		L
-		INC		L
-		INC		L
-		INC		L
-		DEC		DE
-		INC		D
-		LD		A,D
-		AND		$07
-		JR		Z,$9435
-		DJNZ	$9424
+	;; BlitScreenN copies an N-byte-wide image to the screen.
+	;; Copy from HL to DE, size in BC.
+	
+	;; Assumes HL buffer is 6 bytes wide, and DE is a screen
+	;; location (no clipping).
+
+BlitScreen1:	LDI
+		INC	L
+		INC	L
+		INC	L
+		INC	L
+		INC	L
+		DEC	DE
+		INC	D
+		LD	A,D
+		AND	$07
+		JR	Z,BlitScreen1Adj
+		DJNZ	BlitScreen1
 		RET
-L9435:	LD		A,E
-		ADD		A,$20
-		LD		E,A
+	;; This bit deals with the update every eight-line
+	;; boundary. In short, it adds 32 onto the low-byte, and removes
+	;; 8 onto the top byte (going back in the interleaved fashion)
+	;; unless we had a carry, in which case it's onto the next screen
+	;; third so we don't subtract anything.
+BlitScreen1Adj:	LD	A,E
+		ADD	A,$20
+		LD	E,A
 		CCF
-		SBC		A,A
-		AND		$F8
-		ADD		A,D
-		LD		D,A
-		DJNZ	$9424
+		SBC	A,A
+		AND	$F8
+		ADD	A,D
+		LD	D,A
+		DJNZ	BlitScreen1
+		RET
+
+BlitScreen2:	LDI
+		LDI
+		INC	L
+		INC	L
+		INC	L
+		INC	L
+		DEC	DE
+		DEC	E
+		INC	D
+		LD	A,D
+		AND	$07
+		JR	Z,BlitScreen2Adj
+		DJNZ	BlitScreen2
+		RET
+BlitScreen2Adj:	LD	A,E
+		ADD	A,$20
+		LD	E,A
+		CCF
+		SBC	A,A
+		AND	$F8
+		ADD	A,D
+		LD	D,A
+		DJNZ	BlitScreen2
+		RET
+
+BlitScreen3:	LDI
+		LDI
+		LDI
+		INC	L
+		INC	L
+		INC	L
+		DEC	DE
+		DEC	E
+		DEC	E
+		INC	D
+		LD	A,D
+		AND	$07
+		JR	Z,BlitScreen3Adj
+		DJNZ	BlitScreen3
+		RET
+BlitScreen3Adj:	LD	A,E
+		ADD	A,$20
+		LD	E,A
+		CCF
+		SBC	A,A
+		AND	$F8
+		ADD	A,D
+		LD	D,A
+		DJNZ	BlitScreen3
+		RET
+
+BlitScreen4:	LDI
+		LDI
+		LDI
+		LDI
+		INC	L
+		INC	L
+		DEC	DE
+		DEC	E
+		DEC	E
+		DEC	E
+		INC	D
+		LD	A,D
+		AND	$07
+		JR	Z,BlitScreen4Adj
+		DJNZ	BlitScreen4
+		RET
+BlitScreen4Adj:	LD	A,E
+		ADD	A,$20
+		LD	E,A
+		CCF
+		SBC	A,A
+		AND	$F8
+		ADD	A,D
+		LD	D,A
+		DJNZ	BlitScreen4
+		RET
+
+BlitScreen5:	PUSH	DE
+		LDI
+		LDI
+		LDI
+		LDI
+		LDI
+		INC	L
+		POP	DE
+		INC	D
+		LD	A,D
+		AND	$07
+		JR	Z,BlitScreen5Adj
+		DJNZ	BlitScreen5
+		RET
+BlitScreen5Adj:	LD	A,E
+		ADD	A,$20
+		LD	E,A
+		CCF
+		SBC	A,A
+		AND	$F8
+		ADD	A,D
+		LD	D,A
+		DJNZ	BlitScreen5
 		RET
 
 	;; FIXME: Some kind of copying with screen location, I think.
-L9442:	LDI
+BlitScreen6:	PUSH	DE
 		LDI
-		INC		L
-		INC		L
-		INC		L
-		INC		L
-		DEC		DE
-		DEC		E
-		INC		D
-		LD		A,D
-		AND		$07
-		JR		Z,$9455
-		DJNZ	$9442
+		LDI
+		LDI
+		LDI
+		LDI
+		LDI
+		POP	DE
+		INC	D
+		LD	A,D
+		AND	$07
+		JR	Z,BlitScreen6Adj
+		DJNZ	BlitScreen6
 		RET
-L9455:	LD		A,E
-		ADD		A,$20
-		LD		E,A
+BlitScreen6Adj:	LD	A,E
+		ADD	A,$20
+		LD	E,A
 		CCF
-		SBC		A,A
-		AND		$F8
-		ADD		A,D
-		LD		D,A
-		DJNZ	$9442
-		RET
-
-	;; FIXME: Some kind of copying with screen location, I think.
-L9462:	LDI
-		LDI
-		LDI
-		INC		L
-		INC		L
-		INC		L
-		DEC		DE
-		DEC		E
-		DEC		E
-		INC		D
-		LD		A,D
-		AND		$07
-		JR		Z,$9477
-		DJNZ	$9462
-		RET
-L9477:	LD		A,E
-		ADD		A,$20
-		LD		E,A
-		CCF
-		SBC		A,A
-		AND		$F8
-		ADD		A,D
-		LD		D,A
-		DJNZ	$9462
-		RET
-
-	;; FIXME: Some kind of copying with screen location, I think.
-L9484:	LDI
-		LDI
-		LDI
-		LDI
-		INC		L
-		INC		L
-		DEC		DE
-		DEC		E
-		DEC		E
-		DEC		E
-		INC		D
-		LD		A,D
-		AND		$07
-		JR		Z,$949B
-		DJNZ	$9484
-		RET
-L949B:	LD		A,E
-		ADD		A,$20
-		LD		E,A
-		CCF
-		SBC		A,A
-		AND		$F8
-		ADD		A,D
-		LD		D,A
-		DJNZ	$9484
-		RET
-
-	;; FIXME: Some kind of copying with screen location, I think.
-L94A8:	PUSH	DE
-		LDI
-		LDI
-		LDI
-		LDI
-		LDI
-		INC		L
-		POP		DE
-		INC		D
-		LD		A,D
-		AND		$07
-		JR		Z,$94BE
-		DJNZ	$94A8
-		RET
-L94BE:	LD		A,E
-		ADD		A,$20
-		LD		E,A
-		CCF
-		SBC		A,A
-		AND		$F8
-		ADD		A,D
-		LD		D,A
-		DJNZ	$94A8
-		RET
-
-	;; FIXME: Some kind of copying with screen location, I think.
-L94CB:		PUSH	DE
-		LDI
-		LDI
-		LDI
-		LDI
-		LDI
-		LDI
-		POP		DE
-		INC		D
-		LD		A,D
-		AND		$07
-		JR		Z,$94E2
-		DJNZ	$94CB
-		RET
-L94E2:	LD		A,E
-		ADD		A,$20
-		LD		E,A
-		CCF
-		SBC		A,A
-		AND		$F8
-		ADD		A,D
-		LD		D,A
-		DJNZ	$94CB
+		SBC	A,A
+		AND	$F8
+		ADD	A,D
+		LD	D,A
+		DJNZ	BlitScreen6
 		RET
 
 	;; FIXME: Returns stuff in DE, takes stuff in BC
