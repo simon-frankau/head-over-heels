@@ -4099,9 +4099,9 @@ L9700:	EX		DE,HL
 		JR		Z,$9716
 		LD		A,$FF
 		LD		($964B),A
-L9716:	XOR		A
+L9716:		XOR		A
 		LD		($98B7),A
-		CALL	$983A
+		CALL	DoSound
 		LD		A,$FF
 		LD		($98B7),A
 		RET
@@ -4115,12 +4115,12 @@ IrqFnCore:	LD	IY,IrqFlag1
 		LD	DE,(IrqFlag3)
 		LD	D,$00
 		ADD	IX,DE
-		BIT	1,(IY+$00)
+		BIT	1,(IY+$00) ; IrqFlag1
 		JR	NZ,IFC_2
 		LD	A,(IrqFlag1+1)
 		AND	A
 		JP	NZ,$9863
-		RES	4,(IY+$00)
+		RES	4,(IY+$00) ; IrqFlag1
 		CALL	$97AF
 		LD	D,A
 		INC	A
@@ -4136,7 +4136,7 @@ IFC_1:		AND	A
 		LD	IX,(IrqFlag2)
 IFC_2:		LD	D,(IX+$00)
 		CALL	$98A0
-		LD	(IY+$05),D
+		LD	(IY+$05),D ; IrqFlag3, high byte
 		LD	B,$08
 		LD	A,E
 		AND	$02
@@ -4169,114 +4169,128 @@ IFC_4:		LD	A,(IrqFlag1)
 		LD	(IrqFlag1+1),A
 		LD	A,C
 		AND	A
-		JR	NZ,$97B8 ; Tail call
-		SET	2,(IY+$00)
+		JR	NZ,IrqBits	; Tail call
+		SET	2,(IY+$00)	; IrqFlag1
 		RET
 
 L97AF:		INC	IX
-		INC	(IY+$04)
+		INC	(IY+$04)	; IrqFlag3, low byte
 		LD	A,(IX+$00)
 		RET
 
-L97B8:		ADD		A,(IY+$05)
-		LD		B,$0C
-		LD		H,$00
-		LD		C,H
-L97C0:		INC		C
-		SUB		B
-		JR		NC,$97C0
-		ADD		A,B
-		LD		L,A
-		ADD		HL,HL
-		LD		DE,$965D
-		ADD		HL,DE
-		LD		E,(HL)
-		INC		HL
-		LD		D,(HL)
-		INC		HL
-		LD		B,C
-		LD		A,$02
-L97D2:		RLCA
-		DJNZ		$97D2
-		BIT		4,(IY+$00)
-		JR		NZ,$97DE
+	;; More interrupt-related stuff...
+IrqBits:	ADD	A,(IY+$05) 	; IrqFlag3, high byte
+		LD	B,$0C
+		LD	H,$00
+		LD	C,H
+IB_0:		INC	C
+		SUB	B
+		JR	NC,IB_0
+		ADD	A,B
+		LD	L,A
+		ADD	HL,HL
+		LD	DE,$965D
+		ADD	HL,DE
+		LD	E,(HL)
+		INC	HL
+		LD	D,(HL)
+		INC	HL
+		LD	B,C
+		LD	A,$02
+IB_1:		RLCA
+		DJNZ	IB_1
+		BIT	4,(IY+$00) ; IrqFlag1
+		JR	NZ,IB_2
 		RLCA
-		ADD		A,$08
-L97DE:		LD		(IrqFlag6),A
-		LD		B,C
-L97E2:		SRL		D
-		RR		E
-		DJNZ		$97E2
-		LD		A,C
-		DEC		A
-		JR		Z,$97FE
-		LD		B,$09
-		LD		A,$04
-		SUB		C
-		JR		C,$97F8
+		ADD	A,$08
+IB_2:		LD	(SoundLenConst),A
+		LD	B,C
+IB_3:		SRL	D
+		RR	E
+		DJNZ	IB_3
+		LD	A,C
+		DEC	A
+		JR	Z,IB_5
+		LD	B,$09
+		LD	A,$04
+		SUB	C
+		JR	C,IB_4
 		RLA
 		NEG
-		ADD		A,B
-		LD		B,A
-L97F8:		LD		A,E
-		SUB		B
-		LD		E,A
-		JR		NC,$97FE
-		DEC		D
-L97FE:		LD		A,(IrqFlag1)
-		AND		$90
-		CP		$80
-		JR		NZ,$982A
-		LD		(IrqFlag4),DE
-		LD		HL,(IrqFlag5)
-		EX		DE,HL
-		XOR		A
-		SBC		HL,DE
-		LD		A,($98B9)
-		LD		B,$08
-L9817:		RLA
-		DEC		B
-		JR		NC,$9817
-L981B:		SRA		H
-		RR		L
-		DJNZ	$981B
-		LD		(IrqFlag7),HL
-		RES		4,(IY+$00)
-		JR		$982E
-L982A:		LD		(IrqFlag5),DE
-L982E:		LD		B,(IY+$0A)
-		LD		DE,(IrqFlag5)
-		LD		A,($98B7)
-		INC		A
-		RET		NZ
-L983A:		LD		A,E
-		AND		$03
+		ADD	A,B
+		LD	B,A
+IB_4:		LD	A,E
+		SUB	B
+		LD	E,A
+		JR	NC,IB_5
+		DEC	D
+IB_5:		LD	A,(IrqFlag1)
+		AND	$90
+		CP	$80
+		JR	NZ,IB_8
+		LD	(IrqFlag4),DE
+		LD	HL,(SoundDelayConst)
+		EX	DE,HL
+		XOR	A
+		SBC	HL,DE
+		LD	A,($98B9)
+		LD	B,$08
+IB_6:		RLA
+		DEC	B
+		JR	NC,IB_6
+IB_7:		SRA	H
+		RR	L
+		DJNZ	IB_7
+		LD	(IrqFlag7),HL
+		RES	4,(IY+$00) ; IrqFlag1
+		JR	$982E
+IB_8:		LD	(SoundDelayConst),DE
+	;; NB: Called from later, so a bit of a mystery...
+L982E:		LD	B,(IY+$0A) ; SoundLenConst
+		LD	DE,(SoundDelayConst)
+		LD	A,($98B7)
+		INC	A
+		RET	NZ
+	;; Fall through!
+
+	;; Writes out B edges with a delay constant of DE.
+DoSound:	LD	A,E
+	;; Bottom two bits control the overwrite of the jump to DS_1 -
+	;; back jump to the OUT, or one of the INC HLs. 
+		AND	$03
 		NEG
-		ADD		A,$F0
-		LD		($9861),A
-		SRL		D
-		RR		E
-		SRL		D
-		RR		E
-		LD		A,(LastOut)
-		INC		HL
-		INC		HL
-		INC		HL
-L9852:		OUT		($FE),A		; FIXME: Suspiciously soundy
-		XOR		$30
-		LD		C,A
+		ADD	A,$F0
+		LD	(DS_3+1),A
+	;; Divide DE by 4.
+		SRL	D
+		RR	E
+		SRL	D
+		RR	E
+	;; Load up previously written value...
+		LD	A,(LastOut)
+	;; Jump target area... these are simply delay ops.
+		INC	HL
+		INC	HL
+		INC	HL
+	;; Write/toggle the sound bit.
+DS_1:		OUT	($FE),A
+		XOR	$30
+	;; Delay loop.
+		LD	C,A
 		PUSH	DE
-L9858:		DEC		DE
-		LD		A,D
-		OR		E
-		JP		NZ,$9858
-		POP		DE
-		LD		A,C
-		DJNZ	$9852
+DS_2:		DEC	DE
+		LD	A,D
+		OR	E
+		JP	NZ,DS_2
+		POP	DE
+		LD	A,C
+	;; And loop.			
+DS_3:		DJNZ	DS_1		; Target of self-modifying code!
 		RET
+
 L9863:		LD		A,(IrqFlag1)
 		LD		B,A
-		DEC		(IY+$01)
+		DEC		(IY+$01) ; IrqFlag1, high byte
 		JR		NZ,$9870
 		AND		$80
 		RET		Z
@@ -4287,7 +4301,7 @@ L9870:		AND		$0C
 		AND		$90
 		CP		$80
 		JR		NZ,$982E
-		LD		HL,(IrqFlag5)
+		LD		HL,(SoundDelayConst)
 		LD		DE,(IrqFlag7)
 		ADD		HL,DE
 		LD		E,L
@@ -4296,12 +4310,12 @@ L9870:		AND		$0C
 		XOR		A
 		SBC		HL,BC
 		RRA
-		XOR		A,(IY+$0B)
+		XOR		A,(IY+$0B) ; IrqFlag7
 		RLA
 		JR		C,$989A
-		SET		4,(IY+$00)
+		SET		4,(IY+$00) ; IrqFlag1
 		LD		DE,(IrqFlag4)
-L989A:	LD		(IrqFlag5),DE
+L989A:	LD		(SoundDelayConst),DE
 		JR		$982E
 L98A0:	LD		BC,$0307
 		LD		A,D
@@ -4321,8 +4335,8 @@ IrqFlag1:	DEFW $0000
 IrqFlag2:	DEFW $0000
 IrqFlag3:	DEFW $0000
 IrqFlag4:	DEFW $0000
-IrqFlag5:	DEFW $0000
-IrqFlag6:	DEFB $00
+SoundDelayConst:	DEFW $0000
+SoundLenConst:	DEFB $00
 IrqFlag7:	DEFW $0000
 L98C5:	DEFB $E1,$98,$DD,$98,$CB,$98,$09,$99,$14,$99
 L98CF:	DEFB $1F,$99,$32,$99,$3D,$99,$4A,$99,$4D,$99,$50,$99,$58,$99,$6A,$99
