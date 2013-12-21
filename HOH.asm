@@ -448,7 +448,7 @@ SkipWriteFrame:	POP	AF
 		RET
 	
 L7395:		LD	A,$08
-		CALL	SetAttribs
+		CALL	SetAttribs 	; Set all black attributes
 		LD	HL,$4048
 		LD	DE,$4857
 L73A0:		PUSH	HL
@@ -497,8 +497,8 @@ AttribTable:	DEFB    YL,    CY, BR+CY,  BR+MG,  BR+GR,     WH ; 0
 		DEFB   WHI,    BK,    BK, WHI+BL, WHI+RD, WHI+GR ; 9
 		DEFB   BLI,    BK,    BK, BLI+CY, BLI+YL, BLI+WH ; 10
 	
-L73FD:		CALL	SetAttribs
-		JP	$95B6
+UpdateAttribs:	CALL	SetAttribs
+		JP	ApplyAttribs	; Tail call
 
 	;; The border attribute etc. is saved for the sound routine to modify.
 LastOut:	DEFB $00
@@ -1392,7 +1392,7 @@ L7B6B:	CALL	$7C76
 		ADD		A,C
 		AND		D
 		LD		A,$08
-		CALL	$73FD
+		CALL	UpdateAttribs
 		JP		$8906
 L7B78:	CALL	$774D
 		CALL	$7C76
@@ -1420,7 +1420,7 @@ L7BA4:	LD		($7B90),A
 L7BAD:	CALL	$7395
 		CALL	$A958
 L7BB3:	LD		A,($7714)
-		CALL	$73FD
+		CALL	UpdateAttribs
 		CALL	$89D2
 		JP		$8E1D
 L7BBF:	CALL	$7C76
@@ -2986,7 +2986,8 @@ L8E47:	LD		D,$01
 		CALL	$8E5F
 		JR		$8E41
 L8E4E:	DEFB $27,$B0,$F0,$28,$44,$F0,$29,$44,$D8,$98,$94,$F0,$1E,$60,$F0
-	
+
+	;; FIXME: Very spritey
 L8E5D:		LD	D,$03
 L8E5F:		LD	(SpriteCode),A
 		LD	A,B
@@ -3277,26 +3278,27 @@ L90CC:	CALL	$9319
 		LD		A,$FF
 		CALL	$92DF
 		JP		$92B7
-L90D7:	LD		HL,$921F
+L90D7:		LD		HL,$921F
 		JP		$911B
-L90DD:	LD		HL,$920D
+L90DD:		LD		HL,$920D
 		JP		$911B
-L90E3:	LD		HL,$921F
+L90E3:		LD		HL,$921F
 		JR		$9121
-L90E8:	LD		HL,$920D
+L90E8:		LD		HL,$920D
 		JR		$9121
-L90ED:	LD		HL,$9214
+L90ED:		LD		HL,$9214
 		JR		$9121
-L90F2:	LD		HL,$9200
+L90F2:		LD		HL,$9200
 		JR		$9121
-L90F7:	LD		HL,$9200
+L90F7:		LD		HL,$9200
 		JR		$9155
-L90FC:	LD		HL,$91E4
+L90FC:		LD		HL,$91E4
 		JR		$9155
-L9101:	LD		HL,$91F1
+L9101:		LD		HL,$91F1
 		JR		$9155
-L9106:	LD		HL,$9245
+L9106:		LD		HL,$9245
 		JR		$9141
+
 L910B:	LD		A,($866B)
 		OR		$F0
 		INC		A
@@ -3699,7 +3701,9 @@ L9418:	INC		H
 		XOR		B
 		SUB		H
 		RES		2,H
-L9424:	LDI
+
+	;; FIXME: Some kind of copying with screen location, I think.
+9424:	LDI
 		INC		L
 		INC		L
 		INC		L
@@ -3722,6 +3726,8 @@ L9435:	LD		A,E
 		LD		D,A
 		DJNZ	$9424
 		RET
+
+	;; FIXME: Some kind of copying with screen location, I think.
 L9442:	LDI
 		LDI
 		INC		L
@@ -3746,6 +3752,8 @@ L9455:	LD		A,E
 		LD		D,A
 		DJNZ	$9442
 		RET
+
+	;; FIXME: Some kind of copying with screen location, I think.
 L9462:	LDI
 		LDI
 		LDI
@@ -3771,6 +3779,8 @@ L9477:	LD		A,E
 		LD		D,A
 		DJNZ	$9462
 		RET
+
+	;; FIXME: Some kind of copying with screen location, I think.
 L9484:	LDI
 		LDI
 		LDI
@@ -3797,6 +3807,8 @@ L949B:	LD		A,E
 		LD		D,A
 		DJNZ	$9484
 		RET
+
+	;; FIXME: Some kind of copying with screen location, I think.
 L94A8:	PUSH	DE
 		LDI
 		LDI
@@ -3821,7 +3833,9 @@ L94BE:	LD		A,E
 		LD		D,A
 		DJNZ	$94A8
 		RET
-L94CB:	PUSH	DE
+
+	;; FIXME: Some kind of copying with screen location, I think.
+L94CB:		PUSH	DE
 		LDI
 		LDI
 		LDI
@@ -3845,27 +3859,29 @@ L94E2:	LD		A,E
 		LD		D,A
 		DJNZ	$94CB
 		RET
-L94EF:	LD		A,B
-		AND		A
+
+	;; FIXME: Returns stuff in DE, takes stuff in BC
+L94EF:		LD	A,B
+		AND	A
 		RRA
 		SCF
+		RRA		; /4, +0x80 ?
+		AND	A
 		RRA
-		AND		A
-		RRA
-		XOR		B
-		AND		$F8
-		XOR		B
-		LD		D,A
-		LD		A,C
+		XOR	B
+		AND	$F8	; Clear bottom 3 bits
+		XOR	B
+		LD	D,A
+		LD	A,C
 		RLCA
 		RLCA
 		RLCA
-		XOR		B
-		AND		$C7
-		XOR		B
+		XOR	B
+		AND	$C7
+		XOR	B
 		RLCA
 		RLCA
-		LD		E,A
+		LD	E,A
 		RET
 	
 	;; Screen-wipe loop
@@ -3961,7 +3977,7 @@ L9568:	LD		A,(DE)
 		ADD		A,A
 		LD		C,A
 		CALL	$94EF
-		CALL	$95AC
+		CALL	GetAttrOrigin
 		LD		A,H
 		RRA
 		RRA
@@ -3989,73 +4005,89 @@ L959A:	LD		(HL),A
 		LD		A,$48
 		LD		($940B),A
 		RET
-L95AC:	LD		A,D
+
+	;; Divide by 8, take bottom 2 bits, tack on $58 (top byte of attribute table address)
+GetAttrOrigin:	LD	A,D
 		RRA
 		RRA
 		RRA
-		AND		$03
-		OR		$58
-		LD		D,A
+		AND	$03
+		OR	$58
+		LD	D,A
 		RET
-L95B6:	LD		BC,($93E2)
-		LD		A,C
-		SUB		$40
-		ADD		A,A
-		LD		C,A
-		LD		A,B
-		SUB		$3D
-		LD		B,A
+	
+ApplyAttribs:	LD	BC,($93E2)
+		LD	A,C
+		SUB	$40
+		ADD	A,A
+		LD	C,A
+		LD	A,B
+		SUB	$3D
+		LD	B,A
 		CALL	$94EF
-		LD		L,D
-		CALL	$95AC
-		EX		DE,HL
+		LD	L,D
+		CALL	GetAttrOrigin
+		EX	DE,HL
+
 		PUSH	HL
-		LD		A,L
-		AND		$1F
+	;; Write out Attrib2 over HL, in a diagonal line up the right, 2:1 gradient.
+		LD	A,L
+		AND	$1F
 		NEG
-		ADD		A,$20
-		LD		B,A
-		LD		A,(Attrib2)
-		LD		C,A
-		CALL	$95FA
-		POP		HL
-		LD		A,L
-		DEC		L
-		AND		$1F
-		LD		B,A
-		LD		A,(Attrib1)
-		LD		C,A
-		BIT		2,E
-		JR		Z,$95ED
-L95E9:	LD		(HL),C
-		DEC		B
-		RET		Z
-		DEC		L
-L95ED:	LD		(HL),C
-		LD		A,L
-		SUB		$20
-		LD		L,A
-		JR		NC,$95F5
-		DEC		H
-L95F5:	LD		(HL),C
-		DEC		L
-		DJNZ	$95E9
+		ADD	A,$20
+		LD	B,A
+		LD	A,(Attrib2)
+		LD	C,A
+		CALL	ApplyAttribs1
+
+		POP	HL
+	;; Write out Attrib1 over HL, in a diagonal line up the left, 2:1 gradient.
+		LD	A,L
+		DEC	L
+		AND	$1F
+		LD	B,A 	; Initialise count with X coordinate from address.
+
+		LD	A,(Attrib1)
+		LD	C,A
+
+		BIT	2,E
+		JR	Z,AA_2		; Do we start with up and left, or left?
+AA_1:		LD	(HL),C
+		DEC	B
+		RET	Z
+	;; Left one 
+		DEC	L
+AA_2:		LD	(HL),C
+	;; Up one line
+		LD	A,L
+		SUB	$20
+		LD	L,A
+		JR	NC,AA_3
+		DEC	H
+AA_3:		LD	(HL),C
+	;; Left one
+		DEC	L
+		DJNZ	AA_1
 		RET
-L95FA:	BIT		2,E
-		JR		Z,$9602
-L95FE:	LD		(HL),C
-		DEC		B
-		RET		Z
-		INC		L
-L9602:	LD		(HL),C
-		LD		A,L
-		SUB		$20
-		LD		L,A
-		JR		NC,$960A
-		DEC		H
-L960A:	LD		(HL),C
-		INC		L
-		DJNZ	$95FE
+
+ApplyAttribs1:	BIT	2,E
+		JR	Z,AA1_2		; Do we start with up and right or up?
+AA1_1:		LD	(HL),C
+		DEC	B
+		RET	Z
+	;; Right one
+		INC	L
+AA1_2:		LD	(HL),C
+	;; Up one line
+		LD	A,L
+		SUB	$20
+		LD	L,A
+		JR	NC,AA1_3
+		DEC	H
+AA1_3:		LD	(HL),C
+	;; Right one
+		INC	L
+		DJNZ	AA1_1
 		RET
 	
 InputThing:	JP	InputThingKbd	; If joystick used, this is rewritten as 'CALL'.
