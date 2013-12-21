@@ -5274,29 +5274,33 @@ LA05D:	INC		HL
 		LD		($A058),BC
 		LD		($A05A),HL
 		RET
-LA06A:	INC		HL
+
+	
+LA06A:		INC		HL
 		INC		HL
-		CALL	$A1D8
+		CALL		$A1D8
 		LD		DE,($A05A)
 		LD		A,H
 		CP		D
 		JR		NC,$A078
 		LD		D,H
-LA078:	LD		A,E
+LA078:		LD		A,E
 		CP		L
 		JR		NC,$A07D
 		LD		E,L
-LA07D:	LD		HL,($A058)
+LA07D:		LD		HL,($A058)
 		LD		A,B
 		CP		H
 		JR		NC,$A085
 		LD		H,B
-LA085:	LD		A,L
+LA085:		LD		A,L
 		CP		C
 		RET		NC
 		LD		L,C
 		RET
-LA08A:	LD		A,L
+
+
+LA08A:		LD		A,L
 		ADD		A,$03
 		AND		$FC
 		LD		L,A
@@ -5305,24 +5309,30 @@ LA08A:	LD		A,L
 		LD		H,A
 		LD		($A052),HL
 		RET
-LA098:	CALL	$A08A
-		JR		$A0AF
-LA09D:	LD		A,$48
-		CP		E
-		RET		NC
-		LD		D,$48
-		JR		$A0B6
-LA0A5:	CALL	$A06A
-LA0A8:	CALL	$A08A
-		LD		A,E
-		CP		$F1
-		RET		NC
-LA0AF:	LD		A,D
-		CP		E
-		RET		NC
-		CP		$48
-		JR		C,$A09D
-LA0B6:	LD		($A054),DE
+
+
+LA098:		CALL	$A08A
+		JR	$A0AF
+
+LA09D:		LD	A,$48
+		CP	E
+		RET	NC
+		LD	D,$48
+		JR	$A0B6
+
+LA0A5:		CALL	$A06A
+LA0A8:		CALL	$A08A
+		LD	A,E
+		CP	$F1
+		RET	NC
+LA0AF:		LD	A,D
+		CP	E
+		RET	NC
+		CP	$48
+		JR	C,$A09D
+
+	;; TODO: This function is seriously epic...
+LA0B6:		LD		($A054),DE
 		CALL	$9BBE
 		LD		A,($7716)
 		AND		$0C
@@ -5343,12 +5353,12 @@ LA0B6:	LD		($A054),DE
 		CP		D
 		JR		C,$A0EC
 		LD		HL,$AF82
-		PUSH	DE
-		CALL	$A11E
+		PUSH		DE
+		CALL		$A11E
 		POP		DE
 		BIT		2,E
 		JR		Z,$A109
-LA0EC:	LD		BC,($A052)
+LA0EC:		LD		BC,($A052)
 		LD		A,($84C9)
 		CP		C
 		JR		NC,$A109
@@ -5362,14 +5372,14 @@ LA0EC:	LD		BC,($A052)
 		JR		C,$A109
 		LD		HL,$AF86
 		CALL	$A11E
-LA109:	LD		HL,$AF8A
+LA109:		LD		HL,$AF8A
 		CALL	$A11E
 		LD		HL,$AF7E
 		CALL	$A11E
 		LD		HL,$AF8E
 		CALL	$A11E
 		JP		$93E8
-LA11E:	LD		A,(HL)
+LA11E:		LD		A,(HL)
 		INC		HL
 		LD		H,(HL)
 		LD		L,A
@@ -5379,7 +5389,7 @@ LA11E:	LD		A,(HL)
 		CALL	$A12F
 		LD		HL,$0000
 		JR		$A11E
-LA12F:	CALL	$A1BD
+LA12F:		CALL	$A1BD
 		RET		NC
 		LD		($A057),A
 		LD		A,H
@@ -5405,9 +5415,9 @@ LA12F:	CALL	$A1BD
 		ADD		A,A
 		ADD		A,B
 		JR		$A158
-LA156:	ADD		A,A
+LA156:		ADD		A,A
 		ADD		A,A
-LA158:	PUSH	AF
+LA158:		PUSH	AF
 		CALL	GetSpriteAddr
 		POP		BC
 		LD		C,B
@@ -5482,7 +5492,7 @@ LA158:	PUSH	AF
 		SBC		A,E
 		ADC		A,E
 		SBC		A,E
-LA1BD:	CALL	$A1F0
+LA1BD:		CALL	$A1F0
 		LD		A,B
 		LD		($A056),A
 		PUSH	HL
@@ -5495,6 +5505,9 @@ LA1BD:	CALL	$A1F0
 		LD		DE,($A054)
 		CALL	$A20C
 		RET
+
+
+	
 LA1D8:	INC		HL
 		INC		HL
 		LD		A,(HL)
