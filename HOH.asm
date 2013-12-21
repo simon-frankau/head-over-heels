@@ -470,17 +470,32 @@ L73A0:		PUSH	HL
 		JR	NC,$73A0
 		RET
 
-AttribTable:	DEFB $06,$05,$45,$43,$44,$07
-		DEFB $07,$44,$05,$43,$44,$06
-		DEFB $05,$03,$07,$44,$46,$47
-		DEFB $43,$04,$05,$45,$46,$47
-		DEFB $44,$05,$06,$43,$45,$47
-		DEFB $45,$43,$07,$44,$46,$47
-		DEFB $47,$45,$06,$43,$45,$46
-		DEFB $46,$44,$07,$43,$44,$45
-		DEFB $00,$00,$00,$00,$00,$00
-		DEFB $38,$00,$00,$39,$3A,$3C
-		DEFB $10,$00,$00,$15,$16,$17
+	;; Paper colour
+BK:		EQU	0
+BL:		EQU	1
+RD:		EQU	2
+MG:		EQU	3
+GR:		EQU	4
+CY:		EQU	5
+YL:		EQU	6
+WH:		EQU	7
+	;; Modifiers (otherwise, will be dark with black ink)
+BR:		EQU	$40	; Bright
+BLI:		EQU	$10	; Blue ink
+WHI:		EQU	$38	; White ink
+
+	;; The various colour schemes available.
+AttribTable:	DEFB    YL,    CY, BR+CY,  BR+MG,  BR+GR,     WH ; 0
+		DEFB    WH, BR+GR,    CY,  BR+MG,  BR+GR,     YL ; 1
+		DEFB    CY,    MG,    WH,  BR+GR,  BR+YL,  BR+WH ; 2
+		DEFB BR+MG,    GR,    CY,  BR+CY,  BR+YL,  BR+WH ; 3
+		DEFB BR+GR,    CY,    YL,  BR+MG,  BR+CY,  BR+WH ; 4
+		DEFB BR+CY, BR+MG,    WH,  BR+GR,  BR+YL,  BR+WH ; 5
+		DEFB BR+WH, BR+CY,    YL,  BR+MG,  BR+CY,  BR+YL ; 6
+		DEFB BR+YL, BR+GR,    WH,  BR+MG,  BR+GR,  BR+CY ; 7
+		DEFB    BK,    BK,    BK,     BK,     BK,     BK ; 8
+		DEFB   WHI,    BK,    BK, WHI+BL, WHI+RD, WHI+GR ; 9
+		DEFB   BLI,    BK,    BK, BLI+CY, BLI+YL, BLI+WH ; 10
 	
 L73FD:		CALL	SetAttribs
 		JP	$95B6
