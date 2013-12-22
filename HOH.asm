@@ -3982,10 +3982,10 @@ L964F:		LD	A,($964B)
 		JP	$9675
 	
 IrqFn:		JP	IrqFnCore
-	
-L965D:	DEFB $24,$05,$D9,$04,$93,$04,$51,$04,$12,$04,$D7,$03,$9F,$03,$6B,$03
-L966D:	DEFB $39,$03,$0A,$03,$DE,$02,$B4,$02
 
+	;; Ratio between elements are twelth root of two - definitions for notes in a scale.
+ScaleTable:	DEFW 1316,1241,1171,1105,1042,983,927,875,825,778,734,692
+	
 L9675:		LD		A,($964E)
 		RLA
 		RET		NC
@@ -4072,7 +4072,7 @@ L96EB:		DI
 		LD		A,(HL)
 		INC		HL
 		LD		(HL),A
-		LD		HL,IrqFlag1
+		LD		HL,SndCtrl
 		LD		(HL),B
 		INC		HL
 		INC		HL
@@ -4107,7 +4107,7 @@ L9716:		XOR		A
 		RET
 
 	;;  Core interrupt handler.
-IrqFnCore:	LD	IY,IrqFlag1
+IrqFnCore:	LD	IY,SndCtrl
 		LD	A,($964B)
 		INC	A
 		RET	Z
@@ -4115,17 +4115,17 @@ IrqFnCore:	LD	IY,IrqFlag1
 		LD	DE,(ScoreIdx)
 		LD	D,$00
 		ADD	IX,DE	   ; Generate current score pointer, put in IX.
-		BIT	1,(IY+$00) ; IrqFlag1
+		BIT	1,(IY+$00) ; SndCtrl
 		JR	NZ,IFC_2
-		LD	A,(IrqFlag1+1)
+		LD	A,(NoteLen)
 		AND	A
 		JP	NZ,OtherSoundThing
-		RES	4,(IY+$00) ; IrqFlag1 - turn on glissando
-		CALL	$97AF
+		RES	4,(IY+$00) ; SndCtrl - turn on glissando
+		CALL	GetScoreByte
 		LD	D,A
 		INC	A
 		JR	NZ,IFC_4
-		CALL	$97AF
+		CALL	GetScoreByte
 		CP	D
 		JR	NZ,IFC_1
 		LD	($964B),A
@@ -4136,7 +4136,7 @@ IFC_1:		AND	A
 		LD	IX,(ScorePtr)
 IFC_2:		LD	D,(IX+$00)
 		CALL	UnpackD
-		LD	(IY+$05),D ; ScoreIdx, high byte
+		LD	(IY+$05),D ; Something
 		LD	B,$08
 		LD	A,E
 		AND	$02
@@ -4145,7 +4145,7 @@ IFC_2:		LD	D,(IX+$00)
 		RRC	E
 		JR	C,IFC_3
 		LD	B,$00
-IFC_3:		LD	A,(IrqFlag1)
+IFC_3:		LD	A,(SndCtrl)
 		AND	$02
 		OR	B
 		LD	E,A
@@ -4154,67 +4154,74 @@ IFC_3:		LD	A,(IrqFlag1)
 		RLA
 		RLA
 		OR	E
-		LD	(IrqFlag1),A
-		CALL	$97AF
+		LD	(SndCtrl),A
+		CALL	GetScoreByte
 		LD	D,A
-IFC_4:		LD	A,(IrqFlag1)
+IFC_4:		LD	A,(SndCtrl)
 		AND	$F9
-		LD	(IrqFlag1),A
+		LD	(SndCtrl),A 	; Turn off 0x2 and 0x4
 		CALL	UnpackD
 		LD	C,D
 		LD	D,$00
 		LD	HL,IrqArray
 		ADD	HL,DE
 		LD	A,(HL)
-		LD	(IrqFlag1+1),A
+		LD	(NoteLen),A
 		LD	A,C
 		AND	A
 		JR	NZ,IrqBits	; Tail call
-		SET	2,(IY+$00)	; IrqFlag1
+		SET	2,(IY+$00)	; SndCtrl
 		RET
 
-L97AF:		INC	IX
-		INC	(IY+$04)	; ScoreIdx, low byte
+GetScoreByte:	INC	IX		; Contains ScorePtr + ScoreIdx
+		INC	(IY+$04)	; ScoreIdx
 		LD	A,(IX+$00)
 		RET
 
 	;; More interrupt-related stuff...
-IrqBits:	ADD	A,(IY+$05) 	; ScoreIdx, high byte
-		LD	B,$0C
-		LD	H,$00
+IrqBits:	ADD	A,(IY+$05) 	; Something
+	;; Divide A by 12, result plus one in C, remainder in A.
+		LD	B,12
+		LD	H,0
 		LD	C,H
 IB_0:		INC	C
 		SUB	B
 		JR	NC,IB_0
 		ADD	A,B
+	;; Look up the basic delay constant in the scale table.
 		LD	L,A
 		ADD	HL,HL
-		LD	DE,$965D
+		LD	DE,ScaleTable
 		ADD	HL,DE
 		LD	E,(HL)
 		INC	HL
 		LD	D,(HL)
-		INC	HL
+		INC	HL	; (Seems unnecessary??)
+	;; Generate the octave constant in A.
 		LD	B,C
 		LD	A,$02
 IB_1:		RLCA
 		DJNZ	IB_1
-		BIT	4,(IY+$00) 	; IrqFlag1 - get glissando bit
+		BIT	4,(IY+$00) 	; SndCtrl - get glissando bit
 		JR	NZ,IB_2
+	;; Glissando case: Double the constant and add 8. Don't ask me.
 		RLCA			; Glissando case...
 		ADD	A,$08
+	;; Otherwise, don't.
 IB_2:		LD	(SoundLenConst),A
+	;; Now shift the delay constant (in DE), according to the octave we're in.
 		LD	B,C
 IB_3:		SRL	D
 		RR	E
 		DJNZ	IB_3
+	;; Now some octave-specific cases:
 		LD	A,C
 		DEC	A
-		JR	Z,IB_5
+		JR	Z,IB_5	; Go to IB_5 if bottom octave/octave 1 (encoded as 0).
 		LD	B,$09
 		LD	A,$04
 		SUB	C
-		JR	C,IB_4
+		JR	C,IB_4	; Go to IB_4 if octave > 4
 		RLA
 		NEG
 		ADD	A,B
@@ -4224,26 +4231,32 @@ IB_4:		LD	A,E
 		LD	E,A
 		JR	NC,IB_5
 		DEC	D
-IB_5:		LD	A,(IrqFlag1)
+	;; Check for glissando
+IB_5:		LD	A,(SndCtrl)
 		AND	$90
 		CP	$80
 		JR	NZ,IB_8
+	;; Glissando case
 		LD	(SoundDelayTarget),DE
 		LD	HL,(SoundDelayConst)
 		EX	DE,HL
 		XOR	A
-		SBC	HL,DE
-		LD	A,($98B9)
+		SBC	HL,DE		; Now contains difference between current and target.
+		LD	A,(NoteLen)
+	;; Count significant bits in A.
 		LD	B,$08
 IB_6:		RLA
 		DEC	B
 		JR	NC,IB_6
+	;; Divide through by that.
 IB_7:		SRA	H
 		RR	L
 		DJNZ	IB_7
+	;; And that gives us our delta to finish in the appropriate timeframe.
 		LD	(SoundDelayDelta),HL
-		RES	4,(IY+$00) 	; IrqFlag1 - enable glissando.
+		RES	4,(IY+$00) 	; SndCtrl - enable glissando.
 		JR	DoCurrSound	; Tail call
+	;; Non-glissando case
 IB_8:		LD	(SoundDelayConst),DE
 	;; NB: Fall through
 
@@ -4289,16 +4302,16 @@ DS_2:		DEC	DE
 DS_3:		DJNZ	DS_1		; Target of self-modifying code!
 		RET
 
-OtherSoundThing:LD	A,(IrqFlag1)
+OtherSoundThing:LD	A,(SndCtrl)
 		LD	B,A
-		DEC	(IY+$01)	; IrqFlag1, high byte
+		DEC	(IY+$01)	; NoteLen
 		JR	NZ,OST_1
 		AND	$80
-		RET	Z		; Do nothing if high byte IrqFlag1 is zero, and top
-					; bit of low byte is reset.
+		RET	Z		; Do nothing if NoteLen is zero, and top
+					; bit of SndCtrl is reset.
 		LD	A,B
 OST_1:		AND	$0C
-		RET	NZ		; Return if 0x8 or 0x4 bit set in IrqFlag1
+		RET	NZ		; Return if 0x8 or 0x4 bit set in SndCtrl
 		LD	A,B
 		AND	$90
 		CP	$80
@@ -4315,7 +4328,7 @@ OST_1:		AND	$0C
 		XOR	A,(IY+$0B)	; SoundDelayDelta high byte - this bit is for signed check.
 		RLA
 		JR	C,OST_2
-		SET	4,(IY+$00)	; Set 0x10 bit of IrqFlag1 - turn off glissando.
+		SET	4,(IY+$00)	; Set 0x10 bit of SndCtrl - turn off glissando.
 		LD	DE,(SoundDelayTarget) ; And use the target frequency
 OST_2:		LD	(SoundDelayConst),DE
 		JR	DoCurrSound 	; Tail call
@@ -4334,9 +4347,11 @@ UnpackD_1:	RRC	D
 
 IrqArray:	DEFB $01,$02,$04,$06,$08,$0C,$10,$20,$FF
 
-IrqFlag1:	DEFW $0000
+SndCtrl:	DEFB $00
+NoteLen:	DEFB $00
 ScorePtr:	DEFW $0000
-ScoreIdx:	DEFW $0000
+ScoreIdx:	DEFB $00
+Something:	DEFB $00
 SoundDelayTarget:	DEFW $0000
 SoundDelayConst:	DEFW $0000
 SoundLenConst:	DEFB $00
