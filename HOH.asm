@@ -41,7 +41,7 @@ MainLoop:	CALL	WaitFrame
 		SUB	$01
 		LD	(HL),$00
 		LD	B,A
-		CALL	NC,$9675
+		CALL	NC,PlaySound
 		JR	MainLoop
 
 	
@@ -63,7 +63,7 @@ L7095:	CALL	$708B
 		LD		B,$C1
 		CP		$30
 		PUSH	AF
-		CALL	Z,$9675
+		CALL	Z,PlaySound
 		POP		AF
 		AND		$01
 		LD		A,$C9
@@ -108,7 +108,7 @@ WaitFrame:	LD		A,(FrameCounter)
 L70FD:	CALL	$9643
 		RET		NZ
 		LD		B,$C0
-		CALL	$9675
+		CALL	PlaySound
 		CALL	GetInputWait
 		LD		A,$AC
 		CALL	$B682
@@ -189,7 +189,7 @@ L7196:	BIT		1,(HL)
 		SET		0,(HL)
 		RET
 L719E:	LD		B,$C4
-		JP		$9675
+		JP		PlaySound
 L71A3:	LD		A,($7041)
 		RRA
 		RET		NC
@@ -1416,7 +1416,7 @@ L7B91:	CALL	$7BBF
 L7BA4:	LD		($7B90),A
 		OR		$40
 		LD		B,A
-		CALL	$9675
+		CALL	PlaySound
 L7BAD:	CALL	$7395
 		CALL	$A958
 L7BB3:	LD		A,($7714)
@@ -1682,7 +1682,7 @@ L7DE3:	CALL	$964F
 		CALL	$75D1
 		JR		C,$7DE3
 		LD		B,$C0
-		JP		$9675
+		JP		PlaySound
 L7DF0:	ADD		A,A
 		ADD		A,(IX+$03)
 		AND		$7F
@@ -1715,7 +1715,7 @@ L7E16:		AND		A
 L7E22:	LD	(IX+$00),A
 		PUSH	IX
 		LD	B,$88
-		CALL	$9675
+		CALL	PlaySound
 		POP	IX
 L7E2E:		LD	B,(IX+$03)
 		RES	7,B
@@ -2393,7 +2393,7 @@ L87F1:	DEC		HL
 		LD		IX,$8805
 		JP		(HL)
 		LD		B,$C5
-		JP		$9675
+		JP		PlaySound
 L880A:	LD		H,$88
 		LD		H,$88
 		DEC		(HL)
@@ -2425,7 +2425,7 @@ L8827:	LD		HL,$A28B
 		CALL	$89BA
 		CALL	$8E1D
 		LD		B,$C2
-		JP		$9675
+		JP		PlaySound
 L8835:	LD		A,($A294)
 		AND		$02
 		RET		Z
@@ -2481,10 +2481,10 @@ L8895:	LD		A,D
 		LD		HL,$866B
 		CALL	$89BA
 		LD		B,$C1
-		CALL	$9675
+		CALL	PlaySound
 		JP		$8D9E
 L88A6:	LD		B,$C2
-		CALL	$9675
+		CALL	PlaySound
 		CALL	$89AB
 		LD		IX,$866C
 		LD		DE,$0004
@@ -2945,7 +2945,7 @@ L8DDF:	CALL	GetInputWait
 		CALL	$8DED
 		CALL	ScreenWipe
 		LD		B,$C1
-		JP		$9675
+		JP		PlaySound
 L8DED:	LD		HL,$A800
 L8DF0:	PUSH	HL
 		CALL	$964F
@@ -3075,7 +3075,7 @@ L8F08:	BIT		5,(IY+$0C)
 		CALL	$92CF
 		CALL	$92B7
 		LD		B,$47
-		JP		$9675
+		JP		PlaySound
 L8F18:	LD		H,B
 		LD		HL,$8F18
 		LD		A,(HL)
@@ -3973,137 +3973,141 @@ L9643:		LD	A,$BF
 		AND	$10
 		RET
 
-L964A:	DEFB $00,$FF,$00,$00,$80
+L964A:	DEFB $00
+L964B:	DEFB $FF
+L964C:	DEFB $00
+L964D:	DEFB $00
+L964E:	DEFB $80
 	
 L964F:		LD	A,($964B)
 		CP	$00
 		RET	Z
 		LD	B,$C3
-		JP	$9675
+		JP	PlaySound
 	
 IrqFn:		JP	IrqFnCore
 
 	;; Ratio between elements are twelth root of two - definitions for notes in a scale.
 ScaleTable:	DEFW 1316,1241,1171,1105,1042,983,927,875,825,778,734,692
-	
-L9675:		LD		A,($964E)
-		RLA
-		RET		NC
-		LD		HL,$964B
-		LD		A,(HL)
-		CP		B
-		RET		Z
-		LD		A,B
-		AND		$3F
-		CP		$3F
-		JR		NZ,$9697
-		INC		B
-		JR		Z,$9693
-		LD		A,(HL)
-		AND		A
-		RET		Z
-		LD		A,B
-		DEC		A
-		XOR		(HL)
-		AND		$C0
-		RET		NZ
-L9693:	LD		A,$FF
-		LD		(HL),A
-		RET
-L9697:	LD		C,A
-		LD		A,B
-		LD		D,$00
-		DEC		HL
-		LD		(HL),A
-		RLCA
-		RLCA
-		AND		$03
-		LD		B,A
-		CP		$03
-		JR		NZ,$96AD
-		XOR		A
-		LD		(HL),A
-		LD		HL,$98E5
-		JR		$96CD
-L96AD:	LD		A,($964B)
-		AND		A
-		RET		Z
-		LD		A,B
-		CP		$02
-		JR		Z,$96C2
-		CP		$01
-		LD		A,$F9
-		JR		Z,$96BF
-		LD		A,$FC
-L96BF:	ADD		A,C
-		RET		NC
-		LD		C,A
-L96C2:	LD		HL,$98C5
-		LD		E,B
-		SLA		E
-		ADD		HL,DE
-		LD		E,(HL)
-		INC		HL
-		LD		H,(HL)
-		LD		L,E
-L96CD:	LD		E,C
-		SLA		E
-		ADD		HL,DE
-		LD		E,(HL)
-		INC		HL
-		LD		D,(HL)
-		LD		A,(DE)
-		AND		$07
-		LD		C,A
-		AND		$04
-		JR		NZ,$9700
-		LD		A,C
-		AND		$02
-		LD		B,$0A
-		JR		NZ,$96EB
-		LD		B,$92
-		RR		C
-		JR		C,$96EB
-		LD		B,$02
 
-	;; FIXME: Something interrupt-related.
-L96EB:		DI
-		LD		HL,$964A
-		LD		A,(HL)
-		INC		HL
-		LD		(HL),A
-		LD		HL,SndCtrl
-		LD		(HL),B
-		INC		HL
-		INC		HL
-		LD		(HL),E
-		INC		HL
-		LD		(HL),D
-		XOR		A
-		INC		HL
-		LD		(HL),A
+	;; FIXME: Called from everywhere.
+PlaySound:	LD	A,($964E)
+		RLA
+		RET	NC
+		LD	HL,$964B
+		LD	A,(HL)
+		CP	B
+		RET	Z
+		LD	A,B
+		AND	$3F
+		CP	$3F
+		JR	NZ,PS_2
+		INC	B
+		JR	Z,PS_1
+		LD	A,(HL)
+		AND	A
+		RET	Z
+		LD	A,B
+		DEC	A
+		XOR	(HL)
+		AND	$C0
+		RET	NZ
+PS_1:		LD	A,$FF
+		LD	(HL),A
+		RET
+PS_2:		LD	C,A
+		LD	A,B
+		LD	D,$00
+		DEC	HL
+		LD	(HL),A
+		RLCA
+		RLCA
+		AND	$03
+		LD	B,A
+		CP	$03
+		JR	NZ,PS_3
+		XOR	A
+		LD	(HL),A
+		LD	HL,$98E5
+		JR	PS_6
+PS_3:		LD	A,($964B)
+		AND	A
+		RET	Z
+		LD	A,B
+		CP	$02
+		JR	Z,PS_5
+		CP	$01
+		LD	A,$F9
+		JR	Z,PS_4
+		LD	A,$FC
+PS_4:		ADD	A,C
+		RET	NC
+		LD	C,A
+PS_5:		LD	HL,SoundTable
+		LD	E,B
+		SLA	E
+		ADD	HL,DE
+		LD	E,(HL)
+		INC	HL
+		LD	H,(HL)
+		LD	L,E
+PS_6:		LD	E,C
+		SLA	E
+		ADD	HL,DE
+		LD	E,(HL)
+		INC	HL
+		LD	D,(HL)
+		LD	A,(DE)
+		AND	$07
+		LD	C,A
+		AND	$04
+		JR	NZ,PS_8
+		LD	A,C
+		AND	$02
+		LD	B,$0A
+		JR	NZ,PS_7
+		LD	B,$92
+		RR	C
+		JR	C,PS_7
+		LD	B,$02
+	;; Scribble over locations the interrupt handler cares about.
+	;; So, disable interrupts.
+PS_7:		DI
+		LD	HL,$964A
+		LD	A,(HL)
+		INC	HL
+		LD	(HL),A
+		LD	HL,SndCtrl
+		LD	(HL),B 		; Write SndCtrl
+		INC	HL
+		INC	HL
+		LD	(HL),E		; Write ScorePtr
+		INC	HL
+		LD	(HL),D
+		XOR	A
+		INC	HL
+		LD	(HL),A		; Clear ScoreIdx
 		EI
 		RET
-
-L9700:	EX		DE,HL
-		LD		B,(HL)
-		INC		HL
-		LD		E,(HL)
-		INC		HL
-		LD		D,(HL)
-		LD		A,B
-		AND		$02
-		JR		Z,$9716
-		LD		A,($964B)
-		AND		A
-		JR		Z,$9716
-		LD		A,$FF
-		LD		($964B),A
-L9716:		XOR		A
-		LD		($98B7),A
+PS_8:		EX	DE,HL
+		LD	B,(HL)
+		INC	HL
+		LD	E,(HL)
+		INC	HL
+		LD	D,(HL)
+		LD	A,B
+		AND	$02
+		JR	Z,PS_9
+		LD	A,($964B)
+		AND	A
+		JR	Z,PS_9
+		LD	A,$FF
+		LD	($964B),A
+PS_9:		XOR	A
+		LD	($98B7),A
 		CALL	DoSound
-		LD		A,$FF
-		LD		($98B7),A
+		LD	A,$FF
+		LD	($98B7),A
 		RET
 
 	;;  Core interrupt handler.
@@ -4356,10 +4360,12 @@ SoundDelayTarget:	DEFW $0000
 SoundDelayConst:	DEFW $0000
 SoundLenConst:	DEFB $00
 SoundDelayDelta:	DEFW $0000
-L98C5:	DEFB $E1,$98,$DD,$98,$CB,$98,$09,$99,$14,$99
-L98CF:	DEFB $1F,$99,$32,$99,$3D,$99,$4A,$99,$4D,$99,$50,$99,$58,$99,$6A,$99
-L98DF:	DEFB $5B,$99,$03,$99,$06,$99,$54,$99,$72,$99,$83,$99,$DD,$99,$9E,$99
-L98EF:	DEFB $A9,$99,$F7,$98,$CD,$99,$D5,$99,$10,$95,$6A,$62,$6A,$7D,$6D,$04
+SoundTable:	DEFW $98E1,$98DD,$98CB,$9909,$9914
+		DEFW $991F,$9932,$993D,$994A,$994D,$9950,$9958,$996A
+		DEFW $995B,$9903,$9906,$9954,$9972,$9983,$99DD,$999E
+		DEFW $99A9,$98F7,$99CD,$99D5
+
+L99F7:	DEFB $10,$95,$6A,$62,$6A,$7D,$6D,$04
 L98FF:	DEFB $8D,$96,$FF,$FF,$16,$90,$00,$14,$00,$02,$82,$31,$52,$41,$2A,$31
 L990F:	DEFB $1A,$29,$42,$FF,$00,$82,$31,$51,$41,$29,$31,$19,$29,$41,$FF,$00
 L991F:	DEFB $22,$F3,$EB,$E3,$DB,$EB,$E3,$DB,$D3,$E3,$DB,$D3,$CB,$DB,$D3,$CB
@@ -5698,7 +5704,7 @@ LA3E5:	LD		A,($7042)
 		LD		A,$06
 		CALL	$89C4
 		LD		B,$48
-		CALL	$9675
+		CALL	PlaySound
 		LD		A,($A292)
 		AND		A
 		JR		NZ,$A451
@@ -6199,7 +6205,7 @@ LA88C:	JP		$A931
 LA88F:	LD		HL,$080C
 		LD		($A296),HL
 		LD		B,$C7
-		JP		$9675
+		JP		PlaySound
 LA89A:	LD		A,($7040)
 		RRA
 		RET		NC
@@ -6277,11 +6283,11 @@ LA938:	LD		A,($A2BD)
 		OR		$80
 		LD		B,A
 		CP		$85
-		JP		NC,$9675
+		JP		NC,PlaySound
 		LD		A,($7CF8)
 		AND		A
 		RET		NZ
-		JP		$9675
+		JP		PlaySound
 LA94B:	LD		HL,$A294
 		BIT		0,(HL)
 		LD		HL,$A2C0
@@ -6366,7 +6372,7 @@ LA9DA:	INC		DE
 		SUB		$06
 		LD		(DE),A
 LA9E6:	LD		B,$C8
-		CALL	$9675
+		CALL	PlaySound
 		JR		$AA00
 LA9ED:	LD		HL,$8ADF
 		JR		$A9F5
@@ -7676,7 +7682,7 @@ LB313:	LD		A,B
 		AND		A
 		CALL	NZ,$8855
 		LD		B,$C6
-		JP		$9675
+		JP		PlaySound
 LB333:	LD		(IX+$0F),$08
 		LD		(IX+$04),$80
 		LD		A,(IX+$0A)
@@ -8364,7 +8370,7 @@ LB824:		LD	A,($964B)
 		CP	$80
 		RET	Z
 		LD	B,$C3
-		JP	$9675
+		JP	PlaySound
 
 #include "data_trailer.asm"
 	
