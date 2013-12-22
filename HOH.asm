@@ -4111,16 +4111,16 @@ IrqFnCore:	LD	IY,IrqFlag1
 		LD	A,($964B)
 		INC	A
 		RET	Z
-		LD	IX,(IrqFlag2)
-		LD	DE,(IrqFlag3)
+		LD	IX,(ScorePtr)
+		LD	DE,(ScoreIdx)
 		LD	D,$00
-		ADD	IX,DE
+		ADD	IX,DE	   ; Generate current score pointer, put in IX.
 		BIT	1,(IY+$00) ; IrqFlag1
 		JR	NZ,IFC_2
 		LD	A,(IrqFlag1+1)
 		AND	A
-		JP	NZ,$9863
-		RES	4,(IY+$00) ; IrqFlag1
+		JP	NZ,OtherSoundThing
+		RES	4,(IY+$00) ; IrqFlag1 - turn on glissando
 		CALL	$97AF
 		LD	D,A
 		INC	A
@@ -4132,11 +4132,11 @@ IrqFnCore:	LD	IY,IrqFlag1
 		RET
 IFC_1:		AND	A
 		JR	NZ,IFC_2
-		LD	(IrqFlag3),A
-		LD	IX,(IrqFlag2)
+		LD	(ScoreIdx),A
+		LD	IX,(ScorePtr)
 IFC_2:		LD	D,(IX+$00)
-		CALL	$98A0
-		LD	(IY+$05),D ; IrqFlag3, high byte
+		CALL	UnpackD
+		LD	(IY+$05),D ; ScoreIdx, high byte
 		LD	B,$08
 		LD	A,E
 		AND	$02
@@ -4160,7 +4160,7 @@ IFC_3:		LD	A,(IrqFlag1)
 IFC_4:		LD	A,(IrqFlag1)
 		AND	$F9
 		LD	(IrqFlag1),A
-		CALL	$98A0
+		CALL	UnpackD
 		LD	C,D
 		LD	D,$00
 		LD	HL,IrqArray
@@ -4174,12 +4174,12 @@ IFC_4:		LD	A,(IrqFlag1)
 		RET
 
 L97AF:		INC	IX
-		INC	(IY+$04)	; IrqFlag3, low byte
+		INC	(IY+$04)	; ScoreIdx, low byte
 		LD	A,(IX+$00)
 		RET
 
 	;; More interrupt-related stuff...
-IrqBits:	ADD	A,(IY+$05) 	; IrqFlag3, high byte
+IrqBits:	ADD	A,(IY+$05) 	; ScoreIdx, high byte
 		LD	B,$0C
 		LD	H,$00
 		LD	C,H
@@ -4199,9 +4199,9 @@ IB_0:		INC	C
 		LD	A,$02
 IB_1:		RLCA
 		DJNZ	IB_1
-		BIT	4,(IY+$00) ; IrqFlag1
+		BIT	4,(IY+$00) 	; IrqFlag1 - get glissando bit
 		JR	NZ,IB_2
-		RLCA
+		RLCA			; Glissando case...
 		ADD	A,$08
 IB_2:		LD	(SoundLenConst),A
 		LD	B,C
@@ -4228,7 +4228,7 @@ IB_5:		LD	A,(IrqFlag1)
 		AND	$90
 		CP	$80
 		JR	NZ,IB_8
-		LD	(IrqFlag4),DE
+		LD	(SoundDelayTarget),DE
 		LD	HL,(SoundDelayConst)
 		EX	DE,HL
 		XOR	A
@@ -4241,12 +4241,13 @@ IB_6:		RLA
 IB_7:		SRA	H
 		RR	L
 		DJNZ	IB_7
-		LD	(IrqFlag7),HL
-		RES	4,(IY+$00) ; IrqFlag1
-		JR	$982E
+		LD	(SoundDelayDelta),HL
+		RES	4,(IY+$00) 	; IrqFlag1 - enable glissando.
+		JR	DoCurrSound	; Tail call
 IB_8:		LD	(SoundDelayConst),DE
-	;; NB: Called from later, so a bit of a mystery...
-L982E:		LD	B,(IY+$0A) ; SoundLenConst
+	;; NB: Fall through
+
+DoCurrSound:	LD	B,(IY+$0A)	; SoundLenConst
 		LD	DE,(SoundDelayConst)
 		LD	A,($98B7)
 		INC	A
@@ -4288,56 +4289,58 @@ DS_2:		DEC	DE
 DS_3:		DJNZ	DS_1		; Target of self-modifying code!
 		RET
 
-L9863:		LD		A,(IrqFlag1)
-		LD		B,A
-		DEC		(IY+$01) ; IrqFlag1, high byte
-		JR		NZ,$9870
-		AND		$80
-		RET		Z
-		LD		A,B
-L9870:		AND		$0C
-		RET		NZ
-		LD		A,B
-		AND		$90
-		CP		$80
-		JR		NZ,$982E
-		LD		HL,(SoundDelayConst)
-		LD		DE,(IrqFlag7)
-		ADD		HL,DE
-		LD		E,L
-		LD		D,H
-		LD		BC,(IrqFlag4)
-		XOR		A
-		SBC		HL,BC
+OtherSoundThing:LD	A,(IrqFlag1)
+		LD	B,A
+		DEC	(IY+$01)	; IrqFlag1, high byte
+		JR	NZ,OST_1
+		AND	$80
+		RET	Z		; Do nothing if high byte IrqFlag1 is zero, and top
+					; bit of low byte is reset.
+		LD	A,B
+OST_1:		AND	$0C
+		RET	NZ		; Return if 0x8 or 0x4 bit set in IrqFlag1
+		LD	A,B
+		AND	$90
+		CP	$80
+		JR	NZ,DoCurrSound  ; Skip if IrqFlag & 0x90 != 0x80
+		LD	HL,(SoundDelayConst) ; Add SoundDelayDelta to SoundDelayConst
+		LD	DE,(SoundDelayDelta)
+		ADD	HL,DE
+		LD	E,L
+		LD	D,H
+		LD	BC,(SoundDelayTarget)	; Check if we've hit the limit of the glissando.
+		XOR	A
+		SBC	HL,BC
 		RRA
-		XOR		A,(IY+$0B) ; IrqFlag7
+		XOR	A,(IY+$0B)	; SoundDelayDelta high byte - this bit is for signed check.
 		RLA
-		JR		C,$989A
-		SET		4,(IY+$00) ; IrqFlag1
-		LD		DE,(IrqFlag4)
-L989A:	LD		(SoundDelayConst),DE
-		JR		$982E
-L98A0:	LD		BC,$0307
-		LD		A,D
-		AND		C
-		LD		E,A
-		LD		A,C
+		JR	C,OST_2
+		SET	4,(IY+$00)	; Set 0x10 bit of IrqFlag1 - turn off glissando.
+		LD	DE,(SoundDelayTarget) ; And use the target frequency
+OST_2:		LD	(SoundDelayConst),DE
+		JR	DoCurrSound 	; Tail call
+
+UnpackD:	LD	BC,$0307
+		LD	A,D
+		AND	C
+		LD	E,A		; Mask bottom 3 bits into E.
+		LD	A,C
 		CPL
-		AND		D
-		LD		D,A
-L98AA:	RRC		D
-		DJNZ	$98AA
-		RET
+		AND	D
+		LD	D,A		; Mask top 5 bits of D.
+UnpackD_1:	RRC	D
+		DJNZ	UnpackD_1
+		RET			; And rotate into bottom position.
 
 IrqArray:	DEFB $01,$02,$04,$06,$08,$0C,$10,$20,$FF
 
 IrqFlag1:	DEFW $0000
-IrqFlag2:	DEFW $0000
-IrqFlag3:	DEFW $0000
-IrqFlag4:	DEFW $0000
+ScorePtr:	DEFW $0000
+ScoreIdx:	DEFW $0000
+SoundDelayTarget:	DEFW $0000
 SoundDelayConst:	DEFW $0000
 SoundLenConst:	DEFB $00
-IrqFlag7:	DEFW $0000
+SoundDelayDelta:	DEFW $0000
 L98C5:	DEFB $E1,$98,$DD,$98,$CB,$98,$09,$99,$14,$99
 L98CF:	DEFB $1F,$99,$32,$99,$3D,$99,$4A,$99,$4D,$99,$50,$99,$58,$99,$6A,$99
 L98DF:	DEFB $5B,$99,$03,$99,$06,$99,$54,$99,$72,$99,$83,$99,$DD,$99,$9E,$99
