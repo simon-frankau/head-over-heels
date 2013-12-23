@@ -1575,7 +1575,7 @@ L7CE5:	CALL	$7E11
 		JR		C,$7CE5
 		LD		A,($7CF8)
 		CP		$02
-		LD		HL,$964E
+		LD		HL,Snd3
 		SET		7,(HL)
 		RET		NZ
 		RES		7,(HL)
@@ -3973,13 +3973,13 @@ L9643:		LD	A,$BF
 		AND	$10
 		RET
 
-L964A:	DEFB $00
-L964B:	DEFB $FF
+Snd1:	DEFB $00
+Snd2:	DEFB $FF
 L964C:	DEFB $00
 L964D:	DEFB $00
-L964E:	DEFB $80
+Snd3:	DEFB $80
 	
-L964F:		LD	A,($964B)
+L964F:		LD	A,(Snd2)
 		CP	$00
 		RET	Z
 		LD	B,$C3
@@ -3991,10 +3991,10 @@ IrqFn:		JP	IrqFnCore
 ScaleTable:	DEFW 1316,1241,1171,1105,1042,983,927,875,825,778,734,692
 
 	;; FIXME: Called from everywhere.
-PlaySound:	LD	A,($964E)
+PlaySound:	LD	A,(Snd3)
 		RLA
 		RET	NC
-		LD	HL,$964B
+		LD	HL,Snd2
 		LD	A,(HL)
 		CP	B
 		RET	Z
@@ -4030,7 +4030,7 @@ PS_2:		LD	C,A
 		LD	(HL),A
 		LD	HL,$98E5
 		JR	PS_6
-PS_3:		LD	A,($964B)
+PS_3:		LD	A,(Snd2)
 		AND	A
 		RET	Z
 		LD	A,B
@@ -4073,7 +4073,7 @@ PS_6:		LD	E,C
 	;; Scribble over locations the interrupt handler cares about.
 	;; So, disable interrupts.
 PS_7:		DI
-		LD	HL,$964A
+		LD	HL,Snd1
 		LD	A,(HL)
 		INC	HL
 		LD	(HL),A
@@ -4098,21 +4098,21 @@ PS_8:		EX	DE,HL
 		LD	A,B
 		AND	$02
 		JR	Z,PS_9
-		LD	A,($964B)
+		LD	A,(Snd2)
 		AND	A
 		JR	Z,PS_9
 		LD	A,$FF
-		LD	($964B),A
+		LD	(Snd2),A
 PS_9:		XOR	A
-		LD	($98B7),A
+		LD	(SndThing),A
 		CALL	DoSound
 		LD	A,$FF
-		LD	($98B7),A
+		LD	(SndThing),A
 		RET
 
 	;;  Core interrupt handler.
 IrqFnCore:	LD	IY,SndCtrl
-		LD	A,($964B)
+		LD	A,(Snd2)
 		INC	A
 		RET	Z
 		LD	IX,(ScorePtr)
@@ -4132,7 +4132,7 @@ IrqFnCore:	LD	IY,SndCtrl
 		CALL	GetScoreByte
 		CP	D
 		JR	NZ,IFC_1
-		LD	($964B),A
+		LD	(Snd2),A
 		RET
 IFC_1:		AND	A
 		JR	NZ,IFC_2
@@ -4266,7 +4266,7 @@ IB_8:		LD	(SoundDelayConst),DE
 
 DoCurrSound:	LD	B,(IY+$0A)	; SoundLenConst
 		LD	DE,(SoundDelayConst)
-		LD	A,($98B7)
+		LD	A,(SndThing)
 		INC	A
 		RET	NZ
 	;; Fall through!
@@ -4349,8 +4349,9 @@ UnpackD_1:	RRC	D
 		DJNZ	UnpackD_1
 		RET			; And rotate into bottom position.
 
-IrqArray:	DEFB $01,$02,$04,$06,$08,$0C,$10,$20,$FF
+IrqArray:	DEFB $01,$02,$04,$06,$08,$0C,$10,$20
 
+SndThing:	DEFB $FF
 SndCtrl:	DEFB $00
 NoteLen:	DEFB $00
 ScorePtr:	DEFW $0000
@@ -4360,31 +4361,70 @@ SoundDelayTarget:	DEFW $0000
 SoundDelayConst:	DEFW $0000
 SoundLenConst:	DEFB $00
 SoundDelayDelta:	DEFW $0000
-SoundTable:	DEFW $98E1,$98DD,$98CB,$9909,$9914
-		DEFW $991F,$9932,$993D,$994A,$994D,$9950,$9958,$996A
-		DEFW $995B,$9903,$9906,$9954,$9972,$9983,$99DD,$999E
-		DEFW $99A9,$98F7,$99CD,$99D5
+SoundTable:	DEFW $98E1,$98DD,$98CB,L9909,L9914
+		DEFW L991F,L9932,L993D,L994A,L994D,L9950,L9958,L996A
+		DEFW L995B,L9903,L9906,L9954,L9972,L9983,L99DD,L999E
+		DEFW L99A9,L98F7,L99CD,L99D5
 
-L99F7:	DEFB $10,$95,$6A,$62,$6A,$7D,$6D,$04
-L98FF:	DEFB $8D,$96,$FF,$FF,$16,$90,$00,$14,$00,$02,$82,$31,$52,$41,$2A,$31
-L990F:	DEFB $1A,$29,$42,$FF,$00,$82,$31,$51,$41,$29,$31,$19,$29,$41,$FF,$00
+L98F7:	DEFB $10,$95,$6A,$62,$6A,$7D,$6D,$04
+	DEFB $8D,$96,$FF,$FF
+
+L9903:	DEFB $16,$90,$00
+
+L9906:	DEFB $14,$00,$02
+
+L9909:	DEFB $82,$31,$52,$41,$2A,$31
+	DEFB $1A,$29,$42,$FF,$00
+
+L9914:	DEFB $82,$31,$51,$41,$29,$31,$19,$29,$41,$FF,$00
+	
 L991F:	DEFB $22,$F3,$EB,$E3,$DB,$EB,$E3,$DB,$D3,$E3,$DB,$D3,$CB,$DB,$D3,$CB
-L992F:	DEFB $C3,$FF,$00,$22,$BB,$A3,$8B,$73,$5B,$43,$2B,$23,$FF,$00,$22,$13
-L993F:	DEFB $33,$53,$73,$93,$B3,$D3,$DB,$E3,$EE,$FF,$00,$64,$80,$00,$46,$A0
-L994F:	DEFB $00,$31,$DA,$65,$F4,$01,$01,$FF,$FF,$46,$D0,$00,$01,$51,$BB,$FF
-L995F:	DEFB $08,$04,$30,$04,$28,$04,$20,$04,$18,$FF,$FF,$41,$10,$5C,$5C,$43
-L996F:	DEFB $07,$FF,$FF,$61,$0C,$36,$FF,$60,$35,$35,$35,$45,$35,$45,$FF,$61
-L997F:	DEFB $56,$56,$FF,$FF,$30,$B2,$BA,$CC,$34,$34,$6A,$5A,$52,$6A,$92,$8A
-L998F:	DEFB $94,$C2,$CA,$DC,$44,$44,$A2,$92,$8A,$92,$8A,$7A,$6E,$FF,$FF,$11
-L999F:	DEFB $30,$52,$01,$19,$3A,$01,$09,$22,$FF,$FF,$20,$45,$FF,$80,$7B,$73
-L99AF:	DEFB $7B,$6B,$FF,$20,$2D,$FF,$80,$63,$5B,$63,$53,$FF,$20,$0D,$FF,$80
-L99BF:	DEFB $43,$3B,$43,$33,$FF,$20,$1D,$FF,$80,$53,$4B,$53,$FF,$FF,$41,$09
-L99CF:	DEFB $3E,$5E,$CE,$F6,$FF,$FF,$41,$F0,$A6,$5E,$3E,$0E,$FF,$FF,$02,$52
-L99DF:	DEFB $32,$54,$6A,$52,$6C,$82,$6A,$7A,$92,$FF,$61,$F6,$00,$FF,$2A,$52
-L99EF:	DEFB $32,$54,$6A,$52,$6C,$82,$6A,$7A,$92,$FF,$89,$32,$0A,$32,$32,$00
-L99FF:	DEFB $FF,$3A,$52,$32,$54,$6A,$52,$6C,$82,$6A,$7A,$92,$FF,$99,$F6,$FF
-L9A0F:	DEFB $62,$F2,$EA,$DA,$CA,$BA,$B2,$A2,$92,$8A,$7A,$6A,$FF,$61,$50,$53
-L9A1F:	DEFB $34,$34,$FF,$00,$FF,$FF
+	DEFB $C3,$FF,$00
+
+L9932:	DEFB $22,$BB,$A3,$8B,$73,$5B,$43,$2B,$23,$FF,$00
+
+L993D:	DEFB $22,$13
+	DEFB $33,$53,$73,$93,$B3,$D3,$DB,$E3,$EE,$FF,$00
+
+L994A:	DEFB $64,$80,$00
+
+L994D:	DEFB $46,$A0
+	DEFB $00
+
+L9950:	DEFB $31,$DA,$65,$F4 ; Fall through?
+
+L9954:	DEFB $01,$01,$FF,$FF
+
+L9958:	DEFB $46,$D0,$00 	; Fall through?
+
+L995B:	DEFB $01,$51,$BB,$FF 	; Fall through?
+L995F:	DEFB $08,$04,$30,$04,$28,$04,$20,$04,$18,$FF,$FF
+
+L996A:	DEFB $41,$10,$5C,$5C,$43
+	DEFB $07,$FF,$FF
+
+L9972:	DEFB $61,$0C,$36,$FF,$60,$35,$35,$35,$45,$35,$45,$FF,$61
+	DEFB $56,$56,$FF,$FF
+L9983:	DEFB $30,$B2,$BA,$CC,$34,$34,$6A,$5A,$52,$6A,$92,$8A
+	DEFB $94,$C2,$CA,$DC,$44,$44,$A2,$92,$8A,$92,$8A,$7A,$6E,$FF,$FF
+
+L999E:	DEFB $11
+	DEFB $30,$52,$01,$19,$3A,$01,$09,$22,$FF,$FF
+
+L99A9:	DEFB $20,$45,$FF,$80,$7B,$73
+	DEFB $7B,$6B,$FF,$20,$2D,$FF,$80,$63,$5B,$63,$53,$FF,$20,$0D,$FF,$80
+	DEFB $43,$3B,$43,$33,$FF,$20,$1D,$FF,$80,$53,$4B,$53,$FF,$FF
+
+L99CD:	DEFB $41,$09,$3E,$5E,$CE,$F6,$FF,$FF
+
+L99D5:	DEFB $41,$F0,$A6,$5E,$3E,$0E,$FF,$FF
+
+L99DD:	DEFB $02,$52
+	DEFB $32,$54,$6A,$52,$6C,$82,$6A,$7A,$92,$FF,$61,$F6,$00,$FF,$2A,$52
+	DEFB $32,$54,$6A,$52,$6C,$82,$6A,$7A,$92,$FF,$89,$32,$0A,$32,$32,$00
+	DEFB $FF,$3A,$52,$32,$54,$6A,$52,$6C,$82,$6A,$7A,$92,$FF,$99,$F6,$FF
+	DEFB $62,$F2,$EA,$DA,$CA,$BA,$B2,$A2,$92,$8A,$7A,$6A,$FF,$61,$50,$53
+	DEFB $34,$34,$FF,$00,$FF,$FF
 
 #include "blit.asm"
 	
@@ -8366,7 +8406,7 @@ Have48K:	; FIXME: Shuffle some more memory
 		LDIR
 		RET
 	
-LB824:		LD	A,($964B)
+LB824:		LD	A,(Snd2)
 		CP	$80
 		RET	Z
 		LD	B,$C3
