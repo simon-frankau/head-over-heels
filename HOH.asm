@@ -1575,7 +1575,7 @@ L7CE5:	CALL	$7E11
 		JR		C,$7CE5
 		LD		A,($7CF8)
 		CP		$02
-		LD		HL,Snd3
+		LD		HL,SndEnable
 		SET		7,(HL)
 		RET		NZ
 		RES		7,(HL)
@@ -3973,11 +3973,11 @@ L9643:		LD	A,$BF
 		AND	$10
 		RET
 
-Snd1:	DEFB $00
+SndCount:	DEFB $00
 Snd2:	DEFB $FF
 L964C:	DEFB $00
 L964D:	DEFB $00
-Snd3:	DEFB $80
+SndEnable:	DEFB $80	; Top bit set if sound enabled.
 	
 L964F:		LD	A,(Snd2)
 		CP	$00
@@ -3991,9 +3991,10 @@ IrqFn:		JP	IrqFnCore
 ScaleTable:	DEFW 1316,1241,1171,1105,1042,983,927,875,825,778,734,692
 
 	;; FIXME: Called from everywhere.
-PlaySound:	LD	A,(Snd3)
+	;; Called with B containing the sound id.
+PlaySound:	LD	A,(SndEnable)
 		RLA
-		RET	NC
+		RET	NC		; Exit early if sound disabled.
 		LD	HL,Snd2
 		LD	A,(HL)
 		CP	B
@@ -4073,7 +4074,7 @@ PS_6:		LD	E,C
 	;; Scribble over locations the interrupt handler cares about.
 	;; So, disable interrupts.
 PS_7:		DI
-		LD	HL,Snd1
+		LD	HL,SndCount
 		LD	A,(HL)
 		INC	HL
 		LD	(HL),A
