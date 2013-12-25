@@ -1138,62 +1138,68 @@ L788F:	EX		AF,AF'
 		LD		(HL),C
 		INC		HL
 		LD		(HL),A
-		LD		A,(CurrData)
-		LD		HL,(DataPtr)
+
+	;; Save the current data pointer, do some stuff, restore.
+		LD	A,(CurrData)
+		LD	HL,(DataPtr)
 		PUSH	AF
 		PUSH	HL
 		CALL	L7A1C
-		LD		(DataPtr),HL
-L78BE:	CALL	L78D4
-		JR		NC,L78BE
-		LD		HL,(L76DE)
-		DEC		HL
-		DEC		HL
-		DEC		HL
-		LD		(L76DE),HL
-		POP		HL
-		POP		AF
-		LD		(DataPtr),HL
-		LD		(CurrData),A
-L78D4:	LD		B,$08
+		LD	(DataPtr),HL
+L78BE:		CALL	L78D4
+		JR	NC,L78BE
+		LD	HL,(L76DE)
+		DEC	HL
+		DEC	HL
+		DEC	HL
+		LD	(L76DE),HL
+		POP	HL
+		POP	AF
+		LD	(DataPtr),HL
+		LD	(CurrData),A
+	;; NB: Fall through.
+	
+L78D4:		LD	B,$08
 		CALL	FetchData
-		CP		$FF
+		CP	$FF
 		SCF
-		RET		Z
-		CP		$C0
-		JR		NC,L788F
+		RET	Z
+		CP	$C0
+		JR	NC,L788F
 		PUSH	IY
-		LD		IY,L76EE
+		LD	IY,L76EE
 		CALL	L8232
-		POP		IY
-		LD		B,$02
+		POP	IY
+		LD	B,$02
 		CALL	FetchData
-		BIT		1,A
-		JR		NZ,L78F9
-		LD		A,$01
-		JR		L7903
-L78F9:	PUSH	AF
-		LD		B,$01
+		BIT	1,A
+		JR	NZ,L78F9
+		LD	A,$01
+		JR	L7903
+L78F9:		PUSH	AF
+		LD	B,$01
 		CALL	FetchData
-		POP		BC
+		POP	BC
 		RLCA
 		RLCA
-		OR		B
-L7903:	LD		(L7700),A
-L7906:	CALL	L7A8D
+		OR	B
+L7903:		LD	(L7700),A
+L7906:		CALL	L7A8D
 		CALL	L7AC1
-		LD		A,(L7700)
+		LD	A,(L7700)
 		RRA
-		JR		NC,L791D
-		LD		A,(L7704)
-		INC		A
-		AND		A
-		RET		Z
+		JR	NC,L791D
+		LD	A,(L7704)
+		INC	A
+		AND	A
+		RET	Z
 		CALL	L7922
 		JR		L7906
-L791D:	CALL	L7922
-		AND		A
+L791D:		CALL	L7922
+		AND	A
 		RET
+
+	
 L7922:	LD		HL,L76EE
 		LD		BC,L0012
 		PUSH	IY
@@ -1316,17 +1322,24 @@ L7A15:	POP		HL
 		INC		IX
 		INC		IX
 		RET
-L7A1C:	LD		A,$80
-		LD		(CurrData),A
+
+	
+L7A1C:		LD		A,$80
+		LD		(CurrData),A 	; Clear buffered byte.
+	;; Get the size of some buffer thing: Start at L5B00, just after attributes.
+	;; Take first byte as step size, then scan at that step size until we find a zero.
+	;; Return in HL.
 		LD		HL,L5B00
 		EX		AF,AF'
 		LD		D,$00
-L7A27:	LD		E,(HL)
+L7A27:		LD		E,(HL)
 		INC		HL
 		CP		(HL)
 		RET		Z
 		ADD		HL,DE
 		JR		L7A27
+
+	
 L7A2E:	LD		BC,(L703B)
 		LD		A,C
 		DEC		A
@@ -1343,6 +1356,7 @@ L7A2E:	LD		BC,(L703B)
 		RET		Z
 		SCF
 		RET
+	
 L7A45:	CALL	L7A4E
 		EXX
 		LD		A,C
@@ -1350,17 +1364,20 @@ L7A45:	CALL	L7A4E
 		LD		(HL),A
 		EXX
 		RET
+
 L7A4E:	LD		D,$00
 		LD		HL,L5C71
 		CALL	L7A5C
 		RET		NC
 		LD		HL,L6B16
 		JR		L7A63
-L7A5C:	EXX
+	
+L7A5C:		EXX
 		LD		HL,L8AE2
 		LD		C,$01
 		EXX
-L7A63:	LD		E,(HL)
+	
+L7A63:		LD		E,(HL)
 		INC		E
 		DEC		E
 		SCF
@@ -1369,26 +1386,30 @@ L7A63:	LD		E,(HL)
 		LD		A,B
 		CP		(HL)
 		JR		Z,L7A77
-L7A6D:	ADD		HL,DE
+
+L7A6D:		ADD		HL,DE
 		EXX
 		RLC		C
 		JR		NC,L7A74
 		INC		HL
-L7A74:	EXX
+L7A74:		EXX
 		JR		L7A63
-L7A77:	INC		HL
+	
+L7A77:		INC		HL
 		DEC		E
 		LD		A,(HL)
 		AND		$F0
 		CP		C
 		JR		NZ,L7A6D
 		DEC		HL
+	;; Initialise DataPtr and CurrData for new data.
 		LD		(DataPtr),HL
 		LD		A,$80
 		LD		(CurrData),A
 		LD		B,$04
 		JP		FetchData
-L7A8D:	LD		A,(L7700)
+
+L7A8D:		LD		A,(L7700)
 		RRA
 		RRA
 		JR		C,L7A99
@@ -2191,7 +2212,7 @@ L8490:	DEFB $9C,$CD,$6C,$42,$00,$20,$47,$0A,$00,$2D,$00,$20,$56,$14,$01,$5D
 L84A0:	DEFB $0A,$01,$5D,$01,$01,$98,$4F,$6C,$98,$CD,$6C,$82,$08,$68,$36,$00
 L84B0:	DEFB $20,$37,$00,$20,$1E,$00,$00,$18,$00,$00,$4C,$24,$00,$4C,$A5,$2C
 L84C0:	DEFB $84,$21,$60
-PanelBase:	DEFB $00,$00
+PanelBase:	DEFW $0000
 	DEFB $00,$00,$00,$00,$00,$00
 L84CB:	CALL	L8603
 		LD		A,C
@@ -2208,171 +2229,181 @@ L84CB:	CALL	L8603
 		LD		A,B
 		LD		(L84C9),A
 		RET
-L84E4:	LD		(L84CA),A
+	
+L84E4:		LD	(L84CA),A
 		CALL	L8506
-		LD		A,(L7716)
-		AND		$04
-		RET		NZ
-		LD		B,$04
+		LD	A,(L7716)
+		AND	$04
+		RET	NZ
+		LD	B,$04
 		EXX
-		LD		A,$80
-		LD		(L8592),A
+		LD	A,$80
+		LD	(L8592),A
 		CALL	L8603
-		LD		DE,L0002
-		LD		A,(IY-$01)
-		SUB		(IY-$03)
-		JR		L8521
-L8506:	LD		A,(L7716)
-		AND		$08
-		RET		NZ
-		LD		B,$08
+		LD	DE,L0002
+		LD	A,(IY-$01)
+		SUB	(IY-$03)
+		JR	L8521
+L8506:		LD	A,(L7716)
+		AND	$08
+		RET	NZ
+		LD	B,$08
 		EXX
-		XOR		A
-		LD		(L8592),A
+		XOR	A
+		LD	(L8592),A
 		CALL	L8603
-		DEC		L
-		DEC		L
-		LD		DE,LFFFE
-		LD		A,(IY-$02)
-		SUB		(IY-$04)
-L8521:	RRA
+		DEC	L
+		DEC	L
+		LD	DE,LFFFE
+		LD	A,(IY-$02)
+		SUB	(IY-$04)
+	;; NB: Fall through
+
+L8521:		RRA
 		RRA
 		RRA
 		RRA
-		AND		$0F
+		AND	$0F
 		PUSH	HL
-		POP		IX
+		POP	IX
 		EXX
-		LD		C,A
-		LD		A,(L7717)
-		AND		B
-		CP		$01
-		EX		AF,AF'
-		LD		A,(L7715)
-		LD		B,A
-		ADD		A,$38
-		LD		L,A
-		ADC		A,$C0
-		SUB		L
-		LD		H,A
-		LD		(L84C5),HL
-		LD		A,B
-		ADD		A,A
-		LD		B,A
-		ADD		A,A
-		ADD		A,A
-		ADD		A,$2A
-		LD		L,A
-		ADC		A,$86
-		SUB		L
-		LD		H,A
-		LD		(DataPtr),HL
-		LD		A,$80
-		LD		(CurrData),A
-		LD		A,$1B
-		ADD		A,B
-		LD		L,A
-		ADC		A,$86
-		SUB		L
-		LD		H,A
-		LD		A,(HL)
-		INC		HL
-		LD		H,(HL)
-		LD		L,A
-		LD		(PanelBase),HL
-		LD		A,$FF
-		EX		AF,AF'
-		LD		A,C
+		LD	C,A
+		LD	A,(L7717)
+		AND	B
+		CP	$01
+		EX	AF,AF'
+		LD	A,(L7715)
+		LD	B,A
+		ADD	A,$38
+		LD	L,A
+		ADC	A,$C0
+		SUB	L
+		LD	H,A
+		LD	(L84C5),HL
+	;; From B (call it X):
+	;; At this point, I think X (0..7) is the world identifier.
+		LD	A,B
+		ADD	A,A
+		LD	B,A 		; B updated to 2x
+		ADD	A,A
+		ADD	A,A   		; A is 8x
+		ADD	A,$2A
+		LD	L,A
+		ADC	A,$86
+		SUB	L
+		LD	H,A   		; HL is $862A + 8xX (data starts at $862B)
+	;; Update DataPtr etc. for FetchData.
+		LD	(DataPtr),HL
+		LD	A,$80
+		LD	(CurrData),A
+	;; Update PanelBase
+		LD	A,$1B
+		ADD	A,B
+		LD	L,A
+		ADC	A,$86
+		SUB	L
+		LD	H,A 		; HL is $861B (aka PanelBases) + 2xX
+		LD	A,(HL)
+		INC	HL
+		LD	H,(HL)
+		LD	L,A
+		LD	(PanelBase),HL	; Set the panel codes for the current world.
+		LD	A,$FF
+		EX	AF,AF'
+		LD	A,C
 		PUSH	AF
-		SUB		$04
-		LD		B,$01
-		JR		Z,L857B
-		LD		B,$0F
-		INC		A
-		JR		Z,L857B
-		LD		B,$19
-		INC		A
-		JR		Z,L857B
-		LD		B,$1F
-L857B:	POP		AF
-		JR		C,L8584
-		LD		A,C
-		ADD		A,A
-		ADD		A,B
-		LD		B,A
-		LD		A,C
-		EX		AF,AF'
-L8584:	CALL	L85FB
+		SUB	$04
+		LD	B,$01
+		JR	Z,L857B
+		LD	B,$0F
+		INC	A
+		JR	Z,L857B
+		LD	B,$19
+		INC	A
+		JR	Z,L857B
+		LD	B,$1F
+L857B:		POP	AF
+		JR	C,L8584
+		LD	A,C
+		ADD	A,A
+		ADD	A,B
+		LD	B,A
+		LD	A,C
+		EX	AF,AF'
+L8584:		CALL	FetchData2b
 		DJNZ	L8584
-		LD		B,C
-		SLA		B
-L858C:	EX		AF,AF'
-		DEC		A
-		JR		Z,L85C2
-		EX		AF,AF'
-		OR		$00
-		LD		(IX+$01),A
+		LD	B,C
+		SLA	B
+L858C:		EX	AF,AF'
+		DEC	A
+		JR	Z,L85C2
+		EX	AF,AF'
+		OR	$00
+		LD	(IX+$01),A
 		EXX
-		LD		A,C
-		ADD		A,$08
-		LD		(IX+$00),C
-		LD		C,A
-		ADD		IX,DE
+		LD	A,C
+		ADD	A,$08
+		LD	(IX+$00),C
+		LD	C,A
+		ADD	IX,DE
 		EXX
-		CALL	L85FB
-L85A4:	DJNZ	L858C
+		CALL	FetchData2b
+L85A4:		DJNZ	L858C
 		EXX
 		PUSH	IX
-		POP		HL
-		LD		A,L
-		CP		$40
-		RET		NC
-		LD		A,(IX+$00)
-		AND		A
-		RET		NZ
-		LD		A,(L8592)
-		OR		$05
-		LD		(IX+$01),A
-		LD		A,C
-		SUB		$10
-		LD		(IX+$00),A
+		POP	HL
+		LD	A,L
+		CP	$40
+		RET	NC
+		LD	A,(IX+$00)
+		AND	A
+		RET	NZ
+		LD	A,(L8592)
+		OR	$05
+		LD	(IX+$01),A
+		LD	A,C
+		SUB	$10
+		LD	(IX+$00),A
 		RET
-L85C2:	EXX
-		LD		A,(L84CA)
-		AND		A
-		LD		A,C
-		JR		Z,L85CD
-		ADD		A,$10
-		LD		C,A
-L85CD:	SUB		$10
-		LD		(IX+$00),A
-		LD		A,(L8592)
-		OR		$04
-		LD		(IX+$01),A
-		ADD		IX,DE
-		LD		(IX+$01),A
-		LD		A,C
-		SUB		$08
-		LD		(IX+$00),A
-		ADD		A,$18
-		LD		C,A
-		LD		A,(L84CA)
-		AND		A
-		JR		Z,L85F2
-		LD		A,C
-		SUB		$10
-		LD		C,A
-L85F2:	ADD		IX,DE
-		LD		A,$FF
-		EX		AF,AF'
+L85C2:		EXX
+		LD	A,(L84CA)
+		AND	A
+		LD	A,C
+		JR	Z,L85CD
+		ADD	A,$10
+		LD	C,A
+L85CD:		SUB	$10
+		LD	(IX+$00),A
+		LD	A,(L8592)
+		OR	$04
+		LD	(IX+$01),A
+		ADD	IX,DE
+		LD	(IX+$01),A
+		LD	A,C
+		SUB	$08
+		LD	(IX+$00),A
+		ADD	A,$18
+		LD	C,A
+		LD	A,(L84CA)
+		AND	A
+		JR	Z,L85F2
+		LD	A,C
+		SUB	$10
+		LD	C,A
+L85F2:		ADD	IX,DE
+		LD	A,$FF
+		EX	AF,AF'
 		EXX
-		DEC		B
-		JR		L85A4
-L85FB:	PUSH	BC
-		LD		B,$02
+		DEC	B
+		JR	L85A4
+
+	;; Call FetchData for 2 bits
+FetchData2b:	PUSH	BC
+		LD	B,$02
 		CALL	FetchData
-		POP		BC
+		POP	BC
 		RET
+
 L8603:	LD		A,(IY-$02)
 		LD		D,A
 		LD		E,(IY-$01)
@@ -2389,11 +2420,17 @@ L8603:	LD		A,(IY-$02)
 		SUB		D
 		LD		C,A
 		RET
-L861B:	DEFB $50,$C0,$A0,$C1,$F0,$C2,$D0,$C3,$B0,$C4,$70,$C6,$50,$C7,$A0,$C8
-L862B:	DEFB $46,$91,$65,$94,$A1,$69,$69,$AA,$49,$24,$51,$49,$12,$44,$92,$A4
-L863B:	DEFB $04,$10,$10,$41,$04,$00,$44,$00,$04,$10,$10,$41,$04,$00,$10,$00
-L864B:	DEFB $4E,$31,$B4,$E7,$4E,$42,$E4,$99,$45,$51,$50,$51,$54,$55,$55,$55
-L865B:	DEFB $64,$19,$65,$11,$A4,$41,$28,$55,$00,$00,$00,$00,$00,$00,$00,$00
+
+PanelBases:	DEFW $C050,$C1A0,$C2F0,$C3D0,$C4B0,$C670,$C750,$C8A0
+	;; 8-byte chunks referenced by setting DataPtr etc.
+L862B:	DEFB $46,$91,$65,$94,$A1,$69,$69,$AA
+	DEFB $49,$24,$51,$49,$12,$44,$92,$A4
+	DEFB $04,$10,$10,$41,$04,$00,$44,$00
+	DEFB $04,$10,$10,$41,$04,$00,$10,$00
+	DEFB $4E,$31,$B4,$E7,$4E,$42,$E4,$99
+	DEFB $45,$51,$50,$51,$54,$55,$55,$55
+	DEFB $64,$19,$65,$11,$A4,$41,$28,$55
+	DEFB $00,$00,$00,$00,$00,$00,$00,$00
 L866B:	DEFB $00,$70,$14,$00,$72,$60,$30,$01,$40,$B0,$2E,$09,$34,$B0,$00,$1A
 L867B:	DEFB $00,$F0,$9A,$0B,$70,$40,$A7,$1C,$44,$30,$37,$7D,$37,$70,$15,$68
 L868B:	DEFB $34,$60,$89,$48,$47,$60,$C5,$68,$76,$80,$1B,$68,$76,$D0,$BC,$28
