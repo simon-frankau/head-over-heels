@@ -887,9 +887,14 @@ L76FD:	DEFB $00
 L76FE:	DEFB $00
 L76FF:	DEFB $00
 L7700:	DEFB $00
-L7701:	DEFB $00
-L7702:	DEFB $00
-L7703:	DEFB $00
+	
+	;; Current pointer to bit-packed data
+DataPtr:	DEFW $0000
+	;; The remaining bits to read at the current address.
+CurrData:	DEFB $00
+
+	;; FIXME: Decode remaining DataPtr/CurrData references...
+	
 L7704:	DEFB $00
 L7705:	DEFB $00
 L7706:	DEFB $00
@@ -906,7 +911,7 @@ L7710:	DEFB $00
 FloorCode:	DEFB $00
 L7712:	DEFB $00
 L7713:	DEFB $00
-L7714:	DEFB $00
+AttribScheme:	DEFB $00
 L7715:	DEFB $00
 L7716:	DEFB $00
 L7717:	DEFB $00
@@ -1051,7 +1056,7 @@ L780E:	LD		(L76E0),HL
 		PUSH	BC
 		CALL	L7A45
 		LD		B,$03
-		CALL	LA242
+		CALL	FetchData
 		LD		(L7710),A
 		ADD		A,A
 		ADD		A,A
@@ -1092,14 +1097,14 @@ L784F:	LD		A,(IX-$02)
 		INC		HL
 		DJNZ	L784F
 		LD		B,$03
-		CALL	LA242
-		LD		(L7714),A
+		CALL	FetchData
+		LD	(AttribScheme),A ; Fetch the attribute scheme to use.
 		LD		B,$03
-		CALL	LA242
+		CALL	FetchData
 		LD		(L7715),A
 		CALL	L7934
 		LD		B,$03
-		CALL	LA242
+		CALL	FetchData
 		LD	(FloorCode),A
 		CALL	SetFloorAddr
 L787E:	CALL	L78D4
@@ -1133,12 +1138,12 @@ L788F:	EX		AF,AF'
 		LD		(HL),C
 		INC		HL
 		LD		(HL),A
-		LD		A,(L7703)
-		LD		HL,(L7701)
+		LD		A,(CurrData)
+		LD		HL,(DataPtr)
 		PUSH	AF
 		PUSH	HL
 		CALL	L7A1C
-		LD		(L7701),HL
+		LD		(DataPtr),HL
 L78BE:	CALL	L78D4
 		JR		NC,L78BE
 		LD		HL,(L76DE)
@@ -1148,10 +1153,10 @@ L78BE:	CALL	L78D4
 		LD		(L76DE),HL
 		POP		HL
 		POP		AF
-		LD		(L7701),HL
-		LD		(L7703),A
+		LD		(DataPtr),HL
+		LD		(CurrData),A
 L78D4:	LD		B,$08
-		CALL	LA242
+		CALL	FetchData
 		CP		$FF
 		SCF
 		RET		Z
@@ -1162,14 +1167,14 @@ L78D4:	LD		B,$08
 		CALL	L8232
 		POP		IY
 		LD		B,$02
-		CALL	LA242
+		CALL	FetchData
 		BIT		1,A
 		JR		NZ,L78F9
 		LD		A,$01
 		JR		L7903
 L78F9:	PUSH	AF
 		LD		B,$01
-		CALL	LA242
+		CALL	FetchData
 		POP		BC
 		RLCA
 		RLCA
@@ -1198,7 +1203,7 @@ L7922:	LD		HL,L76EE
 		POP		IY
 		RET
 L7934:	LD		B,$03
-		CALL	LA242
+		CALL	FetchData
 		CALL	L7358
 		ADD		A,A
 		LD		L,A
@@ -1227,7 +1232,7 @@ L7934:	LD		B,$03
 		SUB		$04
 		JP		L79A5
 L7977:	LD		B,$03
-		CALL	LA242
+		CALL	FetchData
 		LD		HL,L7716
 		SUB		$02
 		JR		C,L799A
@@ -1312,7 +1317,7 @@ L7A15:	POP		HL
 		INC		IX
 		RET
 L7A1C:	LD		A,$80
-		LD		(L7703),A
+		LD		(CurrData),A
 		LD		HL,L5B00
 		EX		AF,AF'
 		LD		D,$00
@@ -1378,17 +1383,17 @@ L7A77:	INC		HL
 		CP		C
 		JR		NZ,L7A6D
 		DEC		HL
-		LD		(L7701),HL
+		LD		(DataPtr),HL
 		LD		A,$80
-		LD		(L7703),A
+		LD		(CurrData),A
 		LD		B,$04
-		JP		LA242
+		JP		FetchData
 L7A8D:	LD		A,(L7700)
 		RRA
 		RRA
 		JR		C,L7A99
 		LD		B,$01
-		CALL	LA242
+		CALL	FetchData
 L7A99:	AND		$01
 		RLCA
 		RLCA
@@ -1447,13 +1452,13 @@ L7AEB:	ADD		A,(HL)
 		ADD		A,$0C
 		RET
 L7AF3:	LD		B,$03
-		CALL	LA242
+		CALL	FetchData
 		PUSH	AF
 		LD		B,$03
-		CALL	LA242
+		CALL	FetchData
 		PUSH	AF
 		LD		B,$03
-		CALL	LA242
+		CALL	FetchData
 		POP		HL
 		POP		BC
 		LD		C,H
@@ -1461,81 +1466,91 @@ L7AF3:	LD		B,$03
 	
 InitStuff:	CALL	IrqInstall
 		JP	InitRevTbl
-	
-L7B0E:	XOR		A
-		LD		(L866B),A
-		LD		(LB218),A
-		LD		(L8A15),A
-		LD		A,$18
-		LD		(LA2C8),A
-		LD		A,$1F
-		LD		(LA2DA),A
+
+L7B0E:		XOR	A
+		LD	(L866B),A
+		LD	(LB218),A
+		LD	(L8A15),A
+		LD	A,$18
+		LD	(LA2C8),A
+		LD	A,$1F
+		LD	(LA2DA),A
 		CALL	L8C47
 		CALL	L7C76
-		ADD		A,C
-		AND		D
+		ADD	A,C
+		AND	D
 		CALL	L87D1
-		LD		HL,L8940
-		LD		(L703B),HL
-		LD		A,$01
+		LD	HL,L8940
+		LD	(L703B),HL
+		LD	A,$01
 		CALL	L7B43
-		LD		HL,L8A40
-		LD		(L703B),HL
-		XOR		A
-		LD		(LB218),A
+		LD	HL,L8A40
+		LD	(L703B),HL
+		XOR	A
+		LD	(LB218),A
 		RET
-L7B43:	LD		(LA294),A
+
+L7B43:		LD	(LA294),A
 		PUSH	AF
-		LD		(LFB28),A
+		LD	(LFB28),A
 		CALL	L7BBF
-		XOR		A
-		LD		(LA297),A
+		XOR	A
+		LD	(LA297),A
 		CALL	LA958
-		JR		L7B59
-L7B56:	CALL	LA361
-L7B59:	LD		A,(LA2BC)
-		AND		A
-		JR		NZ,L7B56
-		POP		AF
-		XOR		$03
-		LD		(LA294),A
+		JR	L7B59		; Tail call
+
+L7B56:		CALL	LA361
+L7B59:		LD	A,(LA2BC)
+		AND	A
+		JR	NZ,L7B56
+		POP	AF
+		XOR	$03
+		LD	(LA294),A
 		CALL	LA58B
-		JP		L72A0
-L7B6B:	CALL	L7C76
-		ADD		A,C
-		AND		D
-		LD		A,$08
-		CALL	UpdateAttribs
-		JP		L8906
-L7B78:	CALL	L774D
+		JP	L72A0		; Tail call
+
+L7B6B:		CALL	L7C76
+		ADD	A,C
+		AND	D
+		LD	A,$08
+		CALL	UpdateAttribs	; Blacked-out attributes
+		JP	L8906		; Tail call
+
+L7B78:		CALL	L774D
 		CALL	L7C76
-		SBC		A,D
-		AND		D
+		SBC	A,D
+		AND	D
 		CALL	L7255
 		CALL	L7C1A
 		CALL	L7395
-		XOR		A
-		LD		(LA295),A
-		JR		L7BB3
+		XOR	A
+		LD	(LA295),A
+		JR	L7BB3		; Tail call
+
 L7B8F:	DEFB $00,$00
-L7B91:	CALL	L7BBF
-		LD		A,(L7CF8)
-		AND		A
-		JR		NZ,L7BAD
-		LD		A,(L7715)
-		CP		$07
-		JR		NZ,L7BA4
-		LD		A,(L7B90)
-L7BA4:	LD		(L7B90),A
-		OR		$40
-		LD		B,A
+
+	;; NB: Called from main loop...
+L7B91:		CALL	L7BBF
+		LD	A,(L7CF8)
+		AND	A
+		JR	NZ,L7BAD
+		LD	A,(L7715)
+		CP	$07
+		JR	NZ,L7BA4
+		LD	A,(L7B90)
+L7BA4:		LD	(L7B90),A
+		OR	$40
+		LD	B,A
 		CALL	PlaySound
-L7BAD:	CALL	L7395
+L7BAD:		CALL	L7395
 		CALL	LA958
-L7BB3:	LD		A,(L7714)
+	;; NB: Fall through
+	
+L7BB3:		LD	A,(AttribScheme)
 		CALL	UpdateAttribs
 		CALL	L89D2
-		JP		L8E1D
+		JP	L8E1D		; Tail call
+
 L7BBF:	CALL	L7C76
 		LD		E,E
 		XOR		A
@@ -2251,9 +2266,9 @@ L8521:	RRA
 		ADC		A,$86
 		SUB		L
 		LD		H,A
-		LD		(L7701),HL
+		LD		(DataPtr),HL
 		LD		A,$80
-		LD		(L7703),A
+		LD		(CurrData),A
 		LD		A,$1B
 		ADD		A,B
 		LD		L,A
@@ -2355,7 +2370,7 @@ L85F2:	ADD		IX,DE
 		JR		L85A4
 L85FB:	PUSH	BC
 		LD		B,$02
-		CALL	LA242
+		CALL	FetchData
 		POP		BC
 		RET
 L8603:	LD		A,(IY-$02)
@@ -3889,80 +3904,81 @@ SW_4:		DEC	D
 		LD	BC,L1800
 		JP	FillZero 	; Tail call
 
+	;; FIXME: Looks quite interesting.
 L9542:		PUSH	AF
 		PUSH	BC
 		PUSH	DE
-		XOR		A
-		LD		(L940B),A
-		LD		D,B
-		LD		A,B
-		ADD		A,H
-		LD		E,A
-		LD		(LA054),DE
-		LD		A,C
-		LD		B,C
-		ADD		A,L
-		LD		C,A
-		LD		(LA052),BC
-		LD		A,L
+		XOR	A
+		LD	(L940B),A
+		LD	D,B
+		LD	A,B
+		ADD	A,H
+		LD	E,A
+		LD	(LA054),DE
+		LD	A,C
+		LD	B,C
+		ADD	A,L
+		LD	C,A
+		LD	(LA052),BC
+		LD	A,L
 		RRCA
 		RRCA
-		AND		$07
-		LD		L,A
-		POP		DE
+		AND	$07
+		LD	L,A
+		POP	DE
 		PUSH	HL
-		LD		C,A
-		LD		A,H
-		LD		HL,LB800
-L9566:	EX		AF,AF'
-		LD		B,C
-L9568:	LD		A,(DE)
-		LD		(HL),A
-		INC		L
-		INC		DE
+		LD	C,A
+		LD	A,H
+		LD	HL,LB800
+L9566:		EX	AF,AF'
+		LD	B,C
+L9568:		LD	A,(DE)
+		LD	(HL),A
+		INC	L
+		INC	DE
 		DJNZ	L9568
-		LD		A,$06
-		SUB		C
-		ADD		A,L
-		LD		L,A
-		EX		AF,AF'
-		DEC		A
-		JR		NZ,L9566
+		LD	A,$06
+		SUB	C
+		ADD	A,L
+		LD	L,A
+		EX	AF,AF'
+		DEC	A
+		JR	NZ,L9566
 		CALL	L93E8
-		POP		HL
-		POP		BC
-		LD		A,C
-		SUB		$40
-		ADD		A,A
-		LD		C,A
+		POP	HL
+		POP	BC
+		LD	A,C
+		SUB	$40
+		ADD	A,A
+		LD	C,A
 		CALL	L94EF
 		CALL	GetAttrOrigin
-		LD		A,H
+		LD	A,H
 		RRA
 		RRA
 		RRA
-		AND		$1F
-		LD		H,A
-		POP		AF
-		ADD		A,$E4
-		LD		C,A
-		ADC		A,$93
-		SUB		C
-		LD		B,A
+		AND	$1F
+		LD	H,A
+		POP	AF
+		ADD	A,$E4
+		LD	C,A
+		ADC	A,$93
+		SUB	C
+		LD	B,A
 		LD	A,(BC)
-		EX		DE,HL
-L9598:	LD		B,E
-		LD		C,L
-L959A:	LD		(HL),A
-		INC		L
+		EX	DE,HL
+L9598:		LD	B,E
+		LD	C,L
+L959A:		LD	(HL),A
+		INC	L
 		DJNZ	L959A
-		LD		L,C
-		LD		BC,L0020
-		ADD		HL,BC
-		DEC		D
-		JR		NZ,L9598
-		LD		A,$48
-		LD		(L940B),A
+		LD	L,C
+		LD	BC,L0020
+		ADD	HL,BC
+		DEC	D
+		JR	NZ,L9598
+		LD	A,$48
+		LD	(L940B),A
 		RET
 
 	;; Divide by 8, take bottom 2 bits, tack on $58 (top byte of attribute table address)
@@ -5232,25 +5248,32 @@ LA231:	LD		A,(HL)
 		LD		B,A
 		RET
 
-LA242:		LD	DE,L7703
+	;; Fetch bit-packed data.
+	;; Expects number of bits in B.
+	
+	;; End marker is the set bit rotated in from carry: The
+	;; current byte is all read when only that bit remains.
+FetchData:	LD	DE,CurrData
 		LD	A,(DE)
-		LD	HL,(L7701)
+		LD	HL,(DataPtr)
 		LD	C,A
 		XOR	A
-LA24B:		RL	C
-		JR	Z,LA255
-LA24F:		RLA
-		DJNZ	LA24B
+FD_1:		RL	C
+		JR	Z,FD_3
+FD_2:		RLA
+		DJNZ	FD_1
 		EX	DE,HL
 		LD	(HL),C
 		RET
-LA255:		INC	HL
-		LD	(L7701),HL
+	;; Next character case: Load/initially rotate the new character, and jump back.
+FD_3:		INC	HL
+		LD	(DataPtr),HL
 		LD	C,(HL)
 		SCF
 		RL	C
-		JP	LA24F
+		JP	FD_2
 
+	
 LA260:	LD		HL,(L7748)
 		LD		A,L
 		CP		H
