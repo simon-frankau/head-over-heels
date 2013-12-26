@@ -1,3 +1,48 @@
+	;; Copy sprite from buffer to screen.
+BlitScreen:
+	;; Construct X coordinate: 2 * (XHigh) - $80
+		LD	HL,(SpriteXExtent)
+		LD	A,H
+		SUB	$40
+		ADD	A,A
+		LD	C,A
+	;; Push the function to blit the appropriate width
+		LD	A,L
+		SUB	H
+		RRA
+		RRA
+		AND	$07 		; Width = ((XLow) - (XHigh)) >> 2 & 0x7
+		DEC	A
+		ADD	A,A
+		LD	E,A
+		LD	D,$00
+		LD	HL,CoordLut
+		ADD	HL,DE
+		LD	E,(HL)
+		INC	HL
+		LD	D,(HL)
+		PUSH	DE		; Push CoordLut[Width-1]
+	;; Construct height: (YLow) - (YHigh)
+		LD	HL,(SpriteYExtent)
+		LD	A,L
+		SUB	H
+		EX	AF,AF'
+	;; Construct Y coordinate: (YHigh) - $48
+		LD	A,H
+		SUB	$48
+		LD	B,A
+		CALL	GetScrMemAddr
+	;; Screen address now in DE
+		EX	AF,AF'
+	;; Height in B, $FF in C.
+		LD	B,A
+		LD	C,$FF
+		LD	HL,SpriteBuff
+	;; Oooh, clever - tail call the blitter.
+		RET
+
+CoordLut:	DEFW BlitScreen1,BlitScreen2,BlitScreen3,BlitScreen4,BlitScreen5,BlitScreen6
+
 	;; BlitScreenN copies an N-byte-wide image to the screen.
 	;; Copy from HL to DE, height in B.
 	
