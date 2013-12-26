@@ -912,7 +912,7 @@ FloorCode:	DEFB $00
 L7712:	DEFB $00
 L7713:	DEFB $00
 AttribScheme:	DEFB $00
-L7715:	DEFB $00
+WorldId:	DEFB $00	; Range 0..7 (I think 7 is 'same as last')
 L7716:	DEFB $00
 L7717:	DEFB $00
 L7718:	DEFB $00
@@ -1050,43 +1050,46 @@ L77F8:	LD		A,(L774C)
 		LD		(L7716),HL
 		XOR		A
 		JP		LAF96
-L780E:	LD		(L76E0),HL
-		XOR		A
-		LD		(L76E2),A
+
+	;; FIXME: Called lots
+L780E:		LD	(L76E0),HL
+		XOR	A
+		LD	(L76E2),A
 		PUSH	BC
 		CALL	L7A45
-		LD		B,$03
+		LD	B,$03
 		CALL	FetchData
-		LD		(L7710),A
-		ADD		A,A
-		ADD		A,A
-		ADD		A,$24
-		LD		L,A
-		ADC		A,$77
-		SUB		L
-		LD		H,A
-		LD		B,$02
-		LD		IX,L76E0
-L7830:	LD		C,(HL)
-		LD		A,(IX+$00)
-		AND		A
-		JR		Z,L7842
-		SUB		C
-		LD		E,A
+		LD	(L7710),A
+		ADD	A,A
+		ADD	A,A
+		ADD	A,$24
+		LD	L,A
+		ADC	A,$77
+		SUB	L
+		LD	H,A
+		LD	B,$02
+		LD	IX,L76E0
+L7830:		LD	C,(HL)
+		LD	A,(IX+$00)
+		AND	A
+		JR	Z,L7842
+		SUB	C
+		LD	E,A
 		RRA
 		RRA
 		RRA
-		AND		$1F
-		LD		(IX+$00),A
-		LD		A,E
-L7842:	ADD		A,C
-		LD		(IY+$00),A
-		INC		HL
-		INC		IX
-		INC		IY
+		AND	$1F
+		LD	(IX+$00),A
+		LD	A,E
+L7842:		ADD	A,C
+		LD	(IY+$00),A
+		INC	HL
+		INC	IX
+		INC	IY
 		DJNZ	L7830
+	;; Do this bit twice:
 		LD		B,$02
-L784F:	LD		A,(IX-$02)
+L784F:		LD		A,(IX-$02)
 		ADD		A,A
 		ADD		A,A
 		ADD		A,A
@@ -1095,19 +1098,21 @@ L784F:	LD		A,(IX-$02)
 		INC		IY
 		INC		IX
 		INC		HL
-		DJNZ	L784F
-		LD		B,$03
+		DJNZ		L784F
+	;; Now update some stuff off FetchData:
+		LD	B,$03
 		CALL	FetchData
-		LD	(AttribScheme),A ; Fetch the attribute scheme to use.
-		LD		B,$03
+		LD	(AttribScheme),A	; Fetch the attribute scheme to use.
+		LD	B,$03
 		CALL	FetchData
-		LD		(L7715),A
+		LD	(WorldId),A 		; Fetch the current world identifier
 		CALL	L7934
-		LD		B,$03
+		LD	B,$03
 		CALL	FetchData
-		LD	(FloorCode),A
+		LD	(FloorCode),A 		; And the floor pattern to use
 		CALL	SetFloorAddr
-L787E:	CALL	L78D4
+	;; FIXME
+L787E:		CALL	L78D4
 		JR		NC,L787E
 		POP		BC
 		JP		L8778
@@ -1208,35 +1213,37 @@ L7922:	LD		HL,L76EE
 		CALL	Z,LAFC6
 		POP		IY
 		RET
-L7934:	LD		B,$03
+
+L7934:		LD	B,$03
 		CALL	FetchData
 		CALL	L7358
-		ADD		A,A
-		LD		L,A
-		LD		H,A
-		INC		H
-		LD		(L7705),HL
-		LD		IX,L7707
-		LD		HL,L7748
+		ADD	A,A
+		LD	L,A
+		LD	H,A
+		INC	H
+		LD	(L7705),HL
+		LD	IX,L7707
+		LD	HL,L7748
 		EXX
-		LD		A,(IY-$01)
-		ADD		A,$04
+		LD	A,(IY-$01)
+		ADD	A,$04
 		CALL	L79B1
-		LD		HL,L7749
+		LD	HL,L7749
 		EXX
-		LD		A,(IY-$02)
-		ADD		A,$04
+		LD	A,(IY-$02)
+		ADD	A,$04
 		CALL	L79A5
-		LD		HL,L774A
+		LD	HL,L774A
 		EXX
-		LD		A,(IY-$03)
-		SUB		$04
+		LD	A,(IY-$03)
+		SUB	$04
 		CALL	L79B1
-		LD		HL,L774B
+		LD	HL,L774B
 		EXX
-		LD		A,(IY-$04)
-		SUB		$04
-		JP		L79A5
+		LD	A,(IY-$04)
+		SUB	$04
+		JP	L79A5		; Tail call
+	
 L7977:	LD		B,$03
 		CALL	FetchData
 		LD		HL,L7716
@@ -1548,25 +1555,26 @@ L7B78:		CALL	L774D
 		LD	(LA295),A
 		JR	L7BB3		; Tail call
 
-L7B8F:	DEFB $00,$00
+L7B8F:	DEFB $00
+WorldIdSnd:	DEFB $00
 
 	;; NB: Called from main loop...
 L7B91:		CALL	L7BBF
 		LD	A,(L7CF8)
 		AND	A
 		JR	NZ,L7BAD
-		LD	A,(L7715)
+		LD	A,(WorldId)
 		CP	$07
 		JR	NZ,L7BA4
-		LD	A,(L7B90)
-L7BA4:		LD	(L7B90),A
+		LD	A,(WorldIdSnd)
+L7BA4:		LD	(WorldIdSnd),A
 		OR	$40
 		LD	B,A
 		CALL	PlaySound
 L7BAD:		CALL	L7395
 		CALL	LA958
 	;; NB: Fall through
-	
+
 L7BB3:		LD	A,(AttribScheme)
 		CALL	UpdateAttribs
 		CALL	L89D2
@@ -2272,16 +2280,17 @@ L8521:		RRA
 		AND	B
 		CP	$01
 		EX	AF,AF'
-		LD	A,(L7715)
+	;; WorldId-based configuration...
+		LD	A,(WorldId)
 		LD	B,A
+	;; Put $C038 + WorldId into $84C5.
 		ADD	A,$38
 		LD	L,A
 		ADC	A,$C0
 		SUB	L
 		LD	H,A
 		LD	(L84C5),HL
-	;; From B (call it X):
-	;; At this point, I think X (0..7) is the world identifier.
+	;; Update DataPtr etc. for FetchData.
 		LD	A,B
 		ADD	A,A
 		LD	B,A 		; B updated to 2x
@@ -2291,8 +2300,7 @@ L8521:		RRA
 		LD	L,A
 		ADC	A,$86
 		SUB	L
-		LD	H,A   		; HL is $862A + 8xX (data starts at $862B)
-	;; Update DataPtr etc. for FetchData.
+		LD	H,A   		; HL is $862A + 8xWorldId (data starts at $862B=WorldData)
 		LD	(DataPtr),HL
 		LD	A,$80
 		LD	(CurrData),A
@@ -2302,12 +2310,13 @@ L8521:		RRA
 		LD	L,A
 		ADC	A,$86
 		SUB	L
-		LD	H,A 		; HL is $861B (aka PanelBases) + 2xX
+		LD	H,A 		; HL is $861B (aka PanelBases) + 2xWorldId
 		LD	A,(HL)
 		INC	HL
 		LD	H,(HL)
 		LD	L,A
 		LD	(PanelBase),HL	; Set the panel codes for the current world.
+	;; FIXME
 		LD	A,$FF
 		EX	AF,AF'
 		LD	A,C
@@ -2423,14 +2432,14 @@ L8603:	LD		A,(IY-$02)
 
 PanelBases:	DEFW $C050,$C1A0,$C2F0,$C3D0,$C4B0,$C670,$C750,$C8A0
 	;; 8-byte chunks referenced by setting DataPtr etc.
-L862B:	DEFB $46,$91,$65,$94,$A1,$69,$69,$AA
-	DEFB $49,$24,$51,$49,$12,$44,$92,$A4
-	DEFB $04,$10,$10,$41,$04,$00,$44,$00
-	DEFB $04,$10,$10,$41,$04,$00,$10,$00
-	DEFB $4E,$31,$B4,$E7,$4E,$42,$E4,$99
-	DEFB $45,$51,$50,$51,$54,$55,$55,$55
-	DEFB $64,$19,$65,$11,$A4,$41,$28,$55
-	DEFB $00,$00,$00,$00,$00,$00,$00,$00
+WorldData:	DEFB $46,$91,$65,$94,$A1,$69,$69,$AA
+		DEFB $49,$24,$51,$49,$12,$44,$92,$A4
+		DEFB $04,$10,$10,$41,$04,$00,$44,$00
+		DEFB $04,$10,$10,$41,$04,$00,$10,$00
+		DEFB $4E,$31,$B4,$E7,$4E,$42,$E4,$99
+		DEFB $45,$51,$50,$51,$54,$55,$55,$55
+		DEFB $64,$19,$65,$11,$A4,$41,$28,$55
+		DEFB $00,$00,$00,$00,$00,$00,$00,$00
 L866B:	DEFB $00,$70,$14,$00,$72,$60,$30,$01,$40,$B0,$2E,$09,$34,$B0,$00,$1A
 L867B:	DEFB $00,$F0,$9A,$0B,$70,$40,$A7,$1C,$44,$30,$37,$7D,$37,$70,$15,$68
 L868B:	DEFB $34,$60,$89,$48,$47,$60,$C5,$68,$76,$80,$1B,$68,$76,$D0,$BC,$28
@@ -3156,6 +3165,9 @@ L8E4E:	DEFB $27,$B0,$F0,$28,$44,$F0,$29,$44,$D8,$98,$94,$F0,$1E,$60,$F0
 
 	;; FIXME: Very spritey
 L8E5D:		LD	D,$03
+	
+	;; Sprite code in A. Something in D moved to A, BC saved.
+	;; We load HL with 180C, DE with image, A with thing, call 9542
 L8E5F:		LD	(SpriteCode),A
 		LD	A,B
 		SUB	$48
@@ -3168,6 +3180,7 @@ L8E5F:		LD	(SpriteCode),A
 		POP	AF
 		AND	A
 		JP	L9542
+
 L8E74:		LD	L,$00
 		DEC	L
 		INC	L
@@ -3817,7 +3830,7 @@ L93DD:	LD		A,H
 		OR		L
 		JR		NZ,L93C0
 		RET
-L93E2:	DEFB $00,$00
+L93E2:	DEFW $0000
 	
 Attrib0:	DEFB $00
 Attrib3:	DEFB $43
@@ -3851,7 +3864,7 @@ L93E8:	LD		HL,(LA052)
 		LD		A,H
 		SUB		$48
 		LD		B,A
-		CALL	L94EF
+		CALL		GetScrMemAddr
 		EX		AF,AF'
 		LD		B,A
 		LD		C,$FF
@@ -3871,28 +3884,34 @@ L9418:	INC		H
 
 #include "blit_screen.asm"
 
-	;; FIXME: Returns stuff in DE, takes stuff in BC
-L94EF:		LD	A,B
+	;; Takes a B = X, C = Y pixel coordinate.
+	;; Returns a pointer to corresponding bitmap address in DE.
+GetScrMemAddr:	LD	A,B
 		AND	A
 		RRA
 		SCF
-		RRA		; /4, +0x80 ?
+		RRA
 		AND	A
 		RRA
+	;; A is now B >> 3 | 0x40
 		XOR	B
-		AND	$F8	; Clear bottom 3 bits
+		AND	$F8
 		XOR	B
 		LD	D,A
+	;; D is now ((B >> 3) | 0x40) & ~0x07  |  B & 0x07
 		LD	A,C
 		RLCA
 		RLCA
 		RLCA
+	;; A is now C << 3 | C >> 5
 		XOR	B
 		AND	$C7
 		XOR	B
+	;; A is now (C << 3 | C >> 5) & ~0x38  |  B & 0x38
 		RLCA
 		RLCA
 		LD	E,A
+	;; E is now C >> 3  |  (B << 2) & 0xE0
 		RET
 	
 	;; Screen-wipe loop
@@ -3942,6 +3961,7 @@ SW_4:		DEC	D
 		JP	FillZero 	; Tail call
 
 	;; FIXME: Looks quite interesting.
+	;; BC, DE, HL, A all init'd. e.g. HL with 180C, DE with image
 L9542:		PUSH	AF
 		PUSH	BC
 		PUSH	DE
@@ -3988,8 +4008,8 @@ L9568:		LD	A,(DE)
 		SUB	$40
 		ADD	A,A
 		LD	C,A
-		CALL	L94EF
-		CALL	GetAttrOrigin
+		CALL	GetScrMemAddr
+		CALL	ToAttrAddr
 		LD	A,H
 		RRA
 		RRA
@@ -4018,8 +4038,10 @@ L959A:		LD	(HL),A
 		LD	(L940B),A
 		RET
 
+	;; Converts a bitmap address to its corresponding attribute address.
+	;; Works on an address in DE.
 	;; Divide by 8, take bottom 2 bits, tack on $58 (top byte of attribute table address)
-GetAttrOrigin:	LD	A,D
+ToAttrAddr:	LD	A,D
 		RRA
 		RRA
 		RRA
@@ -4036,9 +4058,9 @@ ApplyAttribs:	LD	BC,(L93E2)
 		LD	A,B
 		SUB	$3D
 		LD	B,A
-		CALL	L94EF
+		CALL	GetScrMemAddr
 		LD	L,D
-		CALL	GetAttrOrigin
+		CALL	ToAttrAddr
 		EX	DE,HL
 
 		PUSH	HL
