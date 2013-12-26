@@ -3837,54 +3837,53 @@ Attrib3:	DEFB $43
 Attrib4:	DEFB $45
 Attrib5:	DEFB $46
 
-L93E8:	LD		HL,(LA052)
-		LD		A,H
-		SUB		$40
-		ADD		A,A
-		LD		C,A
-		LD		A,L
-		SUB		H
+	;; Construct X coordinate: 2 * ($A053) - $80
+L93E8:
+		LD	HL,(LA052)
+		LD	A,H
+		SUB	$40
+		ADD	A,A
+		LD	C,A
+	;; Push the function to blit the appropriate width
+		LD	A,L
+		SUB	H
 		RRA
 		RRA
-		AND		$07
-		DEC		A
-		ADD		A,A
-		LD		E,A
-		LD		D,$00
-		LD		HL,L9418
-		ADD		HL,DE
-		LD		E,(HL)
-		INC		HL
-		LD		D,(HL)
-		PUSH	DE
-		LD		HL,(LA054)
-		LD		A,L
-		SUB		H
-		EX		AF,AF'
-		LD		A,H
-		SUB		$48
-		LD		B,A
-		CALL		GetScrMemAddr
-		EX		AF,AF'
-		LD		B,A
-		LD		C,$FF
-		LD		HL,LB800
+		AND	$07 		; Width = (($A052) - ($A053)) >> 2 & 0x7
+		DEC	A
+		ADD	A,A
+		LD	E,A
+		LD	D,$00
+		LD	HL,CoordLut
+		ADD	HL,DE
+		LD	E,(HL)
+		INC	HL
+		LD	D,(HL)
+		PUSH	DE		; Push CoordLut[Width-1]
+	;; Construct height: ($A054) - ($A055)
+		LD	HL,(LA054)
+		LD	A,L
+		SUB	H
+		EX	AF,AF'
+	;; Construct Y coordinate: ($A055) - $48
+		LD	A,H
+		SUB	$48
+		LD	B,A
+		CALL	GetScrMemAddr
+	;; Screen address now in DE
+		EX	AF,AF'
+	;; Height in B, $FF in C.
+		LD	B,A
+		LD	C,$FF
+		LD	HL,LB800
+	;; Oooh, clever - tail call the blitter.
 		RET
-L9418:	INC		H
-		SUB		H
-		LD		B,D
-		SUB		H
-		LD		H,D
-		SUB		H
-		ADD		A,H
-		SUB		H
-		XOR		B
-		SUB		H
-		RES		2,H
+
+CoordLut:	DEFW BlitScreen1,BlitScreen2,BlitScreen3,BlitScreen4,BlitScreen5,BlitScreen6
 
 #include "blit_screen.asm"
 
-	;; Takes a B = X, C = Y pixel coordinate.
+	;; Takes a B = Y, C = X pixel coordinate.
 	;; Returns a pointer to corresponding bitmap address in DE.
 GetScrMemAddr:	LD	A,B
 		AND	A
@@ -4059,7 +4058,7 @@ ApplyAttribs:	LD	BC,(L93E2)
 		SUB	$3D
 		LD	B,A
 		CALL	GetScrMemAddr
-		LD	L,D
+		LD	L,D		; Save high byte of address - why?
 		CALL	ToAttrAddr
 		EX	DE,HL
 

@@ -1058,9 +1058,9 @@ CHAR    s[80];          // Ausgabestring
     ParseOpcodes(0x72EB);
 	ParseOpcodes(0x72F3);
 	ParseOpcodes(0x734B);
-	ParseOpcodes(0x7376);	
-	ParseOpcodes(0x7564);	
-	ParseOpcodes(0x757D);	
+	ParseOpcodes(0x7376);
+	ParseOpcodes(0x7564);
+	ParseOpcodes(0x757D);
 	ParseOpcodes(0x75A4);
 	ParseOpcodes(0x7B78);
 // 7EA3 looks like strings?
@@ -1093,10 +1093,10 @@ CHAR    s[80];          // Ausgabestring
 	ParseOpcodes(0x9053);
 	ParseOpcodes(0x9088);
 	ParseOpcodes(0x90BF);
-	ParseOpcodes(0x90D7);	
-	ParseOpcodes(0x90DD);	
-	ParseOpcodes(0x90E3);	
-	ParseOpcodes(0x90E8);	
+	ParseOpcodes(0x90D7);
+	ParseOpcodes(0x90DD);
+	ParseOpcodes(0x90E3);
+	ParseOpcodes(0x90E8);
 	ParseOpcodes(0x90ED);
 	ParseOpcodes(0x90F2);
 	ParseOpcodes(0x90F7);
@@ -1108,14 +1108,13 @@ CHAR    s[80];          // Ausgabestring
 	ParseOpcodes(0x91E4);
 	ParseOpcodes(0x91F1);
 	ParseOpcodes(0x9200);
-	ParseOpcodes(0x920D);	
+	ParseOpcodes(0x920D);
 	ParseOpcodes(0x9214);
-	ParseOpcodes(0x921F);	
-	ParseOpcodes(0x9226);	
+	ParseOpcodes(0x921F);
+	ParseOpcodes(0x9226);
 	ParseOpcodes(0x9245);
 	ParseOpcodes(0x925D);
 	ParseOpcodes(0x9264);
-	ParseOpcodes(0x9418);
 	ParseOpcodes(0x9442);
 	ParseOpcodes(0x9462);
 	ParseOpcodes(0x9484);
@@ -1130,19 +1129,19 @@ CHAR    s[80];          // Ausgabestring
 	ParseOpcodes(0x9AFE);
 	ParseOpcodes(0x9B17);
 	ParseOpcodes(0x9B37);
-	ParseOpcodes(0x9B5E);	
+	ParseOpcodes(0x9B5E);
 	ParseOpcodes(0x9B8B);
 	ParseOpcodes(0x9CF7);
 	ParseOpcodes(0x9CFC);
 	ParseOpcodes(0x9E07);
 	ParseOpcodes(0x9E2C);
-	ParseOpcodes(0x9E46);											
-	ParseOpcodes(0x9E73);											
-	ParseOpcodes(0x9E80);											
-	ParseOpcodes(0x9EA9);											
-	ParseOpcodes(0x9EAD);																															
+	ParseOpcodes(0x9E46);
+	ParseOpcodes(0x9E73);
+	ParseOpcodes(0x9E80);
+	ParseOpcodes(0x9EA9);
+	ParseOpcodes(0x9EAD);
 	ParseOpcodes(0x9EBB);
-	
+
 	// 9F3A is a jump table for:
 	ParseOpcodes(0x9F46);
 	ParseOpcodes(0x9F6F);
@@ -1155,7 +1154,7 @@ CHAR    s[80];          // Ausgabestring
 	ParseOpcodes(0xB39F);
 	ParseOpcodes(0xB3C0);
 	ParseOpcodes(0xB3E4);
-	ParseOpcodes(0xB407);	
+	ParseOpcodes(0xB407);
 	ParseOpcodes(0xB428);
 	ParseOpcodes(0xB469);
 	ParseOpcodes(0xB484);
@@ -1166,12 +1165,12 @@ CHAR    s[80];          // Ausgabestring
 	ParseOpcodes(0xB5AD);
 	ParseOpcodes(0xB715);
 	ParseOpcodes(0xB71A);
-	ParseOpcodes(0xB728);		
+	ParseOpcodes(0xB728);
 	ParseOpcodes(0xB734);
 	ParseOpcodes(0xB824);
-	// ParseOpcodes(0xB82F);	
+	// ParseOpcodes(0xB82F);
 
-ParseOpcodes(0xBA40);	
+ParseOpcodes(0xBA40);
 
 
 // Data from 0xB824ish?

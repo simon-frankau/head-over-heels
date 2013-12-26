@@ -1,5 +1,5 @@
 	;; BlitScreenN copies an N-byte-wide image to the screen.
-	;; Copy from HL to DE, size in BC.
+	;; Copy from HL to DE, height in B.
 	
 	;; Assumes HL buffer is 6 bytes wide, and DE is a screen
 	;; location (no clipping).
