@@ -8,6 +8,8 @@
 
 	;; Hack, should be removed.
 #include "equs.asm"
+
+SpriteBuff:	EQU $B800
 	
 	;; Main entry point
 Entry:		LD	SP,$FFF4
@@ -972,9 +974,9 @@ L774D:	LD		A,$FF
 		LD		(L7713),A
 L7752:	LD		IY,L7718
 		LD		HL,L40C0
-		LD		(LA052),HL
+		LD		(SpriteXExtent),HL
 		LD		HL,L00FF
-		LD		(LA054),HL
+		LD		(SpriteYExtent),HL
 		LD		HL,LC0C0
 		LD		(L7748),HL
 		LD		(L774A),HL
@@ -3189,24 +3191,24 @@ L8E74:		LD	L,$00
 		CALL	L8E9B
 		CALL	L8ECF
 		CALL	GetSpriteAddr
-		LD	BC,LB800
+		LD	BC,SpriteBuff
 		EXX
 		LD	B,$18
 		CALL	Blit3of3
-		JP	L93E8
+		JP	BlitScreen
 
 L8E92:		CALL	L8E9B
 		CALL	L8ECF
-		JP	L93E8
+		JP	BlitScreen
 L8E9B:		LD	H,C
 		LD	A,H
 		ADD	A,$0C
 		LD	L,A
-		LD	(LA052),HL
+		LD	(SpriteXExtent),HL
 		LD	A,B
 		ADD	A,$18
 		LD	C,A
-		LD	(LA054),BC
+		LD	(SpriteYExtent),BC
 		RET
 
 
@@ -3214,18 +3216,18 @@ L8EAC:		LD	(SpriteCode),A
 		CALL	L8E9B
 		LD	A,B
 		ADD	A,$20
-		LD	(LA054),A
+		LD	(SpriteYExtent),A
 		CALL	L8ECF
 		LD	A,$02
 		LD	(LA05C),A
 		CALL	GetSpriteAddr
-		LD	BC,LB800
+		LD	BC,SpriteBuff
 		EXX
 		LD	B,$20
 		CALL	Blit3of3
-		JP	L93E8
+		JP	BlitScreen
 
-L8ECF:		LD	HL,LB800
+L8ECF:		LD	HL,SpriteBuff
 		LD	BC,L0100
 		JP	FillZero 	; Tail call
 
@@ -3837,9 +3839,10 @@ Attrib3:	DEFB $43
 Attrib4:	DEFB $45
 Attrib5:	DEFB $46
 
-	;; Construct X coordinate: 2 * ($A053) - $80
-L93E8:
-		LD	HL,(LA052)
+	;; Copy sprite from buffer to screen.
+BlitScreen:
+	;; Construct X coordinate: 2 * (XHigh) - $80
+		LD	HL,(SpriteXExtent)
 		LD	A,H
 		SUB	$40
 		ADD	A,A
@@ -3849,7 +3852,7 @@ L93E8:
 		SUB	H
 		RRA
 		RRA
-		AND	$07 		; Width = (($A052) - ($A053)) >> 2 & 0x7
+		AND	$07 		; Width = ((XLow) - (XHigh)) >> 2 & 0x7
 		DEC	A
 		ADD	A,A
 		LD	E,A
@@ -3860,12 +3863,12 @@ L93E8:
 		INC	HL
 		LD	D,(HL)
 		PUSH	DE		; Push CoordLut[Width-1]
-	;; Construct height: ($A054) - ($A055)
-		LD	HL,(LA054)
+	;; Construct height: (YLow) - (YHigh)
+		LD	HL,(SpriteYExtent)
 		LD	A,L
 		SUB	H
 		EX	AF,AF'
-	;; Construct Y coordinate: ($A055) - $48
+	;; Construct Y coordinate: (YHigh) - $48
 		LD	A,H
 		SUB	$48
 		LD	B,A
@@ -3875,7 +3878,7 @@ L93E8:
 	;; Height in B, $FF in C.
 		LD	B,A
 		LD	C,$FF
-		LD	HL,LB800
+		LD	HL,SpriteBuff
 	;; Oooh, clever - tail call the blitter.
 		RET
 
@@ -3970,12 +3973,12 @@ L9542:		PUSH	AF
 		LD	A,B
 		ADD	A,H
 		LD	E,A
-		LD	(LA054),DE
+		LD	(SpriteYExtent),DE
 		LD	A,C
 		LD	B,C
 		ADD	A,L
 		LD	C,A
-		LD	(LA052),BC
+		LD	(SpriteXExtent),BC
 		LD	A,L
 		RRCA
 		RRCA
@@ -3985,7 +3988,7 @@ L9542:		PUSH	AF
 		PUSH	HL
 		LD	C,A
 		LD	A,H
-		LD	HL,LB800
+		LD	HL,SpriteBuff
 L9566:		EX	AF,AF'
 		LD	B,C
 L9568:		LD	A,(DE)
@@ -4000,7 +4003,7 @@ L9568:		LD	A,(DE)
 		EX	AF,AF'
 		DEC	A
 		JR	NZ,L9566
-		CALL	L93E8
+		CALL	BlitScreen
 		POP	HL
 		POP	BC
 		LD	A,C
@@ -4166,7 +4169,7 @@ L9643:		LD	A,$BF
 	
 #include "blit.asm"
 	
-L9BBE:	LD		HL,(LA052)
+L9BBE:	LD		HL,(SpriteXExtent)
 		LD		A,H
 		RRA
 		RRA
@@ -4182,7 +4185,7 @@ L9BBE:	LD		HL,(LA052)
 		RRA
 		AND		$07
 		SUB		$02
-		LD		DE,LB800
+		LD		DE,SpriteBuff
 		RR		C
 		JR		NC,L9BF0
 		LD		IY,L9DF8
@@ -4222,7 +4225,7 @@ L9C16:	LD		(L9CD2),HL
 		POP		DE
 		INC		E
 		RET
-L9C28:	LD		DE,(LA054)
+L9C28:	LD		DE,(SpriteYExtent)
 		LD		A,E
 		SUB		D
 		LD		E,A
@@ -4974,10 +4977,8 @@ LA040:	RRD
 		INC		HL
 		DJNZ	LA040
 		RET
-LA052:	DEFB $66
-LA053:	DEFB $60
-LA054:	DEFB $70
-LA055:	DEFB $50
+SpriteXExtent:	DEFW $6066
+SpriteYExtent:	DEFW $5070
 LA056:	DEFB $00
 LA057:	DEFB $00
 LA058:	DEFB $00
@@ -5024,7 +5025,7 @@ LA08A:		LD		A,L
 		LD		A,H
 		AND		$FC
 		LD		H,A
-		LD		(LA052),HL
+		LD		(SpriteXExtent),HL
 		RET
 
 
@@ -5049,7 +5050,7 @@ LA0AF:		LD	A,D
 		JR	C,LA09D
 
 	;; TODO: This function is seriously epic...
-LA0B6:		LD		(LA054),DE
+LA0B6:		LD		(SpriteYExtent),DE
 		CALL	L9BBE
 		LD		A,(L7716)
 		AND		$0C
@@ -5057,12 +5058,12 @@ LA0B6:		LD		(LA054),DE
 		LD		E,A
 		AND		$08
 		JR		Z,LA0EC
-		LD		BC,(LA052)
+		LD		BC,(SpriteXExtent)
 		LD		HL,L84C9
 		LD		A,B
 		CP		(HL)
 		JR		NC,LA0EC
-		LD		A,(LA055)
+		LD		A,(SpriteYExtent+1)
 		ADD		A,B
 		RRA
 		LD		D,A
@@ -5075,11 +5076,11 @@ LA0B6:		LD		(LA054),DE
 		POP		DE
 		BIT		2,E
 		JR		Z,LA109
-LA0EC:		LD		BC,(LA052)
+LA0EC:		LD		BC,(SpriteXExtent)
 		LD		A,(L84C9)
 		CP		C
 		JR		NC,LA109
-		LD		A,(LA055)
+		LD		A,(SpriteYExtent+1)
 		SUB		C
 		CCF
 		RRA
@@ -5095,7 +5096,7 @@ LA109:		LD		HL,LAF8A
 		CALL	LA11E
 		LD		HL,LAF8E
 		CALL	LA11E
-		JP		L93E8
+		JP		BlitScreen
 LA11E:		LD		A,(HL)
 		INC		HL
 		LD		H,(HL)
@@ -5118,7 +5119,7 @@ LA12F:		CALL	LA1BD
 		SRL		H
 		ADD		A,H
 		LD		E,A
-		LD		D,$B8
+		LD		D,$B8 ; FIXME: Top of SpriteBuff?
 		PUSH	DE
 		PUSH	HL
 		EXX
@@ -5213,13 +5214,13 @@ LA1BD:		CALL	LA1F0
 		LD		A,B
 		LD		(LA056),A
 		PUSH	HL
-		LD		DE,(LA052)
+		LD		DE,(SpriteXExtent)
 		CALL	LA20C
 		EXX
 		POP		BC
 		RET		NC
 		EX		AF,AF'
-		LD		DE,(LA054)
+		LD		DE,(SpriteYExtent)
 		CALL	LA20C
 		RET
 
