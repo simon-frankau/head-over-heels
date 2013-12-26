@@ -970,9 +970,9 @@ L7749:	DEFB $00
 L774A:	DEFB $00
 L774B:	DEFB $00
 L774C:	DEFB $C0
-L774D:	LD		A,$FF
+L774D:		LD		A,$FF
 		LD		(L7713),A
-L7752:	LD		IY,L7718
+L7752:		LD		IY,L7718
 		LD		HL,L40C0
 		LD		(SpriteXExtent),HL
 		LD		HL,L00FF
@@ -3154,7 +3154,7 @@ L8E32:	LD		A,(HL)
 		RR		E
 		PUSH	DE
 		JR		NC,L8E47
-		CALL	L8E74
+		CALL	Draw3x24
 L8E41:	POP		DE
 		POP		HL
 		DEC		D
@@ -3183,13 +3183,15 @@ L8E5F:		LD	(SpriteCode),A
 		AND	A
 		JP	L9542
 
-L8E74:		LD	L,$00
+	;; Draw a 3 byte x 24 row sprite on clear background.
+	;; Takes sprite code in A, coordinates in BC.
+Draw3x24:	LD	L,$00
 		DEC	L
 		INC	L
-		JR	Z,L8E5D
+		JR	Z,L8E5D			; FIXME: Not sure what that's about
 		LD	(SpriteCode),A
-		CALL	L8E9B
-		CALL	L8ECF
+		CALL	SetExtents3x24
+		CALL	ClearSpriteBuf
 		CALL	GetSpriteAddr
 		LD	BC,SpriteBuff
 		EXX
@@ -3197,10 +3199,14 @@ L8E74:		LD	L,$00
 		CALL	Blit3of3
 		JP	BlitScreen
 
-L8E92:		CALL	L8E9B
-		CALL	L8ECF
+	;; Takes coordinates in BC, and clears a 3x24 section of display
+Clear3x24:	CALL	SetExtents3x24
+		CALL	ClearSpriteBuf
 		JP	BlitScreen
-L8E9B:		LD	H,C
+
+	;; Set up the extent information for a 3 byte x 24 row sprite
+	;; Y coordinate in B, X coordinate in C
+SetExtents3x24:	LD	H,C
 		LD	A,H
 		ADD	A,$0C
 		LD	L,A
@@ -3211,26 +3217,28 @@ L8E9B:		LD	H,C
 		LD	(SpriteYExtent),BC
 		RET
 
-
-L8EAC:		LD	(SpriteCode),A
-		CALL	L8E9B
+	;; Draw a 3 byte x 32 row sprite on clear background.
+	;; Takes sprite code in A, coordinates in BC.
+Draw3x32:	LD	(SpriteCode),A
+		CALL	SetExtents3x24
 		LD	A,B
 		ADD	A,$20
-		LD	(SpriteYExtent),A
-		CALL	L8ECF
+		LD	(SpriteYExtent),A	; Set adjusted extents.
+		CALL	ClearSpriteBuf 		; Clear buffer
 		LD	A,$02
-		LD	(LA05C),A
+		LD	(LA05C),A 		; FIXME: ?
 		CALL	GetSpriteAddr
 		LD	BC,SpriteBuff
 		EXX
 		LD	B,$20
-		CALL	Blit3of3
-		JP	BlitScreen
+		CALL	Blit3of3 		; Draw into buffer.
+		JP	BlitScreen		; Buffer to screen.
 
-L8ECF:		LD	HL,SpriteBuff
+ClearSpriteBuf:	LD	HL,SpriteBuff
 		LD	BC,L0100
 		JP	FillZero 	; Tail call
 
+	
 L8ED8:	DEFB $00,$FF,$FF
 L8EDB:	LD		A,(IY+$0C)
 		LD		(IY+$0C),$FF
@@ -4124,7 +4132,7 @@ L9643:		LD	A,$BF
 	
 #include "blit.asm"
 	
-L9BBE:	LD		HL,(SpriteXExtent)
+L9BBE:		LD		HL,(SpriteXExtent)
 		LD		A,H
 		RRA
 		RRA
@@ -5074,7 +5082,7 @@ LA12F:		CALL	LA1BD
 		SRL		H
 		ADD		A,H
 		LD		E,A
-		LD		D,$B8 ; FIXME: Top of SpriteBuff?
+		LD		D,SpriteBuff >> 8
 		PUSH	DE
 		PUSH	HL
 		EXX
@@ -5988,7 +5996,7 @@ LA8A3:	JP		NC,L719E
 		LD		(LA2A7),HL
 		LD		BC,LD8B0
 		PUSH	AF
-		CALL	L8E74
+		CALL	Draw3x24
 		POP		AF
 		POP		HL
 		JP		L8D4B
@@ -6025,7 +6033,7 @@ LA8DF:	CALL	LA94B
 		LD		HL,L0000
 		LD		(LA2A7),HL
 		LD		BC,LD8B0
-		CALL	L8E92
+		CALL	Clear3x24
 		CALL	LA94B
 		CALL	LAA74
 		CALL	LA94B
@@ -6189,7 +6197,7 @@ LAA49:	LD		A,(LA294)
 		ADD		HL,DE
 		LD		A,(HL)
 		LD		BC,LD8B0
-		JP		L8E74
+		JP		Draw3x24
 LAA64:	DEFB $28,$28,$C0,$FD,$FD,$FB,$FE,$F7,$FD,$FD,$08,$04,$02,$01,$00,$00
 LAA74:	CALL	LAA7E
 		LD		A,(IY+$07)
