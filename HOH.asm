@@ -149,7 +149,7 @@ L7132:	LD		HL,L7169
 		AND		A
 		JR		Z,L713B
 		LD		HL,L7176
-L713B:	LD		(L715F),HL
+L713B:	LD		(L715E+1),HL
 		RET
 L713F:	CALL	InputThing
 		BIT		7,A
@@ -165,7 +165,7 @@ L713F:	CALL	InputThing
 		CP		$FF
 		JR		Z,L7189
 		RRA
-		JP		C,L7176
+L715E:		JP		C,L7176 	; NB: Self-modifying code target
 		LD		A,C
 		LD		(L703E),A
 		LD		(L703F),A
@@ -383,7 +383,7 @@ L72F3:	PUSH	DE
 		POP		BC
 		POP		DE
 		LDIR
-		LD		HL,(LAF92)
+L7305:		LD		HL,(LAF92) 	; NB: Referenced as data.
 		LD		(LAF78),HL
 		LD		HL,LAF82
 		LD		BC,L0008
@@ -1714,7 +1714,8 @@ L7C76:	POP		HL
 		EX		DE,HL
 		LDIR
 		RET
-L7C88:	DEFB $00,$00,$1E,$60,$60,$98,$8C,$60,$2F,$60,$48,$AF,$8C,$48
+L7C88:	DEFB $00,$00
+L7C8A:	DEFB $1E,$60,$60,$98,$8C,$60,$2F,$60,$48,$AF,$8C,$48
 L7C96:	LD		A,$99
 		CALL	LB682
 		LD		IX,L7CD4
