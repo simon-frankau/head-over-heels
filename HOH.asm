@@ -4760,8 +4760,8 @@ L9F0D:	ADD		HL,BC
 		INC		HL
 		LD		H,(HL)
 		LD		L,A
-		LD		(L9F25),HL
-		LD		(L9F30),HL
+		LD		(L9F24+1),HL
+		LD		(L9F2F+1),HL
 		EXX
 		EX		AF,AF'
 		PUSH	AF
@@ -4769,20 +4769,21 @@ L9F0D:	ADD		HL,BC
 		PUSH	DE
 		LD		DE,LBF20
 		LD		B,$00
-		CALL	L0000
+L9F24:	CALL	L0000		; NB: Target of self-modifying code.
 		EX		DE,HL
 		POP		HL
 		PUSH	DE
 		LD		A,(LA057)
 		LD		B,$FF
-		CALL	L0000
+L9F2F:	CALL	L0000		; NB: Target of self-modifying code.
 		LD		HL,LBF20
 		POP		DE
 		POP		AF
 		INC		A
 		EX		AF,AF'
 		RET
-L9F3A:	DEFB $46,$9F,$98,$9F,$6F,$9F,$BB,$9F,$2B,$A0,$F3,$9F
+L9F3A:	DEFB $46,$9F,$98,$9F,$6F,$9F
+L9F40:	DEFB $BB,$9F,$2B,$A0,$F3,$9F
 L9F46:	PUSH	DE
 L9F47:	EX		AF,AF'
 		LD		E,B
@@ -4876,9 +4877,9 @@ L9FAC:	RRD
 		RET
 L9FBB:	PUSH	DE
 		LD		C,$1E
-		LD		(L9FC3),BC
+		LD		(L9FC3),BC ; NB: Self-modifying code.
 L9FC2:	EX		AF,AF'
-		LD		E,$00
+L9FC3:	LD		E,$00	; NB: Target of self-modifying code.
 		LD		A,(HL)
 		INC		HL
 		LD		B,(HL)
@@ -4919,7 +4920,7 @@ L9FF3:	PUSH	DE
 		LD		C,$1E
 		LD		(L9FFB),BC
 L9FFA:	EX		AF,AF'
-		LD		E,$00
+L9FFB:	LD		E,$00 	; NB: Target of self-modifying code.
 		LD		A,(HL)
 		INC		HL
 		LD		B,(HL)

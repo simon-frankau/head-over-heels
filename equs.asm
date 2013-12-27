@@ -65,11 +65,6 @@ L6B16:	EQU $6B16
 L7FFD:	EQU $7FFD 		; Numeric constant
 
 	;; References into code area.
-L9F25:	EQU $9F25
-L9F30:	EQU $9F30
-L9F40:	EQU $9F40
-L9FC3:	EQU $9FC3
-L9FFB:	EQU $9FFB
 LA800:	EQU $A800		; Numeric constant?
 
 	;; Data-ish stuff
