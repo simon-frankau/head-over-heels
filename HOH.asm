@@ -10,6 +10,9 @@
 #include "equs.asm"
 
 SpriteBuff:	EQU $B800
+
+SomeBuff:	EQU $F944
+SomeBuffLen:	EQU $94
 	
 	;; Main entry point
 Entry:		LD	SP,$FFF4
@@ -813,47 +816,57 @@ L7683:	PUSH	AF
 		CALL	LB682
 		POP		AF
 		JP		LB682
-L768D:	DEFB $00
-L768E:	PUSH	DE
+
+SomeBuffFaffCounter:	DEFB $00
+
+RestoreSomeBuffFaff:	PUSH	DE
 		PUSH	BC
 		PUSH	HL
-		LD		A,(L768D)
-		CALL	L769E
-		POP		HL
-		POP		BC
-		POP		DE
+		LD	A,(SomeBuffFaffCounter)
+		CALL	SomeBuffFaff
+		POP	HL
+		POP	BC
+		POP	DE
 		RET
-L769B:	LD		(L768D),A
-L769E:	PUSH	AF
-		LD		HL,LF944
-		LD		BC,L0094
+
+SetSomeBuffFaff:	LD	(SomeBuffFaffCounter),A
+	;; Appears to build something up in SomeBuffer, based on a
+	;; prologue, middle section and end. Final pointer at DE.
+SomeBuffFaff:	PUSH	AF
+		LD	HL,SomeBuff
+		LD	BC,SomeBuffLen
 		CALL	FillZero
-		XOR		A
-		LD		(L9EE1),A
-		DEC		A
-		LD		(L9D83),A
-		POP		AF
-		AND		A
-		RET		Z
-		LD		DE,LF9D7
+		XOR	A
+		LD	(SomeBuffFlag2),A
+		DEC	A
+		LD	(SomeBuffFlag),A
+		POP	AF
+		AND	A
+		RET	Z
+		LD	DE,SomeBuff + SomeBuffLen - 1
 		PUSH	AF
-		CALL	L76D5
-L76BA:	POP		AF
-		SUB		$06
-		JR		Z,L76C5
+		CALL	SBF_4
+SBF_1:		POP	AF
+		SUB	$06
+		JR	Z,SBF_2
 		PUSH	AF
-		CALL	L76CD
-		JR		L76BA
-L76C5:	LD		HL,LF91B
-		LD		BC,L0024
-		JR		L76DB
-L76CD:	LD		HL,LF933
-		LD		BC,L0018
-		JR		L76DB
-L76D5:	LD		HL,LF943
-		LD		BC,L0010
-L76DB:	LDDR
+		CALL	SBF_3
+		JR	SBF_1
+
+SBF_2:		LD	HL,LF91B
+		LD	BC,L0024
+		JR	SBF_5
+
+SBF_3:		LD	HL,LF933
+		LD	BC,L0018
+		JR	SBF_5
+
+SBF_4:		LD	HL,LF943
+		LD	BC,L0010
+
+SBF_5:		LDDR
 		RET
+
 L76DE:	DEFB $E0
 L76DF:	DEFB $76
 L76E0:	DEFB $00
@@ -1042,16 +1055,16 @@ L77D0:	LD		IY,L7720
 		LD		H,$00
 		CALL	L780E
 		CALL	LA260
-L77F8:	LD		A,(L774C)
-		LD		HL,(L7705)
+L77F8:		LD	A,(L774C)
+		LD	HL,(L7705)
 		PUSH	AF
 		CALL	L81DC
-		POP		AF
-		CALL	L769B
-		POP		HL
-		LD		(L7716),HL
-		XOR		A
-		JP		LAF96
+		POP	AF
+		CALL	SetSomeBuffFaff
+		POP	HL
+		LD	(L7716),HL
+		XOR	A
+		JP	LAF96
 
 	;; FIXME: Called lots
 L780E:		LD	(L76E0),HL
@@ -3137,32 +3150,38 @@ L8DF0:	PUSH	HL
 		RET
 L8DFF:	DEFB $4C,$54,$78,$4C,$A4,$78,$4C,$54,$E8,$4C,$A4,$E8,$4C,$7C,$B0,$2F
 L8E0F:	DEFB $54,$60,$2F,$A4,$60,$2F,$54,$D0,$2F,$A4,$D0,$2F,$7C,$98
-L8E1D:	CALL	LAA49
-		LD		HL,L8E4E
-		LD		DE,(LA28B)
-		LD		D,$03
+	
+L8E1D:		CALL	LAA49
+		LD	HL,L8E4E
+		LD	DE,(LA28B)
+		LD	D,$03
 		CALL	L8E32
-		LD		DE,(LA294)
-L8E30:	LD		D,$02
-L8E32:	LD		A,(HL)
-		INC		HL
-		LD		C,(HL)
-		INC		HL
-		LD		B,(HL)
-		INC		HL
+		LD	DE,(LA294)
+	;; NB: Fall through
+	
+L8E30:		LD	D,$02
+	;; NB: Fall through
+	
+L8E32:		LD	A,(HL)
+		INC	HL
+		LD	C,(HL)
+		INC	HL
+		LD	B,(HL)
+		INC	HL
 		PUSH	HL
-		RR		E
+		RR	E
 		PUSH	DE
-		JR		NC,L8E47
+		JR	NC,L8E47
 		CALL	Draw3x24
-L8E41:	POP		DE
-		POP		HL
-		DEC		D
-		JR		NZ,L8E32
+L8E41:		POP	DE
+		POP	HL
+		DEC	D
+		JR	NZ,L8E32
 		RET
-L8E47:	LD		D,$01
+L8E47:		LD	D,$01
 		CALL	L8E5F
-		JR		L8E41
+		JR	L8E41
+	
 L8E4E:	DEFB $27,$B0,$F0,$28,$44,$F0,$29,$44,$D8,$98,$94,$F0,$1E,$60,$F0
 
 	;; FIXME: Very spritey
@@ -4132,63 +4151,67 @@ L9643:		LD	A,$BF
 	
 #include "blit.asm"
 	
-L9BBE:		LD		HL,(SpriteXExtent)
-		LD		A,H
+L9BBE:		LD	HL,(SpriteXExtent)
+		LD	A,H
 		RRA
 		RRA
-		LD		C,A
-		AND		$3E
+		LD	C,A
+		AND	$3E
 		EXX
-		LD		L,A
-		LD		H,$BA
+		LD	L,A
+		LD	H,$BA
 		EXX
-		LD		A,L
-		SUB		H
+		LD	A,L
+		SUB	H
 		RRA
 		RRA
-		AND		$07
-		SUB		$02
-		LD		DE,SpriteBuff
-		RR		C
-		JR		NC,L9BF0
-		LD		IY,L9DF8
-		LD		IX,L9EA9
-		LD		HL,L9E73
+		AND	$07
+		SUB	$02
+		LD	DE,SpriteBuff
+		RR	C
+		JR	NC,L9BF0
+		LD	IY,L9DF8
+		LD	IX,L9EA9
+		LD	HL,L9E73
 		CALL	L9C16
-		CP		$FF
-		RET		Z
-		SUB		$01
-		JR		L9C01
-L9BF0:	LD		IY,L9E07
-		LD		IX,L9EBB
-		LD		HL,L9E46
+		CP	$FF
+		RET	Z
+		SUB	$01
+		JR	L9C01
+L9BF0:		LD	IY,L9E07
+		LD	IX,L9EBB
+		LD	HL,L9E46
 		CALL	L9C16
-		INC		E
-		SUB		$02
-L9C01:	JR		NC,L9BF0
-		INC		A
-		RET		NZ
-		LD		IY,L9DF8
-		LD		IX,L9EAD
-		LD		HL,L9E80
-		LD		(L9CD2),HL
+		INC	E
+		SUB	$02
+L9C01:		JR	NC,L9BF0
+		INC	A
+		RET	NZ
+		LD	IY,L9DF8
+		LD	IX,L9EAD
+		LD	HL,L9E80
+		LD	(L9CD2),HL
 		EXX
-		JR		L9C28
-L9C16:	LD		(L9CD2),HL
+		JR	L9C28 		; Tail call.
+
+	
+L9C16:		LD	(L9CD2),HL
 		PUSH	DE
 		PUSH	AF
 		EXX
 		PUSH	HL
 		CALL	L9C28
-		POP		HL
-		INC		L
-		INC		L
+		POP	HL
+		INC	L
+		INC	L
 		EXX
-		POP		AF
-		POP		DE
-		INC		E
+		POP	AF
+		POP	DE
+		INC	E
 		RET
-L9C28:	LD		DE,(SpriteYExtent)
+
+	
+L9C28:		LD		DE,(SpriteYExtent)
 		LD		A,E
 		SUB		D
 		LD		E,A
@@ -4420,38 +4443,41 @@ L9D77:	PUSH	AF
 		RET		NC
 		INC		H
 		RET
-L9D83:	DEFB $00
-L9D84:	LD		A,(L9D83)
-		AND		A
-		LD		HL,LF944
-		RET		Z
+	
+SomeBuffFlag:	DEFB $00
+	
+GetSomeBuff:	LD	A,(SomeBuffFlag)
+		AND	A
+		LD	HL,SomeBuff
+		RET	Z
 		PUSH	HL
 		PUSH	BC
 		PUSH	DE
-		LD		BC,L0094
+		LD	BC,SomeBuffLen
 		CALL	FillZero
-		POP		DE
-		POP		BC
-		POP		HL
-		XOR		A
-		LD		(L9D83),A
+		POP	DE
+		POP	BC
+		POP	HL
+		XOR	A
+		LD	(SomeBuffFlag),A
 		RET
-L9D9D:	BIT		0,A
-		JR		NZ,L9D84
-		LD		L,A
-		LD		A,(L9D83)
-		AND		A
-		CALL	Z,L768E
-		LD		A,(L9EE1)
-		XOR		L
+
+L9D9D:		BIT	0,A
+		JR	NZ,GetSomeBuff		; Tail call
+		LD	L,A
+		LD	A,(SomeBuffFlag)
+		AND	A
+		CALL	Z,RestoreSomeBuffFaff
+		LD	A,(SomeBuffFlag2)
+		XOR	L
 		RLA
-		LD		HL,LF944
-		RET		NC
-		LD		A,(L9EE1)
-		XOR		$80
-		LD		(L9EE1),A
-		LD		B,$4A
-		JP		FlipSprite 	; Tail call
+		LD	HL,SomeBuff
+		RET	NC
+		LD	A,(SomeBuffFlag2)
+		XOR	$80
+		LD	(SomeBuffFlag2),A
+		LD	B,$4A
+		JP	FlipSprite 		; Tail call
 
 L9DBF:		BIT	2,A
 		JR	NZ,L9D9D
@@ -4681,7 +4707,7 @@ FS_1:		INC	HL
 		POP	DE
 		RET
 
-L9EE1:	DEFB $00
+SomeBuffFlag2:	DEFB $00
 
 	;; Return the panel address in HL, given panel index in A.
 GetPanelAddr:	AND	$03	; Limit to 0-3
@@ -5012,54 +5038,55 @@ LA0AF:		LD	A,D
 		CP	$48
 		JR	C,LA09D
 
-	;; TODO: This function is seriously epic...
-LA0B6:		LD		(SpriteYExtent),DE
+LA0B6:		LD	(SpriteYExtent),DE
 		CALL	L9BBE
-		LD		A,(L7716)
-		AND		$0C
-		JR		Z,LA109
-		LD		E,A
-		AND		$08
-		JR		Z,LA0EC
-		LD		BC,(SpriteXExtent)
-		LD		HL,L84C9
-		LD		A,B
-		CP		(HL)
-		JR		NC,LA0EC
-		LD		A,(SpriteYExtent+1)
-		ADD		A,B
+		LD	A,(L7716)
+		AND	$0C
+		JR	Z,LA109
+		LD	E,A
+		AND	$08
+		JR	Z,LA0EC
+		LD	BC,(SpriteXExtent)
+		LD	HL,L84C9
+		LD	A,B
+		CP	(HL)
+		JR	NC,LA0EC
+		LD	A,(SpriteYExtent+1)
+		ADD	A,B
 		RRA
-		LD		D,A
-		LD		A,(L84C7)
-		CP		D
-		JR		C,LA0EC
-		LD		HL,LAF82
-		PUSH		DE
-		CALL		LA11E
-		POP		DE
-		BIT		2,E
-		JR		Z,LA109
-LA0EC:		LD		BC,(SpriteXExtent)
-		LD		A,(L84C9)
-		CP		C
-		JR		NC,LA109
-		LD		A,(SpriteYExtent+1)
-		SUB		C
+		LD	D,A
+		LD	A,(L84C7)
+		CP	D
+		JR	C,LA0EC
+		LD	HL,LAF82
+		PUSH	DE
+		CALL	LA11E
+		POP	DE
+		BIT	2,E
+		JR	Z,LA109
+LA0EC:		LD	BC,(SpriteXExtent)
+		LD	A,(L84C9)
+		CP	C
+		JR	NC,LA109
+		LD	A,(SpriteYExtent+1)
+		SUB	C
 		CCF
 		RRA
-		LD		D,A
-		LD		A,(L84C8)
-		CP		D
-		JR		C,LA109
-		LD		HL,LAF86
+		LD	D,A
+		LD	A,(L84C8)
+		CP	D
+		JR	C,LA109
+		LD	HL,LAF86
 		CALL	LA11E
-LA109:		LD		HL,LAF8A
+LA109:		LD	HL,LAF8A
 		CALL	LA11E
-		LD		HL,LAF7E
+		LD	HL,LAF7E
 		CALL	LA11E
-		LD		HL,LAF8E
+		LD	HL,LAF8E
 		CALL	LA11E
-		JP		BlitScreen
+		JP	BlitScreen
+
+	;; TODO: This function is seriously epic...	
 LA11E:		LD		A,(HL)
 		INC		HL
 		LD		H,(HL)
