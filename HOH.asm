@@ -2,7 +2,7 @@
 #code 0, $10000
 	defs $4000, $00
 
-#include "screen.asm"
+#insert "screen.scr"
 	
 #include "data_header.asm"
 
