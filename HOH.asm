@@ -4743,47 +4743,49 @@ GetPanelAddr:	AND	$03	; Limit to 0-3
 		ADD	HL,BC	; Add on to contents of PanelBase and return.
 		RET
 	
-L9EF6:	DEC		A
-		ADD		A,A
+L9EF6:		DEC	A
+		ADD	A,A
 		EXX
-		LD		C,A
-		LD		B,$00
-		LD		A,(LADA4)
-		INC		A
-		LD		(LADA4),A
-		CP		$05
-		LD		HL,L9F3A
-		JR		NZ,L9F0D
-		LD		HL,L9F40
-L9F0D:	ADD		HL,BC
-		LD		A,(HL)
-		INC		HL
-		LD		H,(HL)
-		LD		L,A
-		LD		(L9F24+1),HL
-		LD		(L9F2F+1),HL
+		LD	C,A
+		LD	B,$00
+		LD	A,(LADA4)
+		INC	A
+		LD	(LADA4),A
+		CP	$05
+		LD	HL,L9F3A
+		JR	NZ,L9F0D
+		LD	HL,L9F40
+L9F0D:		ADD	HL,BC
+		LD	A,(HL)
+		INC	HL
+		LD	H,(HL)
+		LD	L,A
+		LD	(L9F24+1),HL
+		LD	(L9F2F+1),HL
 		EXX
-		EX		AF,AF'
+		EX	AF,AF'
 		PUSH	AF
-		LD		A,(LA057)
+		LD	A,(LA057)
 		PUSH	DE
-		LD		DE,LBF20
-		LD		B,$00
-L9F24:	CALL	L0000		; NB: Target of self-modifying code.
-		EX		DE,HL
-		POP		HL
+		LD	DE,LBF20
+		LD	B,$00
+L9F24:		CALL	L0000		; NB: Target of self-modifying code.
+		EX	DE,HL
+		POP	HL
 		PUSH	DE
-		LD		A,(LA057)
-		LD		B,$FF
-L9F2F:	CALL	L0000		; NB: Target of self-modifying code.
-		LD		HL,LBF20
-		POP		DE
-		POP		AF
-		INC		A
-		EX		AF,AF'
+		LD	A,(LA057)
+		LD	B,$FF
+L9F2F:		CALL	L0000		; NB: Target of self-modifying code.
+		LD	HL,LBF20
+		POP	DE
+		POP	AF
+		INC	A
+		EX	AF,AF'
 		RET
-L9F3A:	DEFB $46,$9F,$98,$9F,$6F,$9F
-L9F40:	DEFB $BB,$9F,$2B,$A0,$F3,$9F
+
+L9F3A:	DEFW L9F46,BlitRot4,L9F6F
+L9F40:	DEFW L9FBB,LA02B,L9FF3
+
 L9F46:	PUSH	DE
 L9F47:	EX		AF,AF'
 		LD		E,B
@@ -4850,31 +4852,41 @@ L9F70:	EX		AF,AF'
 		JR		NZ,L9F70
 		POP		HL
 		RET
-L9F98:	LD		C,B
-		LD		B,A
-		LD		A,C
+
+	;; FIXME: Do the others.
+	
+	;; Do a copy with 4-bit shift.
+	;; Source HL, destination DE.
+	;; A contains byte-count, B contains filler character
+BlitRot4:	LD	C,B
+		LD	B,A
+		LD	A,C 	; Swapped A and B.
+	;; Phase 1: Copy from HL to DE:
+	;; Source 3 bytes wide, dest 4 bytes wide, extra column loaded with filler.
 		PUSH	BC
-		LD		C,$FF
+		LD	C,$FF
 		PUSH	DE
-L9F9F:	LDI
+BR4_1:		LDI
 		LDI
 		LDI
-		LD		(DE),A
-		INC		DE
-		DJNZ	L9F9F
-		POP		HL
-		POP		BC
-		LD		A,C
-L9FAC:	RRD
-		INC		HL
+		LD	(DE),A
+		INC	DE
+		DJNZ	BR4_1
+		POP	HL
+		POP	BC
+	;; Phase 2: Rotate right, 4 bits at a time, over the destination (now in HL).
+		LD	A,C
+BR4_2:		RRD
+		INC	HL
 		RRD
-		INC		HL
+		INC	HL
 		RRD
-		INC		HL
+		INC	HL
 		RRD
-		INC		HL
-		DJNZ	L9FAC
+		INC	HL
+		DJNZ	BR4_2
 		RET
+
 L9FBB:	PUSH	DE
 		LD		C,$1E
 		LD		(L9FC3),BC ; NB: Self-modifying code.
@@ -6887,7 +6899,7 @@ FS3_1:		LD	C,(HL)
 		INC	HL
 		LD	E,(HL)
 		LD	A,(DE)
-FS3_2:		LD	(L0000),A
+FS3_2:		LD	(L0000),A 	; Target of self-modifying code.
 		LD	E,C
 		LD	A,(DE)
 		LD	(HL),A
@@ -6940,7 +6952,7 @@ FS4_1:		LD	C,(HL)
 		INC	HL
 		LD	E,(HL)
 		LD	A,(DE)
-FS4_2:		LD	(L0000),A
+FS4_2:		LD	(L0000),A 	; Target of self-modifying code
 		LD	E,C
 		LD	A,(DE)
 		LD	(HL),A
@@ -8237,10 +8249,10 @@ ShuffleMem_2:	LD	(DE),A
 		LD	BC,L7FFD
 		LD	A,$10
 		OUT	(C),A
-Have48K:	; FIXME: Shuffle some more memory
+Have48K:	; Move the data end of things down by 360 bytes...
 		LD	HL,LC1A0
 		LD	DE,LC038
-		LD	BC,L390C
+		LD	BC,L390C ; Up to 0xFAAC
 		LDIR
 		RET
 	
