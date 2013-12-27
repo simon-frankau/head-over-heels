@@ -4783,42 +4783,51 @@ L9F2F:		CALL	L0000		; NB: Target of self-modifying code.
 		EX	AF,AF'
 		RET
 
-L9F3A:	DEFW L9F46,BlitRot4,L9F6F
-L9F40:	DEFW L9FBB,LA02B,L9FF3
+L9F3A:	DEFW BlitRot2on3,BlitRot4on3,L9F6F
+L9F40:	DEFW BlitRot2on4,BlitRot4on4,L9FF3
 
-L9F46:	PUSH	DE
-L9F47:	EX		AF,AF'
-		LD		E,B
-		LD		A,(HL)
-		INC		HL
-		LD		C,(HL)
-		INC		HL
-		LD		D,(HL)
-		INC		HL
-		RRC		E
+	;; Do a copy with 2-bit shift.
+	;; Source HL, width 3 bytes.
+	;; Destination DE, width 4 bytes.
+	;; A contains byte-count, B contains filler character
+BlitRot2on3:	PUSH	DE
+BR2o3:		EX	AF,AF'
+	;; Load filler and 3 bytes of data in E, A, C, D.
+		LD	E,B
+		LD	A,(HL)
+		INC	HL
+		LD	C,(HL)
+		INC	HL
+		LD	D,(HL)
+		INC	HL
+	;; Now shuffle 1 bit around, twice.
+		RRC	E
 		RRA
-		RR		C
-		RR		D
-		RR		E
+		RR	C
+		RR	D
+		RR	E
 		RRA
-		RR		C
-		RR		D
-		RR		E
-		EX		(SP),HL
-		LD		(HL),A
-		INC		HL
-		LD		(HL),C
-		INC		HL
-		LD		(HL),D
-		INC		HL
-		LD		(HL),E
-		INC		HL
-		EX		(SP),HL
-		EX		AF,AF'
-		DEC		A
-		JR		NZ,L9F47
-		POP		HL
+		RR	C
+		RR	D
+		RR	E
+	;; And write out (saved DE in (SP) earlier).
+		EX	(SP),HL
+		LD	(HL),A
+		INC	HL
+		LD	(HL),C
+		INC	HL
+		LD	(HL),D
+		INC	HL
+		LD	(HL),E
+		INC	HL
+		EX	(SP),HL
+	;; Check counter, repeat until done.
+		EX	AF,AF'
+		DEC	A
+		JR	NZ,BR2o3
+		POP	HL
 		RET
+
 L9F6F:	PUSH	DE
 L9F70:	EX		AF,AF'
 		LD		E,B
@@ -4856,27 +4865,27 @@ L9F70:	EX		AF,AF'
 	;; FIXME: Do the others.
 	
 	;; Do a copy with 4-bit shift.
-	;; Source HL, destination DE.
+	;; Source HL, width 3 bytes.
+	;; Destination DE, width 4 bytes.
 	;; A contains byte-count, B contains filler character
-BlitRot4:	LD	C,B
+BlitRot4on3:	LD	C,B
 		LD	B,A
 		LD	A,C 	; Swapped A and B.
 	;; Phase 1: Copy from HL to DE:
-	;; Source 3 bytes wide, dest 4 bytes wide, extra column loaded with filler.
 		PUSH	BC
 		LD	C,$FF
 		PUSH	DE
-BR4_1:		LDI
+BR4o3_1:	LDI
 		LDI
 		LDI
 		LD	(DE),A
 		INC	DE
-		DJNZ	BR4_1
+		DJNZ	BR4o3_1
 		POP	HL
 		POP	BC
 	;; Phase 2: Rotate right, 4 bits at a time, over the destination (now in HL).
 		LD	A,C
-BR4_2:		RRD
+BR4o3_2:	RRD
 		INC	HL
 		RRD
 		INC	HL
@@ -4884,50 +4893,59 @@ BR4_2:		RRD
 		INC	HL
 		RRD
 		INC	HL
-		DJNZ	BR4_2
+		DJNZ	BR4o3_2
 		RET
 
-L9FBB:	PUSH	DE
-		LD		C,$1E
-		LD		(L9FC3),BC ; NB: Self-modifying code.
-L9FC2:	EX		AF,AF'
-L9FC3:	LD		E,$00	; NB: Target of self-modifying code.
-		LD		A,(HL)
-		INC		HL
-		LD		B,(HL)
-		INC		HL
-		LD		C,(HL)
-		INC		HL
-		LD		D,(HL)
-		INC		HL
-		RRC		E
+	;; Do a copy with 2-bit shift.
+	;; Source HL, width 3 bytes.
+	;; Destination DE, width 4 bytes.
+	;; A contains byte-count, B contains filler character
+BlitRot2on4:	PUSH	DE
+		LD	C,$1E	     ; Opcode for 'LD E,'
+		LD	(BR2o4_2),BC ; Modify target instruction to load filler into E.
+BR2o4_1:	EX	AF,AF'
+	;; Load filler and 4 bytes of data in E, A, B, C, D.
+BR2o4_2:	LD	E,$00	; NB: Target of self-modifying code.
+		LD	A,(HL)
+		INC	HL
+		LD	B,(HL)
+		INC	HL
+		LD	C,(HL)
+		INC	HL
+		LD	D,(HL)
+		INC	HL
+	;; Now shuffle 1 bit around, twice.
+		RRC	E
 		RRA
-		RR		B
-		RR		C
-		RR		D
-		RR		E
+		RR	B
+		RR	C
+		RR	D
+		RR	E
 		RRA
-		RR		B
-		RR		C
-		RR		D
-		RR		E
-		EX		(SP),HL
-		LD		(HL),A
-		INC		HL
-		LD		(HL),B
-		INC		HL
-		LD		(HL),C
-		INC		HL
-		LD		(HL),D
-		INC		HL
-		LD		(HL),E
-		INC		HL
-		EX		(SP),HL
-		EX		AF,AF'
-		DEC		A
-		JR		NZ,L9FC2
-		POP		HL
+		RR	B
+		RR	C
+		RR	D
+		RR	E
+	;; And write out (saved DE in (SP) earlier).
+		EX	(SP),HL
+		LD	(HL),A
+		INC	HL
+		LD	(HL),B
+		INC	HL
+		LD	(HL),C
+		INC	HL
+		LD	(HL),D
+		INC	HL
+		LD	(HL),E
+		INC	HL
+		EX	(SP),HL
+	;; Check counter, repeat until done.
+		EX	AF,AF'
+		DEC	A
+		JR	NZ,BR2o4_1
+		POP	HL
 		RET
+
 L9FF3:	PUSH	DE
 		LD		C,$1E
 		LD		(L9FFB),BC
@@ -4969,33 +4987,42 @@ L9FFB:	LD		E,$00 	; NB: Target of self-modifying code.
 		JR		NZ,L9FFA
 		POP		HL
 		RET
-LA02B:	LD		C,B
-		LD		B,A
-		LD		A,C
+
+	;; Do a copy with 4-bit shift.
+	;; Source HL, width 3 bytes.
+	;; Destination DE, width 4 bytes.
+	;; A contains byte-count, B contains filler character
+
+BlitRot4on4:	LD	C,B
+		LD	B,A
+		LD	A,C	; Swapped A and B.
+	;; Phase 1: Copy from HL to DE:
 		PUSH	BC
-		LD		C,$FF
+		LD	C,$FF
 		PUSH	DE
-LA032:	LDI
+BR4o4_1:	LDI
 		LDI
 		LDI
 		LDI
-		LD		(DE),A
-		INC		DE
-		DJNZ	LA032
-		POP		HL
-		POP		BC
-LA040:	RRD
-		INC		HL
+		LD	(DE),A
+		INC	DE
+		DJNZ	BR4o4_1
+		POP	HL
+		POP	BC
+	;; Phase 2: Rotate right, 4 bits at a time, over the destination (now in HL).
+BR4o4_2:	RRD
+		INC	HL
 		RRD
-		INC		HL
+		INC	HL
 		RRD
-		INC		HL
+		INC	HL
 		RRD
-		INC		HL
+		INC	HL
 		RRD
-		INC		HL
-		DJNZ	LA040
+		INC	HL
+		DJNZ	BR4o4_2
 		RET
+
 SpriteXExtent:	DEFW $6066
 SpriteYExtent:	DEFW $5070
 LA056:	DEFB $00
