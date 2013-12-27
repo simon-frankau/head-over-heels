@@ -5094,9 +5094,9 @@ LA11E:		LD		A,(HL)
 		LD		L,A
 		OR		H
 		RET		Z
-		LD		(LA12B),HL
+		LD		(LA12A+1),HL
 		CALL	LA12F
-		LD		HL,L0000
+LA12A:		LD		HL,L0000 	; NB: Self-modifying code
 		JR		LA11E
 LA12F:		CALL	LA1BD
 		RET		NC
@@ -5175,7 +5175,7 @@ LA158:		PUSH	AF
 		LD		A,(LA057)
 		LD		B,A
 		JP		(HL)
-		AND		L
+LA19F:		AND		L 	; FIXME: Might just be data?!
 		AND		C
 		XOR		E
 		AND		C
@@ -5434,7 +5434,8 @@ LA33D:	LD		A,(DE)
 		DEC		C
 		JR		NZ,LA33B
 		RET
-LA349:	DEFB $00,$C0,$01,$D8,$00,$1C,$00,$84,$00,$10,$00,$20,$03,$00,$1B,$80
+LA349:	DEFB $00,$C0,$01,$D8,$00,$1C,$00,$84,$00,$10,$00,$20
+LA355:	DEFB $03,$00,$1B,$80
 LA359:	DEFB $38,$00,$21,$00,$08,$00,$04,$00
 LA361:	LD		A,(LA314)
 		RLA
@@ -6263,7 +6264,10 @@ LAA49:	LD		A,(LA294)
 		LD		A,(HL)
 		LD		BC,LD8B0
 		JP		Draw3x24
-LAA64:	DEFB $28,$28,$C0,$FD,$FD,$FB,$FE,$F7,$FD,$FD,$08,$04,$02,$01,$00,$00
+LAA64:	DEFB $28,$28,$C0,$FD,$FD,$FB,$FE,$F7,$FD,$FD
+LAA6E:	DEFB 08,$04,$02,$01
+LAA72:	DEFB $00
+LAA73:	DEFB $00
 LAA74:	CALL	LAA7E
 		LD		A,(IY+$07)
 		SUB		C
@@ -6653,7 +6657,9 @@ LAD5C:	DEFB $00,$A1,$00,$26,$00,$81,$80,$E9,$00,$84,$00,$B1,$00,$85,$20,$EF
 LAD6C:	DEFB $00,$A4,$F0,$00,$00,$A5,$D0,$88,$D0,$BC,$D0,$DE,$B0,$2D,$D0,$8B
 LAD7C:	DEFB $90,$11,$C0,$E1,$B0,$00,$C0,$E2,$B0,$10,$00,$C1,$F0,$8B,$F0,$00
 LAD8C:	DEFB $30,$97,$20,$EF,$00,$1D,$00,$A8,$70,$BA,$00,$4E,$00,$88,$30,$1B
-LAD9C:	DEFB $00,$4C,$30,$39,$30,$8B,$30,$8D,$04
+LAD9C:	DEFB $00,$4C,$30,$39,$30,$8B,$30,$8D
+
+LADA4:	DEFB $04
 
 	;; Current sprite we're drawing.
 SpriteCode:	DEFB $00
@@ -6707,7 +6713,7 @@ LADE1:	LD		A,B
 		RRA
 		LD	(LADA4),A
 		RET
-LADF4:	LD		HL,(LA12B)
+LADF4:	LD		HL,(LA12A+1)
 		INC	HL
 		INC	HL
 		BIT	5,(HL)
@@ -6748,7 +6754,7 @@ GetSpriteAddr:	LD	A,(SpriteCode)
 		JR	NC,Sprite3x32
 	;; TODO: Somewhat mysterious below here...
 		LD	L,A
-		LD	DE,(LA12B)
+		LD	DE,(LA12A+1)
 		INC	DE
 		INC	DE
 		LD	A,(DE)
@@ -7989,10 +7995,14 @@ LB662:	RRA
 LB669:	LD		BC,L0401
 		RET
 LB66D:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-LB67D:	DEFB $02,$40,$80,$00,$FF
+LB67D:	DEFB $02
+LB67E:	DEFB $40
+LB67F:	DEFB $80
+LB680:	DEFB $00
+LB681:	DEFB $FF
 
 	;; FIXME: Joystick selection screen?
-LB682:	JP		LB685
+LB682:	JP		LB685	; NB: Target of self-modifying code.
 LB685:	CP		$80
 		JR		NC,LB6BA
 		SUB		$20
@@ -8061,7 +8071,7 @@ LB702:	LD		HL,LB71A
 		LD		HL,LB715
 		JR		Z,LB711
 		LD		HL,LB728
-LB711:	LD		(LB683),HL
+LB711:	LD		(LB682+1),HL
 		RET
 	
 LB715:		CALL	SetAttribs
@@ -8086,7 +8096,8 @@ LB734:	ADD		A,A
 LB73C:	LD		(LB747),BC
 		LD		HL,LB746
 		JP		LB6BF
-LB746:	DEFB $06,$00,$00,$FF
+LB746:	DEFB $06
+LB747:	DEFB $00,$00,$FF
 LB74A:	LD		B,A
 		LD		HL,L7EA3
 		SUB		$60
@@ -8143,7 +8154,7 @@ LB79D:	LD		C,$FF
 		SCF
 		RET
 
-	;; Called immediately after intalling interrupt handler.
+	;; Called immediately after installing interrupt handler.
 ShuffleMem:	; Zero end of top page
 		LD	HL,LFFFE
 		XOR	A
