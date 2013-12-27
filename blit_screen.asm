@@ -29,7 +29,7 @@ BlitScreen:
 		EX	AF,AF'
 	;; Construct Y coordinate: (YHigh) - $48
 		LD	A,H
-		SUB	$48
+L940A:		SUB	$48	; FIXME: Self-modifying code?
 		LD	B,A
 		CALL	GetScrMemAddr
 	;; Screen address now in DE

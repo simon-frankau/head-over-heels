@@ -1653,7 +1653,7 @@ L7C29:	RRA
 		LD		L,A
 L7C30:	SUB		H
 		ADD		A,$80
-		LD		(L9C8C),A
+		LD		(L9C8B+1),A
 		LD		C,A
 		LD		A,$FC
 		SUB		H
@@ -1662,11 +1662,11 @@ L7C30:	SUB		H
 		NEG
 		LD		E,A
 		ADD		A,C
-		LD		(L9CA0),A
+		LD		(L9C9F+1),A
 		LD		A,C
 		NEG
 		ADD		A,E
-		LD		(L9C98),A
+		LD		(L9C97+1),A
 		CALL	L9D45
 		POP		AF
 		RRA
@@ -3967,7 +3967,7 @@ L9542:		PUSH	AF
 		PUSH	BC
 		PUSH	DE
 		XOR	A
-		LD	(L940B),A
+		LD	(L940A+1),A
 		LD	D,B
 		LD	A,B
 		ADD	A,H
@@ -4036,7 +4036,7 @@ L959A:		LD	(HL),A
 		DEC	D
 		JR	NZ,L9598
 		LD	A,$48
-		LD	(L940B),A
+		LD	(L940A+1),A
 		RET
 
 	;; Converts a bitmap address to its corresponding attribute address.
@@ -4207,12 +4207,12 @@ L9C01:		JR	NC,L9BF0
 		LD	IY,L9DF8
 		LD	IX,L9EAD
 		LD	HL,L9E80
-		LD	(L9CD2),HL
+		LD	(L9CD1+1),HL
 		EXX
 		JR	L9C28 		; Tail call.
 
 	
-L9C16:		LD	(L9CD2),HL
+L9C16:		LD	(L9CD1+1),HL
 		PUSH	DE
 		PUSH	AF
 		EXX
@@ -4292,23 +4292,23 @@ L9C84:	LD		B,A
 		ADD		A,A
 		ADD		A,A
 		ADD		A,$04
-		CP		$00
+L9C8B:	CP		$00	; NB: Target of self-modifying code.
 		JR		C,L9C9B
 		LD		E,$00
 		JR		NZ,L9C95
 		LD		E,$05
 L9C95:	SUB		$04
-		ADD		A,$00
+L9C97:	ADD		A,$00 	; NB: Target of self-modifying code.
 		JR		L9CA3
 L9C9B:	ADD		A,$04
 		NEG
-		ADD		A,$00
+L9C9F:	ADD		A,$00 	;NB: Target of self-modifying code.
 		LD		E,$08
 L9CA3:	NEG
 		ADD		A,$0B
 		LD		C,A
 		LD		A,E
-		LD		(L9CF6),A
+		LD		(L9CF5+1),A
 		LD		A,(HL)
 		ADD		A,D
 		INC		HL
@@ -4355,15 +4355,15 @@ L9CEC:	PUSH	DE
 		LD		H,$00
 		ADD		HL,HL
 		LD		BC,L9D03
-		JR		L9CFF
+L9CF5:	JR		L9CFF	; NB: Target of self-modifying code.
 L9CF7:	LD		BC,L9D19
 		JR		L9CFF
 L9CFC:	LD		BC,L9D2F
 L9CFF:	ADD		HL,BC
 		EXX
 		JP		(IX)
-		LD		B,B
-		NOP
+L9D03:	LD		B,B	; NB: Target of self-modifying code.
+L9D04:	NOP			; NB: Target of self-modifying code.
 		LD		(HL),B
 		NOP
 		LD		(HL),H
@@ -4384,7 +4384,7 @@ L9CFF:	ADD		HL,BC
 		RLCA
 		NOP
 		INC		BC
-		NOP
+L9D19:	NOP			; NB: Target of self-modifying code.
 		LD		BC,L0D00
 		NOP
 		DEC		A
@@ -4402,7 +4402,7 @@ L9CFF:	ADD		HL,BC
 		NOP
 		LD		B,B
 		NOP
-		LD		B,B
+L9D2F:	LD		B,B 	; NB: Target of self-modifying code? Perhaps just data?
 		LD		BC,L0D70
 		LD		(HL),H
 		DEC		A
@@ -4537,7 +4537,7 @@ L9DEA:	RL		C
 		RET
 L9DF4:	JP		(IX)
 L9DF6:	JP		(IY)
-		EXX
+L9DF8:	EXX			; Self-modifying code, or actually just data!
 		LD		B,A
 		EX		DE,HL
 		LD		E,$00
