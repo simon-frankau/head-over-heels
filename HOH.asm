@@ -4742,40 +4742,49 @@ GetPanelAddr:	AND	$03	; Limit to 0-3
 		LD	BC,(PanelBase)
 		ADD	HL,BC	; Add on to contents of PanelBase and return.
 		RET
-	
-L9EF6:		DEC	A
+
+	;; A holds the rotation size. HL holds source data.
+	;; Uses buffer at LBF20.
+	;; Returns sprite in DE, mask in HL.
+BlitRot:	DEC	A
 		ADD	A,A
 		EXX
+	;; Load rotation size into BC, and function table into HL.
 		LD	C,A
 		LD	B,$00
-		LD	A,(LADA4)
+		LD	A,(SpriteWidth)
 		INC	A
-		LD	(LADA4),A
+		LD	(SpriteWidth),A ; Increase sprite width, now we have rotation.
 		CP	$05
-		LD	HL,L9F3A
-		JR	NZ,L9F0D
-		LD	HL,L9F40
-L9F0D:		ADD	HL,BC
+		LD	HL,BlitRot3s 	; Default to BlitRot on 3 case.
+		JR	NZ,BR_1
+		LD	HL,BlitRot4s 	; SpriteWidth was 4 -> Use the BlitRot on 4 case.
+BR_1:		ADD	HL,BC
+	;; Dereference function pointer into HL.
 		LD	A,(HL)
 		INC	HL
 		LD	H,(HL)
 		LD	L,A
-		LD	(L9F24+1),HL
-		LD	(L9F2F+1),HL
+	;; And modify the code.
+		LD	(BR_2+1),HL
+		LD	(BR_3+1),HL
 		EXX
 		EX	AF,AF'
 		PUSH	AF
-		LD	A,(LA057)
+	;; Time to rotate the sprite.
+		LD	A,(SpriteByteCount)
 		PUSH	DE
 		LD	DE,LBF20
-		LD	B,$00
-L9F24:		CALL	L0000		; NB: Target of self-modifying code.
+		LD	B,$00		; Blank space in the filler.
+BR_2:		CALL	L0000		; NB: Target of self-modifying code.
+	;; HL now holds the end of the destination buffer.
 		EX	DE,HL
 		POP	HL
 		PUSH	DE
-		LD	A,(LA057)
-		LD	B,$FF
-L9F2F:		CALL	L0000		; NB: Target of self-modifying code.
+	;; And to rotate the mask.
+		LD	A,(SpriteByteCount)
+		LD	B,$FF		; Appropriate filler for the mask.
+BR_3:		CALL	L0000		; NB: Target of self-modifying code.
 		LD	HL,LBF20
 		POP	DE
 		POP	AF
@@ -4783,8 +4792,8 @@ L9F2F:		CALL	L0000		; NB: Target of self-modifying code.
 		EX	AF,AF'
 		RET
 
-L9F3A:	DEFW BlitRot2on3,BlitRot4on3,L9F6F
-L9F40:	DEFW BlitRot2on4,BlitRot4on4,L9FF3
+BlitRot3s:	DEFW BlitRot2on3,BlitRot4on3,BlitRot6on3
+BlitRot4s:	DEFW BlitRot2on4,BlitRot4on4,BlitRot6on4
 
 	;; Do a copy with 2-bit shift.
 	;; Source HL, width 3 bytes.
@@ -4828,42 +4837,48 @@ BR2o3:		EX	AF,AF'
 		POP	HL
 		RET
 
-L9F6F:	PUSH	DE
-L9F70:	EX		AF,AF'
-		LD		E,B
-		LD		A,(HL)
-		INC		HL
-		LD		C,(HL)
-		INC		HL
-		LD		D,(HL)
-		INC		HL
-		RLC		E
-		RL		D
-		RL		C
+	;; Do a copy with 6-bit shift.
+	;; Source HL, width 3 bytes.
+	;; Destination DE, width 4 bytes.
+	;; A contains byte-count, B contains filler character
+BlitRot6on3:	PUSH	DE
+BR6o3:		EX	AF,AF'
+	;; Load filler and 3 bytes of data in E, A, C, D.
+		LD	E,B
+		LD	A,(HL)
+		INC	HL
+		LD	C,(HL)
+		INC	HL
+		LD	D,(HL)
+		INC	HL
+	;; Now shuffle 1 bit around, twice.
+		RLC	E
+		RL	D
+		RL	C
 		RLA
-		RL		E
-		RL		D
-		RL		C
+		RL	E
+		RL	D
+		RL	C
 		RLA
-		RL		E
-		EX		(SP),HL
-		LD		(HL),E
-		INC		HL
-		LD		(HL),A
-		INC		HL
-		LD		(HL),C
-		INC		HL
-		LD		(HL),D
-		INC		HL
-		EX		(SP),HL
-		EX		AF,AF'
-		DEC		A
-		JR		NZ,L9F70
-		POP		HL
+		RL	E
+	;; And write out (saved DE in (SP) earlier).
+		EX	(SP),HL
+		LD	(HL),E
+		INC	HL
+		LD	(HL),A
+		INC	HL
+		LD	(HL),C
+		INC	HL
+		LD	(HL),D
+		INC	HL
+		EX	(SP),HL
+	;; Check counter, repeat until done.
+		EX	AF,AF'
+		DEC	A
+		JR	NZ,BR6o3
+		POP	HL
 		RET
 
-	;; FIXME: Do the others.
-	
 	;; Do a copy with 4-bit shift.
 	;; Source HL, width 3 bytes.
 	;; Destination DE, width 4 bytes.
@@ -4946,46 +4961,54 @@ BR2o4_2:	LD	E,$00	; NB: Target of self-modifying code.
 		POP	HL
 		RET
 
-L9FF3:	PUSH	DE
-		LD		C,$1E
-		LD		(L9FFB),BC
-L9FFA:	EX		AF,AF'
-L9FFB:	LD		E,$00 	; NB: Target of self-modifying code.
-		LD		A,(HL)
-		INC		HL
-		LD		B,(HL)
-		INC		HL
-		LD		C,(HL)
-		INC		HL
-		LD		D,(HL)
-		INC		HL
-		RLC		E
-		RL		D
-		RL		C
-		RL		B
+	;; Do a copy with 6-bit shift.
+	;; Source HL, width 3 bytes.
+	;; Destination DE, width 4 bytes.
+	;; A contains byte-count, B contains filler character
+BlitRot6on4:	PUSH	DE
+		LD	C,$1E		; Opcode for 'LD E,'
+		LD	(BR6on4_2),BC	; Modify target instruction to load filler into E.
+BR6on4_1:	EX	AF,AF'
+	;; Load filler and 4 bytes of data in E, A, B, C, D.
+BR6on4_2:	LD	E,$00 		; NB: Target of self-modifying code.
+		LD	A,(HL)
+		INC	HL
+		LD	B,(HL)
+		INC	HL
+		LD	C,(HL)
+		INC	HL
+		LD	D,(HL)
+		INC	HL
+	;; Now shuffle 1 bit around, twice.
+		RLC	E
+		RL	D
+		RL	C
+		RL	B
 		RLA
-		RL		E
-		RL		D
-		RL		C
-		RL		B
+		RL	E
+		RL	D
+		RL	C
+		RL	B
 		RLA
-		RL		E
-		EX		(SP),HL
-		LD		(HL),E
-		INC		HL
-		LD		(HL),A
-		INC		HL
-		LD		(HL),B
-		INC		HL
-		LD		(HL),C
-		INC		HL
-		LD		(HL),D
-		INC		HL
-		EX		(SP),HL
-		EX		AF,AF'
-		DEC		A
-		JR		NZ,L9FFA
-		POP		HL
+		RL	E
+	;; And write out (saved DE in (SP) earlier).
+		EX	(SP),HL
+		LD	(HL),E
+		INC	HL
+		LD	(HL),A
+		INC	HL
+		LD	(HL),B
+		INC	HL
+		LD	(HL),C
+		INC	HL
+		LD	(HL),D
+		INC	HL
+		EX	(SP),HL
+	;; Check counter, repeat until done.
+		EX	AF,AF'
+		DEC	A
+		JR	NZ,BR6on4_1
+		POP	HL
 		RET
 
 	;; Do a copy with 4-bit shift.
@@ -5026,7 +5049,7 @@ BR4o4_2:	RRD
 SpriteXExtent:	DEFW $6066
 SpriteYExtent:	DEFW $5070
 LA056:	DEFB $00
-LA057:	DEFB $00
+SpriteByteCount:	DEFB $00
 LA058:	DEFB $00
 LA059:	DEFB $00
 LA05A:	DEFB $00
@@ -5156,7 +5179,7 @@ LA12A:		LD		HL,L0000 	; NB: Self-modifying code
 		JR		LA11E
 LA12F:		CALL	LA1BD
 		RET		NC
-		LD		(LA057),A
+		LD		(SpriteByteCount),A
 		LD		A,H
 		ADD		A,A
 		ADD		A,H
@@ -5173,7 +5196,7 @@ LA12F:		CALL	LA1BD
 		LD		A,L
 		NEG
 		LD		B,A
-		LD		A,(LADA4)
+		LD		A,(SpriteWidth)
 		AND		$04
 		LD		A,B
 		JR		NZ,LA156
@@ -5192,7 +5215,7 @@ LA158:		PUSH	AF
 		ADD		HL,BC
 		LD		A,(LA056)
 		AND		$03
-		CALL	NZ,L9EF6
+		CALL	NZ,BlitRot
 		POP		BC
 		LD		A,C
 		NEG
@@ -5207,7 +5230,7 @@ LA158:		PUSH	AF
 		ADD		HL,BC
 		POP		BC
 		EXX
-		LD		A,(LADA4)
+		LD		A,(SpriteWidth)
 		SUB		$03
 		ADD		A,A
 		LD		E,A
@@ -5228,7 +5251,7 @@ LA158:		PUSH	AF
 		INC		HL
 		LD		H,(HL)
 		LD		L,A
-		LD		A,(LA057)
+		LD		A,(SpriteByteCount)
 		LD		B,A
 		JP		(HL)
 LA19F:		AND		L 	; FIXME: Might just be data?!
@@ -6715,7 +6738,7 @@ LAD7C:	DEFB $90,$11,$C0,$E1,$B0,$00,$C0,$E2,$B0,$10,$00,$C1,$F0,$8B,$F0,$00
 LAD8C:	DEFB $30,$97,$20,$EF,$00,$1D,$00,$A8,$70,$BA,$00,$4E,$00,$88,$30,$1B
 LAD9C:	DEFB $00,$4C,$30,$39,$30,$8B,$30,$8D
 
-LADA4:	DEFB $04
+SpriteWidth:	DEFB $04	; Width of sprite in bytes.
 
 	;; Current sprite we're drawing.
 SpriteCode:	DEFB $00
@@ -6767,7 +6790,7 @@ LADE1:	LD		A,B
 		LD	A,E
 		AND	A
 		RRA
-		LD	(LADA4),A
+		LD	(SpriteWidth),A
 		RET
 LADF4:	LD		HL,(LA12A+1)
 		INC	HL
@@ -6795,7 +6818,7 @@ LAE15:	ADD		A,B
 		SUB	$0C
 		LD	B,A
 		LD	A,$03
-		LD	(LADA4),A
+		LD	(SpriteWidth),A
 		RET
 
 	;; Return height in B, image in DE, mask in HL.
