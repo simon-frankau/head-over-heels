@@ -556,22 +556,24 @@ AttribLoop:	LD	(HL),C
 
 Attrib1:	DEFB $00
 Attrib2:	DEFB $00
-	
-L743C:	CP		$08
-		JR		C,L7448
-		SUB		$07
-		CP		$13
-		JR		C,L7448
-		SUB		$07
-L7448:	ADD		A,A
-		ADD		A,A
-		LD		L,A
-		LD		H,$00
-		ADD		HL,HL
-		LD		DE,LF790
-		ADD		HL,DE
-		EX		DE,HL
+
+	;; Look up character code (- 0x20 already) to a pointer to the character.
+CharCodeToAddr:	CP	$08
+		JR	C,CC2A 		; Space ! " # $ % & ' (
+		SUB	$07
+		CP	$13
+		JR	C,CC2A		; 0-9
+		SUB	$07 		; Alphabetical characters.
+CC2A:		ADD	A,A
+		ADD	A,A
+		LD	L,A
+		LD	H,$00
+		ADD	HL,HL
+		LD	DE,LF790
+		ADD	HL,DE
+		EX	DE,HL
 		RET
+
 L7454:	DEFB $FF,$45,$4E,$54,$45,$52,$FF,$83,$53,$53,$48,$FF,$B0,$09,$00,$07
 L7464:	DEFB $09,$82,$86,$E3,$A3,$FF,$20,$4A,$4F,$59,$53,$54,$49,$43,$4B,$FF
 L7474:	DEFB $87,$53,$2F,$87,$E3,$FF,$4B,$45,$4D,$50,$53,$54,$4F,$4E,$E3,$FF
@@ -7785,7 +7787,7 @@ LB685:	CP		$80
 		JR		NC,LB6BA
 		SUB		$20
 		JR		C,LB6CB
-		CALL	L743C
+		CALL	CharCodeToAddr
 		LD		HL,L0804
 		LD		A,(LB680)
 		AND		A
