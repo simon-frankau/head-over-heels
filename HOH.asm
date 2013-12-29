@@ -557,7 +557,7 @@ AttribLoop:	LD	(HL),C
 Attrib1:	DEFB $00
 Attrib2:	DEFB $00
 
-	;; Look up character code (- 0x20 already) to a pointer to the character.
+	;; Look up character code (- 0x20 already) to a pointer to the character in DE.
 CharCodeToAddr:	CP	$08
 		JR	C,CC2A 		; Space ! " # $ % & ' (
 		SUB	$07
@@ -3205,7 +3205,7 @@ L8E4E:	DEFB $27,$B0,$F0,$28,$44,$F0,$29,$44,$D8,$98,$94,$F0,$1E,$60,$F0
 L8E5D:		LD	D,$03
 	
 	;; Sprite code in A. Something in D moved to A, BC saved.
-	;; We load HL with 180C, DE with image, A with thing, call 9542
+	;; We load HL with 180C, DE with image, A with thing, call DrawSprite
 L8E5F:		LD	(SpriteCode),A
 		LD	A,B
 		SUB	$48
@@ -3217,7 +3217,7 @@ L8E5F:		LD	(SpriteCode),A
 		POP	BC
 		POP	AF
 		AND	A
-		JP	L9542
+		JP	DrawSprite
 
 	;; Draw a 3 byte x 24 row sprite on clear background.
 	;; Takes sprite code in A, coordinates in BC.
@@ -3963,13 +3963,15 @@ SW_4:		DEC	D
 		LD	BC,L1800
 		JP	FillZero 	; Tail call
 
-	;; FIXME: Looks quite interesting.
-	;; BC, DE, HL, A all init'd. e.g. HL with 180C, DE with image
-L9542:		PUSH	AF
+	;; FIXME: Looks quite interesting. Think this is a sprite-drawing routine.
+	;; Source in DE, origin in BC, size in HL
+	;; (H = Y, L = X, measured in double-pixels)
+DrawSprite:	PUSH	AF
 		PUSH	BC
 		PUSH	DE
 		XOR	A
 		LD	(L940A+1),A
+	;; Initialise sprite extents from origin and size.
 		LD	D,B
 		LD	A,B
 		ADD	A,H
@@ -3981,30 +3983,34 @@ L9542:		PUSH	AF
 		LD	C,A
 		LD	(SpriteXExtent),BC
 		LD	A,L
+	;; Put width in bytes into L
 		RRCA
 		RRCA
 		AND	$07
 		LD	L,A
+	;; Restore source, save byte-oriented size.
 		POP	DE
 		PUSH	HL
+	;; FIXME: Decode this lot.
 		LD	C,A
 		LD	A,H
 		LD	HL,SpriteBuff
-L9566:		EX	AF,AF'
+DrS_1:		EX	AF,AF'
 		LD	B,C
-L9568:		LD	A,(DE)
+DrS_2:		LD	A,(DE)
 		LD	(HL),A
 		INC	L
 		INC	DE
-		DJNZ	L9568
+		DJNZ	DrS_2
 		LD	A,$06
 		SUB	C
 		ADD	A,L
 		LD	L,A
 		EX	AF,AF'
 		DEC	A
-		JR	NZ,L9566
+		JR	NZ,DrS_1
 		CALL	BlitScreen
+
 		POP	HL
 		POP	BC
 		LD	A,C
@@ -4027,16 +4033,16 @@ L9568:		LD	A,(DE)
 		LD	B,A
 		LD	A,(BC)
 		EX	DE,HL
-L9598:		LD	B,E
+DrS_3:		LD	B,E
 		LD	C,L
-L959A:		LD	(HL),A
+DrS_4:		LD	(HL),A
 		INC	L
-		DJNZ	L959A
+		DJNZ	DrS_4
 		LD	L,C
 		LD	BC,L0020
 		ADD	HL,BC
 		DEC	D
-		JR	NZ,L9598
+		JR	NZ,DrS_3
 		LD	A,$48
 		LD	(L940A+1),A
 		RET
@@ -7774,110 +7780,125 @@ LB662:	RRA
 		RET
 LB669:	LD		BC,L0401
 		RET
-LB66D:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	
+CharDoublerBuf:	DEFS $10,$00 	; 16 bytes to hold double-height character.
+
 LB67D:	DEFB $02
 LB67E:	DEFB $40
 LB67F:	DEFB $80
-LB680:	DEFB $00
+IsDoubleHeight:	DEFB $00
 LB681:	DEFB $FF
 
 	;; FIXME: Joystick selection screen?
-LB682:	JP		LB685	; NB: Target of self-modifying code.
-LB685:	CP		$80
-		JR		NC,LB6BA
-		SUB		$20
-		JR		C,LB6CB
-		CALL	CharCodeToAddr
-		LD		HL,L0804
-		LD		A,(LB680)
-		AND		A
-		CALL	NZ,LB75F
-		LD		BC,(LB67E)
-		LD		A,C
-		ADD		A,$04
-		LD		(LB67E),A
-		LD		A,(LB681)
-		AND		A
-		LD		A,(LB67D)
-		JR		NZ,LB6B7
-		INC		A
-		AND		$03
+LB682:		JP	LB685	; NB: Target of self-modifying code.
+
+LB685:		CP	$80
+		JR	NC,Wotsit_3
+		SUB	$20
+		JR	C,Wotsit_5
+	;; Printable character!
+		CALL	CharCodeToAddr 	; Address now in DE
+		LD	HL,L0804	; 8x8 sprite
+		LD	A,(IsDoubleHeight)
+		AND	A
+		CALL	NZ,CharDoubler 	; Double the height if necessary.
+		LD	BC,(LB67E)
+		LD	A,C
+		ADD	A,$04
+		LD	(LB67E),A
+		LD	A,(LB681)
+		AND	A
+		LD	A,(LB67D)
+		JR	NZ,Wotsit_2
+		INC	A
+		AND	$03
 		SCF
-		JR		NZ,LB6B4
-		INC		A
-LB6B4:	LD		(LB67D),A
-LB6B7:	JP		L9542
-LB6BA:	AND		$7F
+		JR	NZ,Wotsit_1
+		INC	A
+Wotsit_1:	LD	(LB67D),A
+Wotsit_2:	JP	DrawSprite
+
+	;; Code >= 0x80
+Wotsit_3:	AND	$7F
 		CALL	LB74A
-LB6BF:	LD		A,(HL)
+
+	;; NB: Fall through.
+Wotsit_4:	LD		A,(HL)
 		CP		$FF
 		RET		Z
 		INC		HL
 		PUSH	HL
 		CALL	LB682
 		POP		HL
-		JR		LB6BF
-LB6CB:	ADD		A,$20
-		CP		$05
-		JR		NC,LB702
-		AND		A
-		JP		Z,ScreenWipe
-		SUB		$02
-		JR		C,LB6ED
-		JR		Z,LB6E0
-		DEC		A
-		LD		(LB680),A
+		JR		Wotsit_4
+
+	;; Code < 0x20
+Wotsit_5:	ADD	A,$20		; Add the 0x20 back.
+		CP	$05
+		JR	NC,Wotsit_10
+		AND	A
+		JP	Z,ScreenWipe
+		SUB	$02
+		JR	C,Wotsit_7
+		JR	Z,Wotsit_6
+		DEC	A
+		LD	(IsDoubleHeight),A
 		RET
-LB6E0:	LD		A,(LB67E)
+Wotsit_6:		LD		A,(LB67E)
 		CP		$C0
 		RET		NC
 		LD		A,$20
 		CALL	LB682
-		JR		LB6E0
-LB6ED:	LD		HL,(LB67E)
-		LD		A,(LB680)
+		JR		Wotsit_6
+Wotsit_7:		LD		HL,(LB67E)
+		LD		A,(IsDoubleHeight)
 		AND		A
 		LD		A,H
-		JR		Z,LB6F9
+		JR		Z,Wotsit_9
 		ADD		A,$08
-LB6F9:	ADD		A,$08
+Wotsit_9:		ADD		A,$08
 		LD		H,A
 		LD		L,$40
 		LD		(LB67E),HL
 		RET
-LB702:	LD		HL,LB71A
-		JR		Z,LB711
+Wotsit_10:		LD		HL,Wotsit_13
+		JR		Z,Wotsit_11
 		CP		$07
-		LD		HL,LB715
-		JR		Z,LB711
-		LD		HL,LB728
-LB711:	LD		(LB682+1),HL
+		LD		HL,Wotsit_12
+		JR		Z,Wotsit_11
+		LD		HL,Wotsit_15
+Wotsit_11:		LD		(LB682+1),HL
 		RET
-	
-LB715:		CALL	SetAttribs
-		JR		LB723
-LB71A:	AND		A
+
+Wotsit_12:		CALL	SetAttribs
+		JR		Wotsit_14
+Wotsit_13:	AND		A
 		LD		(LB681),A
-		JR		Z,LB723
+		JR		Z,Wotsit_14
 		LD		(LB67D),A
-LB723:	LD		HL,LB685
-		JR		LB711
-LB728:	LD		HL,LB734
+Wotsit_14:	LD		HL,LB685
+		JR		Wotsit_11
+Wotsit_15:	LD		HL,Wotsit_16
 		ADD		A,A
 		ADD		A,A
 		ADD		A,$40
 		LD		(LB67E),A
-		JR		LB711
-LB734:	ADD		A,A
+		JR		Wotsit_11
+Wotsit_16:	ADD		A,A
 		ADD		A,A
 		ADD		A,A
 		LD		(LB67F),A
-		JR		LB723
+		JR		Wotsit_14
+
 LB73C:	LD		(LB747),BC
 		LD		HL,LB746
-		JP		LB6BF
+		JP		Wotsit_4
+
+
+	
 LB746:	DEFB $06
 LB747:	DEFB $00,$00,$FF
+	
 LB74A:	LD		B,A
 		LD		HL,L7EA3
 		SUB		$60
@@ -7890,18 +7911,21 @@ LB759:	LD		C,A
 		CPIR
 		DJNZ	LB759
 		RET
-LB75F:	LD		B,$08
-		LD		HL,LB66D
-LB764:	LD		A,(DE)
+
+	;; Copy the character, doubling its height, into the buffer
+CharDoubler:	LD		B,$08
+		LD		HL,CharDoublerBuf
+CD_1:		LD		A,(DE)
 		LD		(HL),A
 		INC		HL
 		LD		(HL),A
 		INC		HL
 		INC		DE
-		DJNZ	LB764
-		LD		HL,L1004
-		LD		DE,LB66D
+		DJNZ		CD_1
+		LD		HL,L1004 	; New width/height - 8 pixels by 16.
+		LD		DE,CharDoublerBuf
 		RET
+
 LB773:	LD		BC,L00F8
 		PUSH	DE
 		LD		A,D
