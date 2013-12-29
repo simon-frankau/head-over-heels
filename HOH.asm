@@ -575,20 +575,26 @@ CC2A:		ADD	A,A
 		EX	DE,HL
 		RET
 
-L7454:	DEFB $FF,$45,$4E,$54,$45,$52,$FF,$83,$53,$53,$48,$FF,$B0,$09,$00,$07
-L7464:	DEFB $09,$82,$86,$E3,$A3,$FF,$20,$4A,$4F,$59,$53,$54,$49,$43,$4B,$FF
-L7474:	DEFB $87,$53,$2F,$87,$E3,$FF,$4B,$45,$4D,$50,$53,$54,$4F,$4E,$E3,$FF
-L7484:	DEFB $46,$55,$4C,$4C,$45,$52,$E3,$FF,$81,$4A,$4F,$59,$FF,$E7,$46,$FF
-L7494:	DEFB $E7,$55,$FF,$E7,$44,$FF,$E7,$52,$FF,$E7,$4C,$FF,$83,$53,$50,$43
-L74A4:	DEFB $FF,$8D,$5A,$58,$43,$56,$41,$53,$44,$46,$47,$51,$57,$45,$52,$54
-L74B4:	DEFB $31,$32,$33,$34,$35,$30,$39,$38,$37,$36,$50,$4F,$49,$55,$59,$8C
-L74C4:	DEFB $4C,$4B,$4A,$48,$ED,$E1,$4D,$4E,$42,$E8,$E9,$EA,$EB,$EC
-L74D2:	DEFB $FF,$FF
-L74D4:	DEFB $FF,$FF,$FF,$FF,$E0,$FF,$FF,$FF,$FE,$FF,$FF,$FF,$FF,$E1,$FF,$FF
-L74E4:	DEFB $FF,$FE,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$EF,$F7
-L74F4:	DEFB $FB,$FD,$FE,$FF,$FF,$FF,$FD,$FE,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-L7504:	DEFB $FF,$FF,$FF,$F0,$FF,$FF,$FF,$FF,$FF,$FF,$E0,$FE,$FF,$FF,$EF,$F7
-L7514:	DEFB $FB,$FD,$FE,$FF,$FF,$FF
+	;; Strings table for indices >= 0x60
+	;; FIXME: To English!
+Strings2:
+	DEFB $FF,$45,$4E,$54,$45,$52
+	DEFB $FF,$83,$53,$53,$48
+	DEFB $FF,$B0,$09,$00,$07,$09,$82,$86,$E3,$A3
+	DEFB $FF,$20,$4A,$4F,$59,$53,$54,$49,$43,$4B
+	DEFB $FF,$87,$53,$2F,$87,$E3
+	DEFB $FF,$4B,$45,$4D,$50,$53,$54,$4F,$4E,$E3
+	DEFB $FF,$46,$55,$4C,$4C,$45,$52,$E3
+	DEFB $FF,$81,$4A,$4F,$59
+	DEFB $FF,$E7,$46
+	DEFB $FF,$E7,$55
+	DEFB $FF,$E7,$44
+	DEFB $FF,$E7,$52
+	DEFB $FF,$E7,$4C
+	DEFB $FF,$83,$53,$50,$43
+	DEFB $FF,$8D,$5A,$58,$43,$56,$41,$53,$44,$46,$47,$51,$57,$45,$52,$54,$31,$32,$33,$34,$35,$30,$39,$38,$37,$36,$50,$4F,$49,$55,$59,$8C,$4C,$4B,$4A,$48,$ED,$E1,$4D,$4E,$42,$E8,$E9,$EA,$EB,$EC
+
+L74D2:	DEFB $FF,$FF,$FF,$FF,$FF,$FF,$E0,$FF,$FF,$FF,$FE,$FF,$FF,$FF,$FF,$E1,$FF,$FF,$FF,$FE,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$EF,$F7,$FB,$FD,$FE,$FF,$FF,$FF,$FD,$FE,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$F0,$FF,$FF,$FF,$FF,$FF,$FF,$E0,$FE,$FF,$FF,$EF,$F7,$FB,$FD,$FE,$FF,$FF,$FF
 
 	;; FIXME: Suspect this is the stick-select screen
 SelectStick:	LD	A,$E2
@@ -779,13 +785,13 @@ L7638:	LD		A,C
 		JR		Z,L762E
 		CALL	L75C1
 		CALL	L7683
-		LD		HL,(CharOrigin)
+		LD		HL,(CharCursor)
 		PUSH	HL
 		LD		A,$A5
 		CALL	PrintChar
 		CALL	GetInputWait
 		POP		HL
-		LD		(CharOrigin),HL
+		LD		(CharCursor),HL
 		LD		A,$C0
 		SUB		L
 		CP		$14
@@ -1865,11 +1871,11 @@ L7DF0:	ADD		A,A
 		LD		B,A
 		LD		C,$0B
 		PUSH	BC
-		CALL	LB73C
+		CALL	SetCursor
 		LD		A,$02
 		CALL	PrintChar
 		POP		BC
-		JP		LB73C
+		JP		SetCursor
 L7E06:	CALL	L75D1
 		RET		C
 		LD		A,C
@@ -1897,7 +1903,7 @@ L7E2E:		LD	B,(IX+$03)
 		RES	7,B
 		LD	C,(IX+$02)
 		LD	(L7C88),BC
-		CALL	LB73C
+		CALL	SetCursor
 		LD	B,(IX+$01)
 		LD	C,(IX+$00)
 		INC	C
@@ -1932,7 +1938,7 @@ L7E60:	CALL	PrintChar
 		INC		B
 L7E80:	INC		B
 		PUSH	BC
-		CALL	LB73C
+		CALL	SetCursor
 		LD		A,$03
 		CALL	PrintChar
 		BIT		7,(IX+$03)
@@ -1942,76 +1948,91 @@ L7E80:	INC		B
 L7E95:	POP		BC
 		INC		B
 		LD		(L7C88),BC
-		CALL	LB73C
+		CALL	SetCursor
 		POP		BC
 		DJNZ	L7E44
 		SCF
 		RET
-L7EA3:	DEFB $FF
-	DEFM "PLAY"
-        DEFB $FF,$05,$01,$FF,$05,$02,$FF,$05,$03,$FF
-	DEFM " THE ", $FF
-	DEFM "GAME", $FF
-	DEFM "SELECT", $FF
-	DEFM "KEY", $FF
-	DEFM "ANY ", $87,$FF
-	DEFM "SENSITIVITY", $FF,$82
-	DEFM "PRESS ", $FF,$82
-	DEFM " TO ", $FF,$83,$E0,$FF,$83
-	DEFM "SHIFT", $FF
-	DEFM "LEFT", $FF
-	DEFM "RIGHT", $FF
-	DEFM "DOWN", $FF
-	DEFM "UP", $FF
-	DEFM "JUMP",$FF
-	DEFM "CARRY", $FF
-	DEFM "FIRE", $FF
-	DEFM "SWOP", $FF
-	DEFM "LOTS OF IT", $FF
-	DEFM "NOT SO MUCH", $FF
-	DEFM "PARDON",$FF
-	DEFM $00,$C5,$A3,$FF,$80,$84,$85,$FF,$86,$84,$87,$53,$FF
-	DEFM "ADJUST", $84, "SOUND", $FF
-	DEFM "CONTROL ", $89,$FF
-	DEFM "HIGH ",$89,$FF
-	DEFM "LOW ", $89,$FF
-	DEFM "OLD ",$85,$FF
-	DEFM "NEW ",$85,$FF
-	DEFM "MAIN MENU", $FF,$B9,$02,$15,$8A
-	DEFB $83,$88,$8B, "MOVE CURSOR",$06,$01
-	DEFB $17,$20,$8A,$8C,$8B,$86," OPTION", $02,$FF,$06
-	DEFB $05,$03,$8A,$8D,$8B,$C8,$02,$FF,$06,$05,$03,$8A,$8C,$8B,$C8,$02
-	DEFB $FF,$B0,$08,$00,$81,$9B,$A7,$FF,$A3,$06,$05,$03,$8A,$81,$8D,$8B
-	DEFB $C8,$02,$FF,$06,$05,$03,$02,$06,$01,$15,$02,$06,$01,$17,$8A,$83
-	DEFB $87,$53,$82," REQUIRED FOR ",$83,$FF
-	DEFM $B0,$08,$00,$82,$9C,$A3,$06,$06,$03,$05,$00
-	DEFM "MUSIC BY GUY STEVENS",$FF
-	DEFM $B0,$06,$00,$82,$9D,$A3,$FF,$B0,$09,$00,$82,$9A,$A3
-	DEFB $FF,$04,$82,$06,$03,$03,$8A,$83,$8D,$8B,$C8,$20,$85,$06,$04,$06
-	DEFB $8A,$83,$88,$8B,"RESTART",$FF,"   ",$FF
-	DEFB $83,$21,$22,$AD,$FF,$03,$81,$23,$24,$AD,$FF,$00,$07,$09,$04,$06
-	DEFB $FF,$B9,$05,$14,$FF,$B9,$19,$14,$FF,$B9,$19,$17,$FF,$B9,$05,$17
-	DEFB $FF,$04,$06,$12,$16,$FF,$04,$06,$0C,$16,$FF,$B9,$01,$11,$FF,$03
-	DEFB $82,$06,$1A,$13,$26,$06,$1A,$16,$82,$27,$06,$06,$13,$82,$25,$06
-	DEFB $06,$16,$82,$27,$FF,$03,$06,$FF,$C5,$06,$0A,$08,$82,$04,$05,$00
-	DEFB $FF,$B9,$06,$11,$81,"EXPLORED ",$FF," ROOMS"
-	DEFB $06,$09,$0E,$82,"SCORE ",$FF
-	DEFB "0",$06,$05,$14,$83,"LIBERATED ",$FF
-	DEFB " PLANETS",$FF,"  DUMMY"
-	DEFB $FF,"  NOVICE",$FF,"   SPY    ",$FF,"MASTER SPY",$FF
-	DEFB "   HERO",$FF," EMPEROR"
-	DEFB $FF,$07,$0A,$04,$06,$08,$00,$82,"HEAD      HEELS",$B9,$0C,$01,$05,$00
-	DEFM " OVER ",$06,$01,$00," JON",$06,$01,$02,"RITMAN"
-	DEFB $06,$19,$00,"BERNIE",$06,$18,$02,"DRUMMOND"
-	DEFB $FF,$00,$07,$06,$06,$05,$00,$04,$83,$84
-	DEFB $C7," EMPIRE",$03,$06,$03,$09,$81,"EGYPTUS"
-	DEFB $06,$15,$17,"BOOK WORLD"
-	DEFB $06,$03,$17,"SAFARI",$06,$14,$09,"PENITENTIARY"
-	DEFB $06,$0B,$10,$C7,$FF,"BLACKTOOTH"
-	DEFB $FF,"FINISH",$FF
-	DEFB $B6,$05,$00,"FREEDOM ",$FF,$00,$07,$06,$B9
-	DEFB $00,$0A,$82,$84,"PEOPLE SALUTE YOUR HEROISM",$06,$08
-	DEFB $0C,"AND PROCLAIM YOU",$04,$06,$0B,$10,$05,$00,$C4,$FF
+	
+Strings:			; Strings table for indices < 0x60
+	;; FIXME: Add indices, helpful equs, etc.
+	DEFM $FF, "PLAY"
+        DEFM $FF,$05,$01
+	DEFM $FF,$05,$02
+	DEFM $FF,$05,$03
+	DEFM $FF," THE "
+	DEFM $FF,"GAME"
+	DEFM $FF,"SELECT"
+	DEFM $FF,"KEY"
+	DEFM $FF,"ANY ",$87
+	DEFM $FF,"SENSITIVITY"
+	DEFM $FF,$82,"PRESS "
+	DEFM $FF,$82," TO "
+	DEFM $FF,$83,$E0
+	DEFM $FF,$83,"SHIFT"
+	DEFM $FF,"LEFT"
+	DEFM $FF,"RIGHT"
+	DEFM $FF,"DOWN"
+	DEFM $FF,"UP"
+	DEFM $FF,"JUMP"
+	DEFM $FF,"CARRY"
+	DEFM $FF,"FIRE"
+	DEFM $FF,"SWOP"
+	DEFM $FF,"LOTS OF IT"
+	DEFM $FF,"NOT SO MUCH"
+	DEFM $FF,"PARDON"
+	DEFM $FF,$00,$C5,$A3
+	DEFM $FF,$80,$84,$85
+	DEFM $FF,$86,$84,$87,$53
+	DEFM $FF,"ADJUST", $84, "SOUND"
+	DEFM $FF,"CONTROL ", $89
+	DEFM $FF,"HIGH ",$89
+	DEFM $FF,"LOW ", $89
+	DEFM $FF,"OLD ",$85
+	DEFM $FF,"NEW ",$85
+	DEFM $FF,"MAIN MENU"
+	DEFM $FF,$B9,$02,$15,$8A,$83,$88,$8B, "MOVE CURSOR",$06,$01,$17,$20,$8A,$8C,$8B,$86," OPTION", $02
+	DEFM $FF,$06,$05,$03,$8A,$8D,$8B,$C8,$02
+	DEFM $FF,$06,$05,$03,$8A,$8C,$8B,$C8,$02
+	DEFM $FF,$B0,$08,$00,$81,$9B,$A7
+	DEFM $FF,$A3,$06,$05,$03,$8A,$81,$8D,$8B,$C8,$02
+	DEFM $FF,$06,$05,$03,$02,$06,$01,$15,$02,$06,$01,$17,$8A,$83,$87,$53,$82," REQUIRED FOR ",$83
+	DEFM $FF,$B0,$08,$00,$82,$9C,$A3,$06,$06,$03,$05,$00,"MUSIC BY GUY STEVENS"
+	DEFM $FF,$B0,$06,$00,$82,$9D,$A3
+	DEFM $FF,$B0,$09,$00,$82,$9A,$A3
+	DEFM $FF,$04,$82,$06,$03,$03,$8A,$83,$8D,$8B,$C8,$20,$85,$06,$04,$06,$8A,$83,$88,$8B,"RESTART"
+	DEFM $FF,"   "
+	DEFM $FF,$83,$21,$22,$AD
+	DEFM $FF,$03,$81,$23,$24,$AD
+	DEFM $FF,$00,$07,$09,$04,$06
+	DEFM $FF,$B9,$05,$14
+	DEFM $FF,$B9,$19,$14
+	DEFM $FF,$B9,$19,$17
+	DEFM $FF,$B9,$05,$17
+	DEFM $FF,$04,$06,$12,$16
+	DEFM $FF,$04,$06,$0C,$16
+	DEFM $FF,$B9,$01,$11
+	DEFM $FF,$03,$82,$06,$1A,$13,$26,$06,$1A,$16,$82,$27,$06,$06,$13,$82,$25,$06,$06,$16,$82,$27
+	DEFM $FF,$03,$06
+	DEFM $FF,$C5,$06,$0A,$08,$82,$04,$05,$00
+	DEFM $FF,$B9,$06,$11,$81,"EXPLORED "
+	DEFM $FF," ROOMS",$06,$09,$0E,$82,"SCORE "
+	DEFM $FF,"0",$06,$05,$14,$83,"LIBERATED "
+	DEFM $FF," PLANETS"
+	DEFM $FF,"  DUMMY"
+	DEFM $FF,"  NOVICE"
+	DEFM $FF,"   SPY    "
+	DEFM $FF,"MASTER SPY"
+	DEFM $FF,"   HERO"
+	DEFM $FF," EMPEROR"
+	DEFM $FF,$07,$0A,$04,$06,$08,$00,$82,"HEAD      HEELS",$B9,$0C,$01,$05,$00," OVER ",$06,$01,$00," JON",$06,$01,$02,"RITMAN",$06,$19,$00,"BERNIE",$06,$18,$02,"DRUMMOND"
+	DEFM $FF,$00,$07,$06,$06,$05,$00,$04,$83,$84,$C7," EMPIRE",$03,$06,$03,$09,$81,"EGYPTUS",$06,$15,$17,"BOOK WORLD",$06,$03,$17,"SAFARI",$06,$14,$09,"PENITENTIARY",$06,$0B,$10,$C7
+	DEFM $FF,"BLACKTOOTH"
+	DEFM $FF,"FINISH"
+	DEFM $FF,$B6,$05,$00,"FREEDOM "
+	DEFM $FF,$00,$07,$06,$B9,$00,$0A,$82,$84,"PEOPLE SALUTE YOUR HEROISM",$06,$08,$0C,"AND PROCLAIM YOU",$04,$06,$0B,$10,$05,$00,$C4
+	DEFM $FF
+
 L81DC:	PUSH	AF
 		LD		A,L
 		LD		H,$00
@@ -7791,7 +7812,7 @@ LB669:	LD		BC,L0401
 CharDoublerBuf:	DEFS $10,$00 	; 16 bytes to hold double-height character.
 
 AttrIdx:	DEFB $02	; Which attribute number to use.
-CharOrigin:	DEFW $8040	; Where we're going to put the character, on screen.
+CharCursor:	DEFW $8040	; Where we're going to put the character, on screen.
 IsDoubleHeight:	DEFB $00	; Non-zero if printing double-height.
 KeepAttr:	DEFB $FF	; If set to zero, step through attribute codes 1, 2, 3.
 
@@ -7800,7 +7821,7 @@ PrintChar:	JP	PrintCharBase	; NB: Target of self-modifying code.
 
 	;; Default character printer
 PrintCharBase:	CP	$80
-		JR	NC,Wotsit_3
+		JR	NC,PCB_3
 		SUB	$20
 		JR	C,ControlCode 	; Tail call!
 	;; Printable character!
@@ -7809,35 +7830,35 @@ PrintCharBase:	CP	$80
 		LD	A,(IsDoubleHeight)
 		AND	A
 		CALL	NZ,CharDoubler 	; Double the height if necessary.
-		LD	BC,(CharOrigin) ; Load the destination origin...
+		LD	BC,(CharCursor) ; Load the destination cursor...
 		LD	A,C
 		ADD	A,$04
-		LD	(CharOrigin),A 	; And advance the cursor.
+		LD	(CharCursor),A 	; And advance the cursor.
 		LD	A,(KeepAttr)
 		AND	A
 		LD	A,(AttrIdx) 	; Load the attribute index to use.
-		JR	NZ,Wotsit_2
+		JR	NZ,PCB_2
 		INC	A		; If KeepAttr was zero, cycle through attrs 1-3.
 		AND	$03
 		SCF			; (?)
-		JR	NZ,Wotsit_1
+		JR	NZ,PCB_1
 		INC	A
-Wotsit_1:	LD	(AttrIdx),A
-Wotsit_2:	JP	DrawSprite
-	
-	;; Code >= 0x80
-Wotsit_3:	AND	$7F
-		CALL	LB74A
-
+PCB_1:		LD	(AttrIdx),A
+PCB_2:		JP	DrawSprite
+	;; Code >= 0x80: Print a string from the string tables.
+PCB_3:		AND	$7F
+		CALL	GetStrAddr
 	;; NB: Fall through.
-Wotsit_4:	LD		A,(HL)
-		CP		$FF
-		RET		Z
-		INC		HL
+
+	;; Print characters in HL until $FF is reached.
+PrintChars:	LD	A,(HL)
+		CP	$FF
+		RET	Z
+		INC	HL
 		PUSH	HL
 		CALL	PrintChar
-		POP		HL
-		JR		Wotsit_4
+		POP	HL
+		JR	PrintChars
 
 	;; Code < 0x20:
 	;; Code 0: ScreenWipe
@@ -7861,14 +7882,14 @@ ControlCode:	ADD	A,$20		; Add the 0x20 back.
 		RET
 
 	;; Print spaces to the end of line.
-CC_EQ2:		LD	A,(CharOrigin)
+CC_EQ2:		LD	A,(CharCursor)
 		CP	$C0
 		RET	NC
 		LD	A,$20
 		CALL	PrintChar
 		JR	CC_EQ2
 
-CC_EQ1:		LD	HL,(CharOrigin)
+CC_EQ1:		LD	HL,(CharCursor)
 		LD	A,(IsDoubleHeight) 	; Go down one or two rows, depending on height,
 		AND	A
 		LD	A,H
@@ -7877,7 +7898,7 @@ CC_EQ1:		LD	HL,(CharOrigin)
 CC_NotDbl:	ADD	A,$08
 		LD	H,A
 		LD	L,$40			; and return X position to centre of screen.
-		LD	(CharOrigin),HL
+		LD	(CharCursor),HL
 		RET
 
 	;; These cases change the interpretation of the next character...
@@ -7910,37 +7931,36 @@ PrintFn6:	LD	HL,PrintFn6b 	; Next time, we'll set X coordinate
 		ADD	A,A
 		ADD	A,A
 		ADD	A,$40		; Convert from character to half-pixel coordinates
-		LD	(CharOrigin),A	; and store
+		LD	(CharCursor),A	; and store
 		JR	SetPrintFn
 	
 PrintFn6b:	ADD	A,A		; Convert from character to pixel-based coordinates
 		ADD	A,A
 		ADD	A,A
-		LD	(CharOrigin+1),A ; Store X coordinate of CharOrigin.
+		LD	(CharCursor+1),A ; Store X coordinate of CharCursor.
 		JR	RestorePrintFn
 
 
-	
-LB73C:		LD	(LB747),BC
-		LD	HL,LB746
-		JP	Wotsit_4
+	;; Execute a simple command string to set the cursor position.
+SetCursor:	LD	(SetCursorBuf+1),BC
+		LD	HL,SetCursorBuf
+		JP	PrintChars
 
+SetCursorBuf:	DEFB $06,$00,$00,$FF
 
-	
-LB746:	DEFB $06
-LB747:	DEFB $00,$00,$FF
-	
-LB74A:	LD		B,A
-		LD		HL,L7EA3
-		SUB		$60
-		JR		C,LB756
-		LD		HL,L7454
-		LD		B,A
-LB756:	INC		B
-		LD		A,$FF
-LB759:	LD		C,A
+	;; Get the string's address, from an index.
+GetStrAddr:	LD	B,A
+		LD	HL,Strings
+		SUB	$60
+		JR	C,GSpA_1
+		LD	HL,Strings2
+		LD	B,A
+GSpA_1:		INC	B
+	;; Search for Bth occurence of $FF.
+		LD	A,$FF
+GSpA_2:		LD	C,A
 		CPIR
-		DJNZ	LB759
+		DJNZ	GSpA_2
 		RET
 
 	;; Copy the character, doubling its height, into the buffer
