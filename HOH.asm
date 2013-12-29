@@ -778,13 +778,13 @@ L7638:	LD		A,C
 		JR		Z,L762E
 		CALL	L75C1
 		CALL	L7683
-		LD		HL,(LB67E)
+		LD		HL,(CharOrigin)
 		PUSH	HL
 		LD		A,$A5
 		CALL	LB682
 		CALL	GetInputWait
 		POP		HL
-		LD		(LB67E),HL
+		LD		(CharOrigin),HL
 		LD		A,$C0
 		SUB		L
 		CP		$14
@@ -7788,11 +7788,11 @@ LB669:	LD		BC,L0401
 	
 CharDoublerBuf:	DEFS $10,$00 	; 16 bytes to hold double-height character.
 
-LB67D:	DEFB $02
-LB67E:	DEFB $40
+AttrIdx:	DEFB $02	; Which attribute number to use.
+CharOrigin:	DEFB $40	; Where we're going to put the character, on screen.
 LB67F:	DEFB $80
 IsDoubleHeight:	DEFB $00
-LB681:	DEFB $FF
+KeepAttr:	DEFB $FF	; If set to zero, step through attribute codes 1, 2, 3.
 
 	;; FIXME: Joystick selection screen?
 LB682:		JP	LB685	; NB: Target of self-modifying code.
@@ -7807,22 +7807,22 @@ LB685:		CP	$80
 		LD	A,(IsDoubleHeight)
 		AND	A
 		CALL	NZ,CharDoubler 	; Double the height if necessary.
-		LD	BC,(LB67E)
+		LD	BC,(CharOrigin) ; Load the destination origin...
 		LD	A,C
 		ADD	A,$04
-		LD	(LB67E),A
-		LD	A,(LB681)
+		LD	(CharOrigin),A 	; And advance the cursor.
+		LD	A,(KeepAttr)
 		AND	A
-		LD	A,(LB67D)
+		LD	A,(AttrIdx) 	; Load the attribute index to use.
 		JR	NZ,Wotsit_2
-		INC	A
+		INC	A		; If KeepAttr was zero, cycle through attrs 1-3.
 		AND	$03
-		SCF
+		SCF			; (?)
 		JR	NZ,Wotsit_1
 		INC	A
-Wotsit_1:	LD	(LB67D),A
+Wotsit_1:	LD	(AttrIdx),A
 Wotsit_2:	JP	DrawSprite
-
+	
 	;; Code >= 0x80
 Wotsit_3:	AND	$7F
 		CALL	LB74A
@@ -7849,13 +7849,13 @@ Wotsit_5:	ADD	A,$20		; Add the 0x20 back.
 		DEC	A
 		LD	(IsDoubleHeight),A
 		RET
-Wotsit_6:		LD		A,(LB67E)
+Wotsit_6:		LD		A,(CharOrigin)
 		CP		$C0
 		RET		NC
 		LD		A,$20
 		CALL	LB682
 		JR		Wotsit_6
-Wotsit_7:		LD		HL,(LB67E)
+Wotsit_7:		LD		HL,(CharOrigin)
 		LD		A,(IsDoubleHeight)
 		AND		A
 		LD		A,H
@@ -7864,7 +7864,7 @@ Wotsit_7:		LD		HL,(LB67E)
 Wotsit_9:		ADD		A,$08
 		LD		H,A
 		LD		L,$40
-		LD		(LB67E),HL
+		LD		(CharOrigin),HL
 		RET
 Wotsit_10:		LD		HL,Wotsit_13
 		JR		Z,Wotsit_11
@@ -7878,16 +7878,16 @@ Wotsit_11:		LD		(LB682+1),HL
 Wotsit_12:		CALL	SetAttribs
 		JR		Wotsit_14
 Wotsit_13:	AND		A
-		LD		(LB681),A
+		LD		(KeepAttr),A
 		JR		Z,Wotsit_14
-		LD		(LB67D),A
+		LD		(AttrIdx),A
 Wotsit_14:	LD		HL,LB685
 		JR		Wotsit_11
 Wotsit_15:	LD		HL,Wotsit_16
 		ADD		A,A
 		ADD		A,A
 		ADD		A,$40
-		LD		(LB67E),A
+		LD		(CharOrigin),A
 		JR		Wotsit_11
 Wotsit_16:	ADD		A,A
 		ADD		A,A
