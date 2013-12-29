@@ -3963,8 +3963,8 @@ SW_4:		DEC	D
 		LD	BC,L1800
 		JP	FillZero 	; Tail call
 
-	;; FIXME: Looks quite interesting. Think this is a sprite-drawing routine.
-	;; Source in DE, origin in BC, size in HL
+	;; Draw a sprite, with attributes.
+	;; Source in DE, origin in BC, size in HL, Attribute style in A
 	;; (H = Y, L = X, measured in double-pixels)
 DrawSprite:	PUSH	AF
 		PUSH	BC
@@ -4010,39 +4010,44 @@ DrS_2:		LD	A,(DE)
 		DEC	A
 		JR	NZ,DrS_1
 		CALL	BlitScreen
-
-		POP	HL
-		POP	BC
+	;; Prepare to do the attributes
+		POP	HL		; Restore byte-oriented size.
+		POP	BC		; Restore double-pixel-oriented origin.
 		LD	A,C
 		SUB	$40
 		ADD	A,A
-		LD	C,A
+		LD	C,A		; BC now contains single-pixel-oriented origin.
 		CALL	GetScrMemAddr
-		CALL	ToAttrAddr
-		LD	A,H
+		CALL	ToAttrAddr 	; DE now contains pointer to starting attribute.
+		LD	A,H		; Divide height by 8, as we're working with attributes...
 		RRA
 		RRA
 		RRA
 		AND	$1F
 		LD	H,A
-		POP	AF
-		ADD	A,$E4
+		POP	AF		; Now get attribute style.
+		ADD	A,Attrib0 & $FF
 		LD	C,A
-		ADC	A,$93
+		ADC	A,Attrib0 >> 8		
 		SUB	C
 		LD	B,A
-		LD	A,(BC)
+		LD	A,(BC)		; Fetch Attrib0[A]
+	;; Now actually do the attribute-writing work
 		EX	DE,HL
+	;; D now holds height, E width, HL starting point.
+	;; Outer, vertical loop.
 DrS_3:		LD	B,E
-		LD	C,L
+	;; Row-drawing loop.
+		LD	C,L		; Save start point.
 DrS_4:		LD	(HL),A
 		INC	L
 		DJNZ	DrS_4
-		LD	L,C
+		LD	L,C		; Restore start point
 		LD	BC,L0020
-		ADD	HL,BC
+		ADD	HL,BC		; Move down a row.
 		DEC	D
-		JR	NZ,DrS_3
+		JR	NZ,DrS_3 	; Repeat as necessary.
+	;; FIXME
 		LD	A,$48
 		LD	(L940A+1),A
 		RET
