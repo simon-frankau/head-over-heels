@@ -82,7 +82,7 @@ L7095:	CALL	L708B
 		POP		AF
 		AND		$01
 		LD		A,$C9
-		CALL	Z,LB682
+		CALL	Z,PrintChar
 		RET
 L70BA:	LD		HL,L703C
 		LD		A,(LB218)
@@ -126,7 +126,7 @@ L70FD:	CALL	L9643
 		CALL	PlaySound
 		CALL	GetInputWait
 		LD		A,$AC
-		CALL	LB682
+		CALL	PrintChar
 L710E:	CALL	L75D1
 		JR		C,L710E
 		DEC		C
@@ -518,6 +518,7 @@ UpdateAttribs:	CALL	SetAttribs
 	;; The border attribute etc. is saved for the sound routine to modify.
 LastOut:	DEFB $00
 
+	;; Set the attribute set, based on number in A.
 SetAttribs:	LD	C,A
 		ADD	A,A
 		ADD	A,C
@@ -559,10 +560,10 @@ Attrib2:	DEFB $00
 
 	;; Look up character code (- 0x20 already) to a pointer to the character in DE.
 CharCodeToAddr:	CP	$08
-		JR	C,CC2A 		; Space ! " # $ % & ' (
+		JR	C,CC2A 		; Space ! " # $ % & '
 		SUB	$07
 		CP	$13
-		JR	C,CC2A		; 0-9
+		JR	C,CC2A		; / 0-9
 		SUB	$07 		; Alphabetical characters.
 CC2A:		ADD	A,A
 		ADD	A,A
@@ -591,7 +592,7 @@ L7514:	DEFB $FB,$FD,$FE,$FF,$FF,$FF
 
 	;; FIXME: Suspect this is the stick-select screen
 SelectStick:	LD	A,$E2
-		CALL	LB682
+		CALL	PrintChar
 		LD	IX,StickType
 		CALL	L7E2E
 SelSt_1:	CALL	L7E11
@@ -781,7 +782,7 @@ L7638:	LD		A,C
 		LD		HL,(CharOrigin)
 		PUSH	HL
 		LD		A,$A5
-		CALL	LB682
+		CALL	PrintChar
 		CALL	GetInputWait
 		POP		HL
 		LD		(CharOrigin),HL
@@ -815,9 +816,9 @@ L7677:	EX		AF,AF'
 		JP		GetInputWait
 L7683:	PUSH	AF
 		LD		A,$82
-		CALL	LB682
+		CALL	PrintChar
 		POP		AF
-		JP		LB682
+		JP		PrintChar
 
 SomeBuffFaffCounter:	DEFB $00
 
@@ -1719,7 +1720,7 @@ L7C76:	POP		HL
 L7C88:	DEFB $00,$00
 L7C8A:	DEFB $1E,$60,$60,$98,$8C,$60,$2F,$60,$48,$AF,$8C,$48
 L7C96:	LD		A,$99
-		CALL	LB682
+		CALL	PrintChar
 		LD		IX,L7CD4
 		LD		(IX+$00),$00
 		CALL	L7CCC
@@ -1743,7 +1744,7 @@ L7CCC:	LD		E,$03
 		JP		L8E30
 L7CD4:	DEFB $00,$04,$05,$89,$9A
 L7CD9:	LD		A,$A9
-		CALL	LB682
+		CALL	PrintChar
 		LD		IX,L7CF8
 		CALL	L7E2E
 L7CE5:	CALL	L7E11
@@ -1757,7 +1758,7 @@ L7CE5:	CALL	L7E11
 		RET
 L7CF8:	DEFB $00,$03,$07,$08,$96
 L7CFD:	LD		A,$A6
-		CALL	LB682
+		CALL	PrintChar
 		LD		IX,L7D47
 		CALL	L7E2E
 		LD		B,$08
@@ -1776,22 +1777,22 @@ L7D1B:	CALL	L7E06
 		JR		C,L7D1B
 		RET		NZ
 		LD		A,$A8
-		CALL	LB682
+		CALL	PrintChar
 		LD		A,(IX+$00)
 		ADD		A,(IX+$04)
-		CALL	LB682
+		CALL	PrintChar
 		LD		A,$02
-		CALL	LB682
+		CALL	PrintChar
 		LD		A,(IX+$00)
 		CALL	L7DF0
 		LD		A,(IX+$00)
 		CALL	L761C
 		LD		A,$A7
-		CALL	LB682
+		CALL	PrintChar
 		JR		L7D1B
 L7D47:	DEFB $00,$08,$00,$85,$8E
 L7D4C:	LD		A,$AA
-		CALL	LB682
+		CALL	PrintChar
 		LD		IX,L7D63
 		CALL	L7E2E
 L7D58:	CALL	L7E11
@@ -1803,7 +1804,7 @@ L7D68:	LD		A,(L8A15)
 		CP		$01
 		RET		C
 		LD		A,$AB
-		CALL	LB682
+		CALL	PrintChar
 		LD		IX,L7D8D
 		LD		(IX+$00),$00
 		CALL	L7E2E
@@ -1819,7 +1820,7 @@ L7D8D:	DEFB $00,$03,$09,$09,$A0
 L7D92:		CALL	L964F
 		CALL	ScreenWipe
 		LD		A,$BA
-		CALL	LB682
+		CALL	PrintChar
 		CALL	L7CCC
 		CALL	L8C50
 		PUSH	HL
@@ -1837,22 +1838,22 @@ L7DB4:	RLCA
 		RLCA
 		AND		$07
 		ADD		A,$BF
-L7DBB:	CALL	LB682
+L7DBB:	CALL	PrintChar
 		LD		A,$BB
-		CALL	LB682
+		CALL	PrintChar
 		CALL	L8C1F
 		CALL	LB773
 		LD		A,$BC
-		CALL	LB682
+		CALL	PrintChar
 		POP		DE
 		CALL	LB773
 		LD		A,$BD
-		CALL	LB682
+		CALL	PrintChar
 		CALL	L8C1A
 		LD		A,E
 		CALL	LB784
 		LD		A,$BE
-		CALL	LB682
+		CALL	PrintChar
 L7DE3:	CALL	L964F
 		CALL	L75D1
 		JR		C,L7DE3
@@ -1866,7 +1867,7 @@ L7DF0:	ADD		A,A
 		PUSH	BC
 		CALL	LB73C
 		LD		A,$02
-		CALL	LB682
+		CALL	PrintChar
 		POP		BC
 		JP		LB73C
 L7E06:	CALL	L75D1
@@ -1907,19 +1908,19 @@ L7E44:		LD	A,$AF
 		BIT	7,(IX+$03)
 		JR	NZ,L7E59
 		LD	A,$04
-		CALL	LB682
+		CALL	PrintChar
 		LD	A,$AE
 		JR	L7E60
 L7E59:		LD		A,$03
-		CALL	LB682
+		CALL	PrintChar
 		LD		A,$AE
-L7E60:	CALL	LB682
+L7E60:	CALL	PrintChar
 		LD		A,(IX+$01)
 		POP		BC
 		PUSH	BC
 		SUB		B
 		ADD		A,(IX+$04)
-		CALL	LB682
+		CALL	PrintChar
 		POP		HL
 		PUSH	HL
 		LD		BC,(L7C88)
@@ -1933,11 +1934,11 @@ L7E80:	INC		B
 		PUSH	BC
 		CALL	LB73C
 		LD		A,$03
-		CALL	LB682
+		CALL	PrintChar
 		BIT		7,(IX+$03)
 		JR		NZ,L7E95
 		LD		A,$02
-		CALL	LB682
+		CALL	PrintChar
 L7E95:	POP		BC
 		INC		B
 		LD		(L7C88),BC
@@ -2670,11 +2671,11 @@ L887E:	PUSH	AF
 		LD		A,$81
 		JR		Z,L8887
 		LD		A,$83
-L8887:	CALL	LB682
+L8887:	CALL	PrintChar
 		POP		BC
 		LD		A,C
 		ADD		A,$B1
-		CALL	LB682
+		CALL	PrintChar
 		POP		AF
 		JP		LB77F
 L8895:	LD		A,D
@@ -2826,7 +2827,7 @@ L89C4:	CALL	L89F9
 		OR		$FF
 		RET
 L89D2:	LD		A,$B8
-		CALL	LB682
+		CALL	PrintChar
 		LD		A,$07
 L89D9:	PUSH	AF
 		DEC		A
@@ -3129,7 +3130,7 @@ L8D9E:	LD		A,(L866B)
 		CP		$1F
 		JR		NZ,L8DB9
 		LD		A,$CA
-		CALL	LB682
+		CALL	PrintChar
 		CALL	L964F
 		LD		DE,L040F
 		LD		HL,L7C8A
@@ -3139,7 +3140,7 @@ L8DB9:	CALL	L8DC2
 		CALL	L7395
 		JP		L7BB3
 L8DC2:	LD		A,$C6
-		CALL	LB682
+		CALL	PrintChar
 		CALL	L964F
 		LD		HL,L8DFF
 		LD		DE,L05FF
@@ -4063,7 +4064,8 @@ ToAttrAddr:	LD	A,D
 		OR	$58
 		LD	D,A
 		RET
-	
+
+	;; Draw the diagonal edge-of-screen attribute lines.
 ApplyAttribs:	LD	BC,(L93E2)
 		LD	A,C
 		SUB	$40
@@ -7789,18 +7791,18 @@ LB669:	LD		BC,L0401
 CharDoublerBuf:	DEFS $10,$00 	; 16 bytes to hold double-height character.
 
 AttrIdx:	DEFB $02	; Which attribute number to use.
-CharOrigin:	DEFB $40	; Where we're going to put the character, on screen.
-LB67F:	DEFB $80
-IsDoubleHeight:	DEFB $00
+CharOrigin:	DEFW $8040	; Where we're going to put the character, on screen.
+IsDoubleHeight:	DEFB $00	; Non-zero if printing double-height.
 KeepAttr:	DEFB $FF	; If set to zero, step through attribute codes 1, 2, 3.
 
-	;; FIXME: Joystick selection screen?
-LB682:		JP	LB685	; NB: Target of self-modifying code.
+	;; Main character-printing entry point.
+PrintChar:	JP	PrintCharBase	; NB: Target of self-modifying code.
 
-LB685:		CP	$80
+	;; Default character printer
+PrintCharBase:	CP	$80
 		JR	NC,Wotsit_3
 		SUB	$20
-		JR	C,Wotsit_5
+		JR	C,ControlCode 	; Tail call!
 	;; Printable character!
 		CALL	CharCodeToAddr 	; Address now in DE
 		LD	HL,L0804	; 8x8 sprite
@@ -7833,71 +7835,95 @@ Wotsit_4:	LD		A,(HL)
 		RET		Z
 		INC		HL
 		PUSH	HL
-		CALL	LB682
+		CALL	PrintChar
 		POP		HL
 		JR		Wotsit_4
 
-	;; Code < 0x20
-Wotsit_5:	ADD	A,$20		; Add the 0x20 back.
+	;; Code < 0x20:
+	;; Code 0: ScreenWipe
+	;; Code 1: Newline
+	;; Code 2: Spaces to end of line
+	;; Code 3: Double height off
+	;; Code 4: Double height on
+	;; Code 5: Set attribute index (0 means cycle, all others set specifically)
+	;; Code 6: Set cursor
+	;; Code 7: Set the screen attributes mode
+ControlCode:	ADD	A,$20		; Add the 0x20 back.
 		CP	$05
-		JR	NC,Wotsit_10
+		JR	NC,CC_GE5
 		AND	A
-		JP	Z,ScreenWipe
+		JP	Z,ScreenWipe 	; Tail call
 		SUB	$02
-		JR	C,Wotsit_7
-		JR	Z,Wotsit_6
+		JR	C,CC_EQ1
+		JR	Z,CC_EQ2
 		DEC	A
 		LD	(IsDoubleHeight),A
 		RET
-Wotsit_6:		LD		A,(CharOrigin)
-		CP		$C0
-		RET		NC
-		LD		A,$20
-		CALL	LB682
-		JR		Wotsit_6
-Wotsit_7:		LD		HL,(CharOrigin)
-		LD		A,(IsDoubleHeight)
-		AND		A
-		LD		A,H
-		JR		Z,Wotsit_9
-		ADD		A,$08
-Wotsit_9:		ADD		A,$08
-		LD		H,A
-		LD		L,$40
-		LD		(CharOrigin),HL
-		RET
-Wotsit_10:		LD		HL,Wotsit_13
-		JR		Z,Wotsit_11
-		CP		$07
-		LD		HL,Wotsit_12
-		JR		Z,Wotsit_11
-		LD		HL,Wotsit_15
-Wotsit_11:		LD		(LB682+1),HL
+
+	;; Print spaces to the end of line.
+CC_EQ2:		LD	A,(CharOrigin)
+		CP	$C0
+		RET	NC
+		LD	A,$20
+		CALL	PrintChar
+		JR	CC_EQ2
+
+CC_EQ1:		LD	HL,(CharOrigin)
+		LD	A,(IsDoubleHeight) 	; Go down one or two rows, depending on height,
+		AND	A
+		LD	A,H
+		JR	Z,CC_NotDbl
+		ADD	A,$08
+CC_NotDbl:	ADD	A,$08
+		LD	H,A
+		LD	L,$40			; and return X position to centre of screen.
+		LD	(CharOrigin),HL
 		RET
 
-Wotsit_12:		CALL	SetAttribs
-		JR		Wotsit_14
-Wotsit_13:	AND		A
-		LD		(KeepAttr),A
-		JR		Z,Wotsit_14
-		LD		(AttrIdx),A
-Wotsit_14:	LD		HL,LB685
-		JR		Wotsit_11
-Wotsit_15:	LD		HL,Wotsit_16
-		ADD		A,A
-		ADD		A,A
-		ADD		A,$40
-		LD		(CharOrigin),A
-		JR		Wotsit_11
-Wotsit_16:	ADD		A,A
-		ADD		A,A
-		ADD		A,A
-		LD		(LB67F),A
-		JR		Wotsit_14
+	;; These cases change the interpretation of the next character...
+CC_GE5:		LD	HL,PrintFn5
+		JR	Z,SetPrintFn
+		CP	$07
+		LD	HL,PrintFn7
+		JR	Z,SetPrintFn
+		LD	HL,PrintFn6
+	;; NB: Fall-through.
 
-LB73C:	LD		(LB747),BC
-		LD		HL,LB746
-		JP		Wotsit_4
+	;; Set the function called when you 'PrintChar'.
+SetPrintFn:	LD	(PrintChar+1),HL
+		RET
+
+PrintFn7:	CALL	SetAttribs
+		JR	RestorePrintFn
+	
+PrintFn5:	AND	A
+		LD	(KeepAttr),A
+		JR	Z,RestorePrintFn
+		LD	(AttrIdx),A
+	;; NB: Fall-through
+	
+	;;  Restore the default function called when you 'PrintChar'.
+RestorePrintFn:	LD	HL,PrintCharBase
+		JR	SetPrintFn
+
+PrintFn6:	LD	HL,PrintFn6b 	; Next time, we'll set X coordinate
+		ADD	A,A
+		ADD	A,A
+		ADD	A,$40		; Convert from character to half-pixel coordinates
+		LD	(CharOrigin),A	; and store
+		JR	SetPrintFn
+	
+PrintFn6b:	ADD	A,A		; Convert from character to pixel-based coordinates
+		ADD	A,A
+		ADD	A,A
+		LD	(CharOrigin+1),A ; Store X coordinate of CharOrigin.
+		JR	RestorePrintFn
+
+
+	
+LB73C:		LD	(LB747),BC
+		LD	HL,LB746
+		JP	Wotsit_4
 
 
 	
@@ -7958,7 +7984,7 @@ LB790:	AND		$0F
 LB79D:	LD		C,$FF
 		ADD		A,$30
 		PUSH	BC
-		CALL	LB682
+		CALL	PrintChar
 		POP		BC
 		SCF
 		RET
