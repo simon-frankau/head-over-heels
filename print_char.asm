@@ -1,5 +1,5 @@
 	;; Text-printing functions
-	
+
 CharDoublerBuf:	DEFS $10,$00 	; 16 bytes to hold double-height character.
 
 AttrIdx:	DEFB $02	; Which attribute number to use.
@@ -41,9 +41,9 @@ PCB_3:		AND	$7F
 		CALL	GetStrAddr
 	;; NB: Fall through.
 
-	;; Print characters in HL until $FF is reached.
+	;; Print characters in HL until DELIM is reached.
 PrintChars:	LD	A,(HL)
-		CP	$FF
+		CP	DELIM
 		RET	Z
 		INC	HL
 		PUSH	HL
@@ -52,14 +52,15 @@ PrintChars:	LD	A,(HL)
 		JR	PrintChars
 
 	;; Code < 0x20:
-	;; Code 0: ScreenWipe
-	;; Code 1: Newline
-	;; Code 2: Spaces to end of line
-	;; Code 3: Double height off
-	;; Code 4: Double height on
-	;; Code 5: Set attribute index (0 means cycle, all others set specifically)
-	;; Code 6: Set cursor
-	;; Code 7: Set the screen attributes mode
+CTRL_SCREENWIPE:	EQU 0 ; Call ScreenWipe
+CTRL_NEWLINE:		EQU 1 ; Newline
+CTRL_BLANKS:		EQU 2 ; Spaces to end of line
+CTRL_SINGLE:		EQU 3 ; Double height off
+CTRL_DOUBLE:		EQU 4 ; Double height on
+CTRL_ATTR:		EQU 5 ; Set attribute index (0 means cycle, all others set specifically)
+CTRL_CURPOS:		EQU 6 ; Set cursor
+CTRL_ATTRMODE:		EQU 7 ; Set the screen attributes mode
+
 ControlCode:	ADD	A,$20		; Add the 0x20 back.
 		CP	$05
 		JR	NC,CC_GE5
@@ -107,13 +108,13 @@ SetPrintFn:	LD	(PrintChar+1),HL
 
 PrintFn7:	CALL	SetAttribs
 		JR	RestorePrintFn
-	
+
 PrintFn5:	AND	A
 		LD	(KeepAttr),A
 		JR	Z,RestorePrintFn
 		LD	(AttrIdx),A
 	;; NB: Fall-through
-	
+
 	;;  Restore the default function called when you 'PrintChar'.
 RestorePrintFn:	LD	HL,PrintCharBase
 		JR	SetPrintFn
@@ -124,7 +125,7 @@ PrintFn6:	LD	HL,PrintFn6b 	; Next time, we'll set X coordinate
 		ADD	A,$40		; Convert from character to half-pixel coordinates
 		LD	(CharCursor),A	; and store
 		JR	SetPrintFn
-	
+
 PrintFn6b:	ADD	A,A		; Convert from character to pixel-based coordinates
 		ADD	A,A
 		ADD	A,A
@@ -137,7 +138,7 @@ SetCursor:	LD	(SetCursorBuf+1),BC
 		LD	HL,SetCursorBuf
 		JP	PrintChars
 
-SetCursorBuf:	DEFB $06,$00,$00,$FF
+SetCursorBuf:	DEFB CTRL_CURPOS,$00,$00,DELIM
 
 	;; Get the string's address, from an index.
 GetStrAddr:	LD	B,A
@@ -147,8 +148,8 @@ GetStrAddr:	LD	B,A
 		LD	HL,Strings2
 		LD	B,A
 GSpA_1:		INC	B
-	;; Search for Bth occurence of $FF.
-		LD	A,$FF
+	;; Search for Bth occurence of DELIM.
+		LD	A,DELIM
 GSpA_2:		LD	C,A
 		CPIR
 		DJNZ	GSpA_2
