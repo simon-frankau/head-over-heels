@@ -6887,7 +6887,7 @@ Sprite4x28:	SUB	$54
 		ADD	HL,HL		; 32x
 		EX	DE,HL
 		SBC	HL,DE		; 224x = 4x28x2x
-		LD	DE,LEB90
+		LD	DE,IMG_4x28 - MAGIC_OFFSET
 		ADD	HL,DE
 		LD	DE,L0070
 		LD	B,$38		; 56 high (including image and mask)
