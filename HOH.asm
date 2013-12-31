@@ -1887,16 +1887,16 @@ L7DBB:		CALL	PrintChar
 		LD	A,STR_EXPLORED
 		CALL	PrintChar
 		CALL	L8C1F
-		CALL	LB773
+		CALL	Print4DigitsL
 		LD	A,STR_ROOMS_SCORE
 		CALL	PrintChar
 		POP	DE
-		CALL	LB773
+		CALL	Print4DigitsL
 		LD	A,STR_LIBERATED
 		CALL	PrintChar
 		CALL	L8C1A
 		LD		A,E
-		CALL	LB784
+		CALL	Print2DigitsL
 		LD	A,STR_PLANETS
 		CALL	PrintChar
 L7DE3:	CALL	L964F
@@ -2873,7 +2873,7 @@ L8887:		CALL	PrintChar
 		ADD	A,CTRL_POS1
 		CALL	PrintChar
 		POP		AF
-		JP		LB77F
+		JP		Print2DigitsR
 L8895:	LD		A,D
 		SUB		$09
 		LD		HL,L866B
@@ -7981,36 +7981,46 @@ LB662:	RRA
 		JR		C,LB669
 		LD		BC,L0104
 		RET
-LB669:	LD		BC,L0401
+LB669:		LD		BC,L0401
 		RET
 	
 #include "print_char.asm"
-	
-LB773:	LD		BC,L00F8
+
+	;; Left align, no leading zero.
+Print4DigitsL:	LD	BC,L00F8
 		PUSH	DE
-		LD		A,D
-		CALL	LB787
-		POP		DE
-		LD		A,E
-		JR		LB787
-LB77F:		LD	BC,LFFFE
-		JR	LB787
-LB784:		LD	BC,L00FE
-LB787:		PUSH	AF
+		LD	A,D
+		CALL	Print2Digits
+		POP	DE
+		LD	A,E
+		JR	Print2Digits 	; Tail call
+
+	;; Right align, no leading zero.
+Print2DigitsR:	LD	BC,LFFFE
+		JR	Print2Digits 	; Tail call
+
+	;; Left align, no leading zero.
+Print2DigitsL:	LD	BC,L00FE
+	;; NB: Fall through
+
+	;; Prints a 2-digit number. Expects digits stored as BCD. Each
+	;; zero stores a rotation, so multiple bits of B and C count.
+Print2Digits:	PUSH	AF
 		RRA
 		RRA
 		RRA
 		RRA
-		CALL	LB790
+		CALL	PrintDigit
 		POP	AF
-LB790:		AND	$0F
-		JR	NZ,LB79D
+	;; NB: Fall through for second digit.
+PrintDigit:	AND	$0F
+		JR	NZ,PD_1
 		RRC	C
-		JR	C,LB79D
+		JR	C,PD_1		; If zero, print it out if C & 1.
 		RRC	B
-		RET	NC
-		LD	A,$F0		; When adding on $30, this becomes " ".
-LB79D:		LD	C,$FF
+		RET	NC		; Print a space if B & 1, otherwise, nothing at all.
+		LD	A,$F0		; (When adding on $30, this becomes " ")
+PD_1:		LD	C,$FF
 		ADD	A,$30
 		PUSH	BC
 		CALL	PrintChar
