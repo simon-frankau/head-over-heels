@@ -7986,48 +7986,6 @@ LB669:		LD		BC,L0401
 	
 #include "print_char.asm"
 
-	;; Left align, no leading zero.
-Print4DigitsL:	LD	BC,L00F8
-		PUSH	DE
-		LD	A,D
-		CALL	Print2Digits
-		POP	DE
-		LD	A,E
-		JR	Print2Digits 	; Tail call
-
-	;; Right align, no leading zero.
-Print2DigitsR:	LD	BC,LFFFE
-		JR	Print2Digits 	; Tail call
-
-	;; Left align, no leading zero.
-Print2DigitsL:	LD	BC,L00FE
-	;; NB: Fall through
-
-	;; Prints a 2-digit number. Expects digits stored as BCD. Each
-	;; zero stores a rotation, so multiple bits of B and C count.
-Print2Digits:	PUSH	AF
-		RRA
-		RRA
-		RRA
-		RRA
-		CALL	PrintDigit
-		POP	AF
-	;; NB: Fall through for second digit.
-PrintDigit:	AND	$0F
-		JR	NZ,PD_1
-		RRC	C
-		JR	C,PD_1		; If zero, print it out if C & 1.
-		RRC	B
-		RET	NC		; Print a space if B & 1, otherwise, nothing at all.
-		LD	A,$F0		; (When adding on $30, this becomes " ")
-PD_1:		LD	C,$FF
-		ADD	A,$30
-		PUSH	BC
-		CALL	PrintChar
-		POP	BC
-		SCF
-		RET
-
 	;; Called immediately after installing interrupt handler.
 ShuffleMem:	; Zero end of top page
 		LD	HL,LFFFE
