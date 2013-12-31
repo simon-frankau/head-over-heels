@@ -9,6 +9,8 @@
 	;; Hack, should be removed.
 #include "equs.asm"
 
+MAGIC_OFFSET:	EQU 360 	; The offset high data is moved down by...
+	
 SpriteBuff:	EQU $B800
 
 SomeBuff:	EQU $F944
@@ -578,7 +580,7 @@ CC2A:		ADD	A,A
 		LD	L,A
 		LD	H,$00
 		ADD	HL,HL
-		LD	DE,LF790
+		LD	DE,IMG_CHARS - 360
 		ADD	HL,DE
 		EX	DE,HL
 		RET
@@ -6731,14 +6733,17 @@ LAE15:	ADD		A,B
 		LD	(SpriteWidth),A
 		RET
 
+
+	
+	;; Looks up based on SpriteCode.
 	;; Return height in B, image in DE, mask in HL.
 GetSpriteAddr:	LD	A,(SpriteCode)
-		AND	$7F
-		CP	$54
+		AND	$7F			; Top bit holds 'reverse?'. Ignore.
+		CP	$54			; >= 0x54 -> 4x28
 		JP	NC,Sprite4x28
-		CP	$18
+		CP	$18			; >= 0x18 -> 3x24
 		JR	NC,Sprite3x24
-		CP	$10
+		CP	$10			; >= 0x10 -> 3x32
 		LD	H,$00
 		JR	NC,Sprite3x32
 	;; TODO: Somewhat mysterious below here...
@@ -6784,7 +6789,7 @@ Sprite3x56:	LD	A,L
 		LD	A,E
 		ADD	A,H
 		LD	H,A 		; 336x = 3x56x2x
-		LD	DE,LC910
+		LD	DE,IMG_3x56 - MAGIC_OFFSET
 		ADD	HL,DE
 		LD	DE,L00A8
 		LD	B,$70
@@ -6802,7 +6807,7 @@ Sprite3x32:	SUB	$10
 		ADD	HL,HL		; 3x16x
 		ADD	HL,HL		; 3x32x
 		ADD	HL,HL		; 3x32x2x
-		LD	DE,LCBB0
+		LD	DE,IMG_3x32 - MAGIC_OFFSET
 		ADD	HL,DE
 		LD	DE,L0060
 		LD	B,$40
@@ -6835,7 +6840,7 @@ Sprite3x24:	SUB	$18
 		SRL	D
 		RR	E		; 128x
 		ADD	HL,DE		; 144x = 3x24x2x
-		LD	DE,LCD30
+		LD	DE,IMG_3x24 - MAGIC_OFFSET
 		ADD	HL,DE
 		LD	DE,L0048
 		LD	B,$30
