@@ -171,9 +171,8 @@ IMG_3x24:
 #insert "img_3x24.bin"
 IMG_4x28:			
 #insert "img_4x28.bin"
-	
-#include "wide.asm"
-	
+IMG_2x24:
+#insert "img_2x24.bin"
 IMG_CHARS:
 #insert "img_chars.bin"
 
