@@ -11,6 +11,10 @@ Contents
 
 HOH.asm - The dissassembly of Head Over Heels.
 
+*.asm - The files representing the various sub-parts of the code.
+
+*.bin - Game data.
+
 check.sh - Script to assemble HOH.asm and check it against the baseline.
 
 tape - This directory holds my attempts to extract the contents from a
@@ -19,3 +23,6 @@ tape - This directory holds my attempts to extract the contents from a
 memimage - This holds a memory dump from the game on start-up, plus tools
            to extract and disassemble the dump, creating a baseline
            disassembly.
+
+graphics - Tools to extract the images from the binary files which
+           hold them.
