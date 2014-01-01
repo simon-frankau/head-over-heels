@@ -32,7 +32,7 @@ L7041:		DEFB $00
 L7042:		DEFB $00
 FrameCounter:	DEFB $01
 L7044:		DEFB $FB,$FB
-L7046:		CALL	L7D92
+L7046:		CALL	GameOverScreen
 
 Main:		LD	SP,$FFF4
 		CALL	GoMainMenu
@@ -1572,7 +1572,7 @@ InitStuff:	CALL	IrqInstall
 L7B0E:		XOR	A
 		LD	(L866B),A
 		LD	(LB218),A
-		LD	(L8A15),A
+		LD	(Continues),A
 		LD	A,$18
 		LD	(LA2C8),A
 		LD	A,$1F
@@ -1776,15 +1776,19 @@ L7C76:	POP		HL
 	
 MenuCursor:	DEFW $0000
 
-L7C8A:	DEFB $1E,$60,$60,$98,$8C,$60,$2F,$60,$48,$AF,$8C,$48
+	;; Long version used elsewhere. Only 2 used in main menu!
+MainMenuSpriteList:	DEFB $1E,$60,$60
+			DEFB $98,$8C,$60
+			DEFB $2F,$60,$48
+			DEFB $AF,$8C,$48
 
 GoMainMenu:	LD	A,STR_GO_TITLE_SCREEN
 		CALL	PrintChar
 		LD	IX,MENU_MAIN
 		LD	(IX+MENU_CUR_ITEM),$00
-		CALL	L7CCC
+		CALL	DrawHnH
 		CALL	DrawMenu
-GMM_1:		CALL	L8D18
+GMM_1:		CALL	L8D18			; FIXME: ?
 		CALL	MenuStep
 		JR	C,GMM_1
 		LD	A,(IX+MENU_CUR_ITEM)
@@ -1799,9 +1803,10 @@ GMM_2:		CP	$03
 		JP	Z,GoSensMenu		; Item 3 - sensitivity menu
 		JP	GoSoundMenu		; Item 2 - sound menu
 
-L7CCC:		LD	E,$03
-		LD	HL,L7C8A
-		JP	L8E30
+	;; Draw head and heels (FIXME: Check)
+DrawHnH:	LD	E,$03
+		LD	HL,MainMenuSpriteList
+		JP	Draw2FromList 		; Tail call
 	
 MENU_MAIN:	DEFB $00		; Selected menu item
 		DEFB $04		; 4 items
@@ -1838,12 +1843,12 @@ GoControlsMenu:	LD	A,STR_SELECT_THEN_SHIFT
 GCM_1:		PUSH	BC
 		LD	A,B
 		DEC	A
-		CALL	L7DF0
+		CALL	PrepCtrlEdit
 		POP	BC
 		PUSH	BC
 		LD	A,B
 		DEC	A
-		CALL	L75ED
+		CALL	L75ED		; FIXME: ?
 		POP	BC
 		DJNZ	GCM_1
 GCM_2:		CALL	MenuStepAlt
@@ -1857,9 +1862,9 @@ GCM_2:		CALL	MenuStepAlt
 		LD	A,CTRL_BLANKS
 		CALL	PrintChar
 		LD	A,(IX+MENU_CUR_ITEM)
-		CALL	L7DF0
+		CALL	PrepCtrlEdit
 		LD	A,(IX+MENU_CUR_ITEM)
-		CALL	L761C
+		CALL	L761C		; FIXME: ?
 		LD	A,STR_PRESS_SHFT_TO_FIN
 		CALL	PrintChar
 		JR	GCM_2
@@ -1886,9 +1891,9 @@ MENU_SENS:	DEFB $01		; Selected menu item (low)
 		DEFB $09		; Initial row
 		DEFB $9E		; High sens, low sens
 
-GoPlayGameMenu:	LD	A,(L8A15)
-		CP	$01
-		RET	C
+GoPlayGameMenu:	LD	A,(Continues)
+		CP	$01		; Is zero?
+		RET	C		; Return with carry - new game
 		LD	A,STR_PLAY_GAME_MENU
 		CALL	PrintChar
 		LD	IX,MENU_PLAY_GAME
@@ -1909,28 +1914,28 @@ MENU_PLAY_GAME:	DEFB $00		; Selected menu item
 		DEFB STR_OLD_GAME	; Old game, new game, main menu.
 
 	;; FIXME: Game over screen?
-L7D92:		CALL	L964F
+GameOverScreen:	CALL	L964F		; FIXME: ?
 		CALL	ScreenWipe
 		LD	A,STR_TITLE_SCREEN_EXT
 		CALL	PrintChar
-		CALL	L7CCC
-		CALL	L8C50
+		CALL	DrawHnH
+		CALL	L8C50		; FIXME: ?
 		PUSH	HL
-		LD	A,(L866B)
+		LD	A,(L866B) 	; FIXME: ?
 		OR	$E0
 		INC	A
 		LD	A,$C4
-		JR	Z,L7DBB
+		JR	Z,GOS_2
 		LD	A,H
 		ADD	A,$10
-		JR	NC,L7DB4
+		JR	NC,GOS_1
 		LD	A,H
-L7DB4:		RLCA
+GOS_1:		RLCA
 		RLCA
 		RLCA
 		AND	$07
 		ADD	A,STR_DUMMY 	; Array of possible levels from here.
-L7DBB:		CALL	PrintChar
+GOS_2:		CALL	PrintChar
 		LD	A,STR_EXPLORED
 		CALL	PrintChar
 		CALL	L8C1F
@@ -1946,13 +1951,16 @@ L7DBB:		CALL	PrintChar
 		CALL	Print2DigitsL
 		LD	A,STR_PLANETS
 		CALL	PrintChar
-L7DE3:		CALL	L964F
+GOS_3:		CALL	L964F
 		CALL	GetMaybeEnter
-		JR	C,L7DE3
+		JR	C,GOS_3
 		LD	B,$C0
 		JP	PlaySound
-L7DF0:		ADD	A,A
-		ADD	A,(IX+$03)
+
+	;; Clear out the screen area and move the cursor for editing a
+	;; keyboard control setting
+PrepCtrlEdit:	ADD	A,A
+		ADD	A,(IX+MENU_INIT_Y)
 		AND	$7F
 		LD	B,A
 		LD	C,$0B
@@ -2653,7 +2661,7 @@ L88B9:	LD		A,(IX+$00)
 		INC		HL
 		DJNZ	L88B7
 		EX		DE,HL
-		LD		HL,L8A15
+		LD		HL,Continues
 		INC		(HL)
 		LD		HL,LA294
 		LD		A,(HL)
@@ -2681,7 +2689,7 @@ L88FA:	LDI
 		LDI
 		LDI
 		RET
-L8906:	LD		HL,L8A15
+L8906:	LD		HL,Continues
 		DEC		(HL)
 		CALL	L89AB
 		LD		A,(HL)
@@ -2756,7 +2764,7 @@ L8984:	LD		DE,L703B
 		LD		(LB218),A
 		LD		(LA297),A
 		RET
-L89AB:	LD		A,(L8A15)
+L89AB:	LD		A,(Continues)
 		LD		B,A
 		INC		B
 		LD		HL,L8A04
@@ -2819,7 +2827,8 @@ L8A09:	LD		HL,LA28C
 		ADD		HL,BC
 		RET
 L8A0E:	DEFB $99,$10,$99,$99,$02,$02,$06
-L8A15:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00
+Continues:	DEFB $00
+	DEFB $00,$00,$00,$00,$00,$00,$00,$00
 L8A1E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 L8A2E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 L8A3E:	DEFB $00,$00
@@ -3086,8 +3095,8 @@ L8D9E:	LD		A,(L866B)
 		CALL	PrintChar
 		CALL	L964F
 		LD		DE,L040F
-		LD		HL,L7C8A
-		CALL	L8E32
+		LD		HL,MainMenuSpriteList
+		CALL	DrawFromList
 		CALL	L8DDF
 L8DB9:	CALL	L8DC2
 		CALL	L7395
@@ -3097,11 +3106,11 @@ L8DC2:	LD		A,STR_EMPIRE_BLURB
 		CALL	L964F
 		LD		HL,L8DFF
 		LD		DE,L05FF
-		CALL	L8E32
+		CALL	DrawFromList
 		LD		HL,L8E0E
 		LD		DE,(L866B)
 		LD		D,$05
-		CALL	L8E32
+		CALL	DrawFromList
 L8DDF:	CALL	GetInputWait
 		CALL	L8DED
 		CALL	ScreenWipe
@@ -3126,14 +3135,18 @@ L8E1D:		CALL	LAA49
 		LD	HL,L8E4E
 		LD	DE,(LA28B)
 		LD	D,$03
-		CALL	L8E32
+		CALL	DrawFromList
 		LD	DE,(LA294)
 	;; NB: Fall through
 	
-L8E30:		LD	D,$02
+Draw2FromList:	LD	D,$02
 	;; NB: Fall through
-	
-L8E32:		LD	A,(HL)
+
+	;; Load D with number of sprites
+	;; Load E with bitmask for doing some thing.
+	;; Load HL with pointer to data
+	;; Data should contain: Sprite code (1 byte), Coordinates (2 bytes)
+DrawFromList:	LD	A,(HL)
 		INC	HL
 		LD	C,(HL)
 		INC	HL
@@ -3147,13 +3160,17 @@ L8E32:		LD	A,(HL)
 L8E41:		POP	DE
 		POP	HL
 		DEC	D
-		JR	NZ,L8E32
+		JR	NZ,DrawFromList
 		RET
 L8E47:		LD	D,$01
 		CALL	L8E5F
 		JR	L8E41
 	
-L8E4E:	DEFB $27,$B0,$F0,$28,$44,$F0,$29,$44,$D8,$98,$94,$F0,$1E,$60,$F0
+L8E4E:	DEFB $27,$B0,$F0
+	DEFB $28,$44,$F0
+	DEFB $29,$44,$D8
+	DEFB $98,$94,$F0
+	DEFB $1E,$60,$F0
 
 	;; FIXME: Very spritey
 L8E5D:		LD	D,$03
