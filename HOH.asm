@@ -129,7 +129,7 @@ L70FD:	CALL	L9643
 		CALL	GetInputWait
 		LD	A,STR_FINISH_RESTART
 		CALL	PrintChar
-L710E:	CALL	L75D1
+L710E:	CALL	GetMaybeEnter
 		JR		C,L710E
 		DEC		C
 		JP		Z,L7046
@@ -640,7 +640,7 @@ SelectStick:	LD	A,STR_JOY_MENU
 		CALL	PrintChar
 		LD	IX,StickType
 		CALL	DrawMenu
-SelSt_1:	CALL	MenuLoop
+SelSt_1:	CALL	MenuStep
 		JR	C,SelSt_1
 		RET
 	
@@ -754,7 +754,12 @@ GetInputWait:	CALL	GetInput
 		JR	Z,GetInputWait
 		RET
 
-L75D1:		CALL	GetInput
+	;; Checks keys.
+	;; Carry is set if nothing was detected
+	;; Returns zero in C if enter was detected
+	;;
+	;; FIXME: Reverse how this actually works!
+GetMaybeEnter:	CALL	GetInput
 		SCF
 		RET	NZ
 		LD	A,B
@@ -1773,7 +1778,7 @@ L7C96:		LD	A,STR_GO_TITLE_SCREEN
 		CALL	L7CCC
 		CALL	DrawMenu
 L7CA9:	CALL	L8D18
-		CALL	MenuLoop
+		CALL	MenuStep
 		JR		C,L7CA9
 		LD		A,(IX+$00)
 		CP		$01
@@ -1794,7 +1799,7 @@ L7CD9:	LD		A,STR_SOUND_MENU
 		CALL	PrintChar
 		LD		IX,L7CF8
 		CALL	DrawMenu
-L7CE5:	CALL	MenuLoop
+L7CE5:	CALL	MenuStep
 		JR		C,L7CE5
 		LD		A,(L7CF8)
 		CP		$02
@@ -1820,7 +1825,7 @@ L7D0B:	PUSH	BC
 		CALL	L75ED
 		POP		BC
 		DJNZ	L7D0B
-L7D1B:	CALL	MenuLoopAlt
+L7D1B:	CALL	MenuStepAlt
 		JR		C,L7D1B
 		RET		NZ
 		LD	A,STR_PRESS_KEYS_REQD
@@ -1845,7 +1850,7 @@ GoSensMenu:	LD	A,STR_SENSITIVITY_MENU
 		CALL	PrintChar
 		LD	IX,L7D63
 		CALL	DrawMenu
-L7D58:		CALL	MenuLoop
+L7D58:		CALL	MenuStep
 		JR	C,L7D58
 		LD	A,(IX+$00)
 		JP	L7132
@@ -1860,7 +1865,7 @@ L7D68:	LD		A,(L8A15)
 		LD		IX,L7D8D
 		LD		(IX+$00),$00
 		CALL	DrawMenu
-L7D7E:	CALL	MenuLoop
+L7D7E:	CALL	MenuStep
 		JR		C,L7D7E
 		LD		A,(IX+$00)
 		CP		$02
@@ -1907,7 +1912,7 @@ L7DBB:		CALL	PrintChar
 		LD	A,STR_PLANETS
 		CALL	PrintChar
 L7DE3:	CALL	L964F
-		CALL	L75D1
+		CALL	GetMaybeEnter
 		JR		C,L7DE3
 		LD		B,$C0
 		JP		PlaySound
@@ -1930,29 +1935,33 @@ MENU_NUM_ITEMS:	EQU $01		; Number of items in the menu
 MENU_INIT_X:	EQU $02		; Initial X coordinate of the menu items
 MENU_INIT_Y:	EQU $03		; Initial Y coordinate of the menu items
 MENU_STR_BASE:	EQU $04		; First string index of items in the menu
-	
-MenuLoopAlt:	CALL	L75D1
+
+	;; FIXME: This alternate version uses something other than
+	;; enter to step through.
+MenuStepAlt:	CALL	GetMaybeEnter
 		RET	C
 		LD	A,C
 		CP	$01
-		JR	NZ,MenuLoopCore
+		JR	NZ,MenuStepCore
 		AND	A
 		RET
 
 	;; A loop that's repeatedly called for menus.
-MenuLoop:	CALL	L75D1
+MenuStep:	CALL	GetMaybeEnter
 		RET	C
 		LD	A,C
 	;; NB: Fall through
 	
-MenuLoopCore:	AND	A
+MenuStepCore:	AND	A
 		RET	Z
+	;; Increment current item, looping back to top if necessary.
 		LD	A,(IX+MENU_CUR_ITEM)
 		INC	A
 		CP	A,(IX+MENU_NUM_ITEMS)
-		JR	C,MLC_1
+		JR	C,MSC_1
 		XOR	A
-MLC_1:		LD	(IX+MENU_CUR_ITEM),A
+MSC_1:		LD	(IX+MENU_CUR_ITEM),A
+	;; And play a nice little sound!
 		PUSH	IX
 		LD	B,$88
 		CALL	PlaySound
@@ -3385,7 +3394,7 @@ L8DDF:	CALL	GetInputWait
 L8DED:	LD		HL,LA800
 L8DF0:	PUSH	HL
 		CALL	L964F
-		CALL	L75D1
+		CALL	GetMaybeEnter
 		POP		HL
 		RET		NC
 		DEC		HL
