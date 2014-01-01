@@ -1,5 +1,202 @@
 	;; Menu-related stuff
 
+MenuCursor:	DEFW $0000
+
+	;; Long version used elsewhere. Only 2 used in main menu!
+MainMenuSpriteList:	DEFB $1E,$60,$60
+			DEFB $98,$8C,$60
+			DEFB $2F,$60,$48
+			DEFB $AF,$8C,$48
+
+GoMainMenu:	LD	A,STR_GO_TITLE_SCREEN
+		CALL	PrintChar
+		LD	IX,MENU_MAIN
+		LD	(IX+MENU_CUR_ITEM),$00
+		CALL	DrawHnH
+		CALL	DrawMenu
+GMM_1:		CALL	L8D18			; FIXME: ?
+		CALL	MenuStep
+		JR	C,GMM_1
+		LD	A,(IX+MENU_CUR_ITEM)
+		CP	$01
+		JP	C,GoPlayGameMenu 	; Item 0 - play game - tail call
+		JR	NZ,GMM_2
+		CALL	GoControlsMenu 		; Item 1 - controls menu, then loop.
+		JR	GoMainMenu
+GMM_2:		CP	$03
+		LD	HL,GoMainMenu
+		PUSH	HL			; Insert return to GoMainMenu.
+		JP	Z,GoSensMenu		; Item 3 - sensitivity menu
+		JP	GoSoundMenu		; Item 2 - sound menu
+
+	;; Draw head and heels (FIXME: Check)
+DrawHnH:	LD	E,$03
+		LD	HL,MainMenuSpriteList
+		JP	Draw2FromList 		; Tail call
+	
+MENU_MAIN:	DEFB $00		; Selected menu item
+		DEFB $04		; 4 items
+		DEFB $05		; Initial column
+		DEFB $89		; Initial row
+		DEFB STR_PLAY_THE_GAME	; Play game, select keys, adjust sound, control sens
+	
+GoSoundMenu:	LD	A,STR_SOUND_MENU
+		CALL	PrintChar
+		LD	IX,MENU_SOUND
+		CALL	DrawMenu
+GoSM_1:		CALL	MenuStep
+		JR	C,GoSM_1
+		LD	A,(MENU_SOUND)	; (MENU_SOUND) is used to store the actual level...
+		CP	$02	      	; But if you set it to 2 ('pardon')...
+		LD	HL,SndEnable
+		SET	7,(HL)
+		RET	NZ
+		RES	7,(HL)		; sound is disabled.
+		RET
+	
+MENU_SOUND:	DEFB $00		; Selected menu item
+		DEFB $03		; 3 items
+		DEFB $07		; Initial column
+		DEFB $08		; Initial row
+		DEFB STR_LOTS		; Lots of it, not so much, pardon
+
+	;; FIXME: Look at details of this
+GoControlsMenu:	LD	A,STR_SELECT_THEN_SHIFT
+		CALL	PrintChar
+		LD	IX,MENU_CONTROLS
+		CALL	DrawMenu
+		LD	B,$08
+GCM_1:		PUSH	BC
+		LD	A,B
+		DEC	A
+		CALL	PrepCtrlEdit
+		POP	BC
+		PUSH	BC
+		LD	A,B
+		DEC	A
+		CALL	L75ED		; FIXME: ?
+		POP	BC
+		DJNZ	GCM_1
+GCM_2:		CALL	MenuStepAlt
+		JR	C,GCM_2
+		RET	NZ
+		LD	A,STR_PRESS_KEYS_REQD
+		CALL	PrintChar
+		LD	A,(IX+MENU_CUR_ITEM)
+		ADD	A,(IX+MENU_STR_BASE)
+		CALL	PrintChar
+		LD	A,CTRL_BLANKS
+		CALL	PrintChar
+		LD	A,(IX+MENU_CUR_ITEM)
+		CALL	PrepCtrlEdit
+		LD	A,(IX+MENU_CUR_ITEM)
+		CALL	L761C		; FIXME: ?
+		LD	A,STR_PRESS_SHFT_TO_FIN
+		CALL	PrintChar
+		JR	GCM_2
+	
+MENU_CONTROLS:	DEFB $00		; Selected menu item
+		DEFB $08		; 8 items
+		DEFB $00		; Initial column
+		DEFB $05 | $80		; Initial row, don't double-size current row
+		DEFB STR_LEFT		; L, R, D, U, Jump, Carry, Fire, Swop
+
+	;; Run the sensitivity menu.
+GoSensMenu:	LD	A,STR_SENSITIVITY_MENU
+		CALL	PrintChar
+		LD	IX,MENU_SENS
+		CALL	DrawMenu
+GSM_1:		CALL	MenuStep
+		JR	C,GSM_1
+		LD	A,(IX+MENU_CUR_ITEM)
+		JP	SetSens		; Tail call
+
+MENU_SENS:	DEFB $01		; Selected menu item (low)
+		DEFB $02		; 2 items
+		DEFB $05		; Initial column
+		DEFB $09		; Initial row
+		DEFB $9E		; High sens, low sens
+
+GoPlayGameMenu:	LD	A,(Continues)
+		CP	$01		; Is zero?
+		RET	C		; Return with carry - new game
+		LD	A,STR_PLAY_GAME_MENU
+		CALL	PrintChar
+		LD	IX,MENU_PLAY_GAME
+		LD	(IX+MENU_CUR_ITEM),$00
+		CALL	DrawMenu
+GPGM_1:		CALL	MenuStep
+		JR	C,GPGM_1
+		LD	A,(IX+MENU_CUR_ITEM)
+		CP	$02		; Item 2? Main menu
+		JP	Z,GoMainMenu	; Tail call 
+		RRA
+		RET			; Return with carry if new game
+	
+MENU_PLAY_GAME:	DEFB $00		; Selected menu item
+		DEFB $03		; 3 items
+		DEFB $09		; Initial column
+		DEFB $09		; Initial row
+		DEFB STR_OLD_GAME	; Old game, new game, main menu.
+
+	;; FIXME: Game over screen?
+GameOverScreen:	CALL	L964F		; FIXME: ?
+		CALL	ScreenWipe
+		LD	A,STR_TITLE_SCREEN_EXT
+		CALL	PrintChar
+		CALL	DrawHnH
+		CALL	L8C50		; FIXME: ?
+		PUSH	HL
+		LD	A,(L866B) 	; FIXME: ?
+		OR	$E0
+		INC	A
+		LD	A,$C4
+		JR	Z,GOS_2
+		LD	A,H
+		ADD	A,$10
+		JR	NC,GOS_1
+		LD	A,H
+GOS_1:		RLCA
+		RLCA
+		RLCA
+		AND	$07
+		ADD	A,STR_DUMMY 	; Array of possible levels from here.
+GOS_2:		CALL	PrintChar
+		LD	A,STR_EXPLORED
+		CALL	PrintChar
+		CALL	L8C1F
+		CALL	Print4DigitsL
+		LD	A,STR_ROOMS_SCORE
+		CALL	PrintChar
+		POP	DE
+		CALL	Print4DigitsL
+		LD	A,STR_LIBERATED
+		CALL	PrintChar
+		CALL	L8C1A
+		LD	A,E
+		CALL	Print2DigitsL
+		LD	A,STR_PLANETS
+		CALL	PrintChar
+GOS_3:		CALL	L964F
+		CALL	GetMaybeEnter
+		JR	C,GOS_3
+		LD	B,$C0
+		JP	PlaySound
+
+	;; Clear out the screen area and move the cursor for editing a
+	;; keyboard control setting
+PrepCtrlEdit:	ADD	A,A
+		ADD	A,(IX+MENU_INIT_Y)
+		AND	$7F
+		LD	B,A
+		LD	C,$0B
+		PUSH	BC
+		CALL	SetCursor
+		LD	A,CTRL_BLANKS
+		CALL	PrintChar
+		POP	BC
+		JP	SetCursor
+
 MENU_CUR_ITEM:	EQU $00		; Currently-selected menu item index
 	;; Top bit of NUM_ITEMS is set if you don't want the currently-selected
 	;; line to be double-height
