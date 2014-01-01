@@ -35,7 +35,7 @@ L7044:		DEFB $FB,$FB
 L7046:		CALL	L7D92
 
 Main:		LD	SP,$FFF4
-		CALL	L7C96
+		CALL	GoMainMenu
 		JR	NC,Main_1
 		CALL	L7B0E
 		JR	Main_2
@@ -147,12 +147,15 @@ L7120:	PUSH	HL
 		CP		$B5
 		JR		C,L7120
 		RET
-L7132:	LD		HL,L7169
-		AND		A
-		JR		Z,L713B
-		LD		HL,L7176
-L713B:	LD		(L715E+1),HL
+
+	;; Receives sensitivity in A
+SetSens:	LD	HL,HighSensFn 		; High sensitivity routine
+		AND	A
+		JR	Z,SetSens_1		; Low sensitivity routine
+		LD	HL,LowSensFn
+SetSens_1:	LD	(SensFnCall+1),HL	; Modifies code
 		RET
+
 L713F:	CALL	InputThing
 		BIT		7,A
 		LD		HL,L7040
@@ -167,12 +170,13 @@ L713F:	CALL	InputThing
 		CP		$FF
 		JR		Z,L7189
 		RRA
-L715E:		JP		C,L7176 	; NB: Self-modifying code target
+SensFnCall:	JP		C,LowSensFn 	; NB: Self-modifying code target
 		LD		A,C
 		LD		(L703E),A
 		LD		(L703F),A
 		RET
-L7169:	LD		A,(L703E)
+
+HighSensFn:	LD		A,(L703E)
 		XOR		C
 		CPL
 		XOR		C
@@ -180,7 +184,8 @@ L7169:	LD		A,(L703E)
 		XOR		C
 		LD		(L703F),A
 		RET
-L7176:	LD		A,(L703E)
+
+LowSensFn:	LD		A,(L703E)
 		XOR		C
 		AND		$FE
 		XOR		C
@@ -190,8 +195,9 @@ L7176:	LD		A,(L703E)
 		JR		Z,L7185
 		LD		A,B
 		XOR		$FE
-L7185:	LD		(L703F),A
+L7185:		LD		(L703F),A
 		RET
+
 L7189:	LD		A,C
 		LD		(L703F),A
 		RET
@@ -1628,7 +1634,7 @@ WorldIdSnd:	DEFB $00
 
 	;; NB: Called from main loop...
 L7B91:		CALL	L7BBF
-		LD	A,(L7CF8)
+		LD	A,(MENU_SOUND)
 		AND	A
 		JR	NZ,L7BAD
 		LD	A,(WorldId)
@@ -1771,109 +1777,138 @@ L7C76:	POP		HL
 MenuCursor:	DEFW $0000
 
 L7C8A:	DEFB $1E,$60,$60,$98,$8C,$60,$2F,$60,$48,$AF,$8C,$48
-L7C96:		LD	A,STR_GO_TITLE_SCREEN
+
+GoMainMenu:	LD	A,STR_GO_TITLE_SCREEN
 		CALL	PrintChar
-		LD		IX,L7CD4
-		LD		(IX+$00),$00
+		LD	IX,MENU_MAIN
+		LD	(IX+MENU_CUR_ITEM),$00
 		CALL	L7CCC
 		CALL	DrawMenu
-L7CA9:	CALL	L8D18
+GMM_1:		CALL	L8D18
 		CALL	MenuStep
-		JR		C,L7CA9
-		LD		A,(IX+$00)
-		CP		$01
-		JP		C,L7D68
-		JR		NZ,L7CC0
-		CALL	L7CFD
-		JR		L7C96
-L7CC0:	CP		$03
-		LD		HL,L7C96
-		PUSH	HL
-		JP		Z,GoSensMenu
-		JP		L7CD9
-L7CCC:	LD		E,$03
-		LD		HL,L7C8A
-		JP		L8E30
-L7CD4:	DEFB $00,$04,$05,$89,$9A
-L7CD9:	LD		A,STR_SOUND_MENU
+		JR	C,GMM_1
+		LD	A,(IX+MENU_CUR_ITEM)
+		CP	$01
+		JP	C,GoPlayGameMenu 	; Item 0 - play game - tail call
+		JR	NZ,GMM_2
+		CALL	GoControlsMenu 		; Item 1 - controls menu, then loop.
+		JR	GoMainMenu
+GMM_2:		CP	$03
+		LD	HL,GoMainMenu
+		PUSH	HL			; Insert return to GoMainMenu.
+		JP	Z,GoSensMenu		; Item 3 - sensitivity menu
+		JP	GoSoundMenu		; Item 2 - sound menu
+
+L7CCC:		LD	E,$03
+		LD	HL,L7C8A
+		JP	L8E30
+	
+MENU_MAIN:	DEFB $00		; Selected menu item
+		DEFB $04		; 4 items
+		DEFB $05		; Initial column
+		DEFB $89		; Initial row
+		DEFB STR_PLAY_THE_GAME	; Play game, select keys, adjust sound, control sens
+	
+GoSoundMenu:	LD	A,STR_SOUND_MENU
 		CALL	PrintChar
-		LD		IX,L7CF8
+		LD	IX,MENU_SOUND
 		CALL	DrawMenu
-L7CE5:	CALL	MenuStep
-		JR		C,L7CE5
-		LD		A,(L7CF8)
-		CP		$02
-		LD		HL,SndEnable
-		SET		7,(HL)
-		RET		NZ
-		RES		7,(HL)
+GoSM_1:		CALL	MenuStep
+		JR	C,GoSM_1
+		LD	A,(MENU_SOUND)	; (MENU_SOUND) is used to store the actual level...
+		CP	$02	      	; But if you set it to 2 ('pardon')...
+		LD	HL,SndEnable
+		SET	7,(HL)
+		RET	NZ
+		RES	7,(HL)		; sound is disabled.
 		RET
-L7CF8:	DEFB $00,$03,$07,$08,$96
-L7CFD:	LD		A,STR_SELECT_THEN_SHIFT
+	
+MENU_SOUND:	DEFB $00		; Selected menu item
+		DEFB $03		; 3 items
+		DEFB $07		; Initial column
+		DEFB $08		; Initial row
+		DEFB STR_LOTS		; Lots of it, not so much, pardon
+
+	;; FIXME: Look at details of this
+GoControlsMenu:	LD	A,STR_SELECT_THEN_SHIFT
 		CALL	PrintChar
-		LD		IX,L7D47
+		LD	IX,MENU_CONTROLS
 		CALL	DrawMenu
-		LD		B,$08
-L7D0B:	PUSH	BC
-		LD		A,B
-		DEC		A
+		LD	B,$08
+GCM_1:		PUSH	BC
+		LD	A,B
+		DEC	A
 		CALL	L7DF0
-		POP		BC
+		POP	BC
 		PUSH	BC
-		LD		A,B
-		DEC		A
+		LD	A,B
+		DEC	A
 		CALL	L75ED
-		POP		BC
-		DJNZ	L7D0B
-L7D1B:	CALL	MenuStepAlt
-		JR		C,L7D1B
-		RET		NZ
+		POP	BC
+		DJNZ	GCM_1
+GCM_2:		CALL	MenuStepAlt
+		JR	C,GCM_2
+		RET	NZ
 		LD	A,STR_PRESS_KEYS_REQD
 		CALL	PrintChar
-		LD		A,(IX+$00)
-		ADD		A,(IX+$04)
+		LD	A,(IX+MENU_CUR_ITEM)
+		ADD	A,(IX+MENU_STR_BASE)
 		CALL	PrintChar
 		LD	A,CTRL_BLANKS
 		CALL	PrintChar
-		LD		A,(IX+$00)
+		LD	A,(IX+MENU_CUR_ITEM)
 		CALL	L7DF0
-		LD		A,(IX+$00)
+		LD	A,(IX+MENU_CUR_ITEM)
 		CALL	L761C
 		LD	A,STR_PRESS_SHFT_TO_FIN
 		CALL	PrintChar
-		JR		L7D1B
-L7D47:	DEFB $00,$08,$00,$85,$8E
-
+		JR	GCM_2
+	
+MENU_CONTROLS:	DEFB $00		; Selected menu item
+		DEFB $08		; 8 items
+		DEFB $00		; Initial column
+		DEFB $05 | $80		; Initial row, don't double-size current row
+		DEFB STR_LEFT		; L, R, D, U, Jump, Carry, Fire, Swop
 
 	;; Run the sensitivity menu.
 GoSensMenu:	LD	A,STR_SENSITIVITY_MENU
 		CALL	PrintChar
-		LD	IX,L7D63
+		LD	IX,MENU_SENS
 		CALL	DrawMenu
-L7D58:		CALL	MenuStep
-		JR	C,L7D58
-		LD	A,(IX+$00)
-		JP	L7132
+GSM_1:		CALL	MenuStep
+		JR	C,GSM_1
+		LD	A,(IX+MENU_CUR_ITEM)
+		JP	SetSens		; Tail call
 
-L7D63:	DEFB $01,$02,$05,$09,$9E
+MENU_SENS:	DEFB $01		; Selected menu item (low)
+		DEFB $02		; 2 items
+		DEFB $05		; Initial column
+		DEFB $09		; Initial row
+		DEFB $9E		; High sens, low sens
 
-L7D68:	LD		A,(L8A15)
-		CP		$01
-		RET		C
+GoPlayGameMenu:	LD	A,(L8A15)
+		CP	$01
+		RET	C
 		LD	A,STR_PLAY_GAME_MENU
 		CALL	PrintChar
-		LD		IX,L7D8D
-		LD		(IX+$00),$00
+		LD	IX,MENU_PLAY_GAME
+		LD	(IX+MENU_CUR_ITEM),$00
 		CALL	DrawMenu
-L7D7E:	CALL	MenuStep
-		JR		C,L7D7E
-		LD		A,(IX+$00)
-		CP		$02
-		JP		Z,L7C96
+GPGM_1:		CALL	MenuStep
+		JR	C,GPGM_1
+		LD	A,(IX+MENU_CUR_ITEM)
+		CP	$02		; Item 2? Main menu
+		JP	Z,GoMainMenu	; Tail call 
 		RRA
-		RET
-L7D8D:	DEFB $00,$03,$09,$09,$A0
+		RET			; Return with carry if new game
 	
+MENU_PLAY_GAME:	DEFB $00		; Selected menu item
+		DEFB $03		; 3 items
+		DEFB $09		; Initial column
+		DEFB $09		; Initial row
+		DEFB STR_OLD_GAME	; Old game, new game, main menu.
+
+	;; FIXME: Game over screen?
 L7D92:		CALL	L964F
 		CALL	ScreenWipe
 		LD	A,STR_TITLE_SCREEN_EXT
@@ -1881,16 +1916,16 @@ L7D92:		CALL	L964F
 		CALL	L7CCC
 		CALL	L8C50
 		PUSH	HL
-		LD		A,(L866B)
-		OR		$E0
-		INC		A
-		LD		A,$C4
-		JR		Z,L7DBB
-		LD		A,H
-		ADD		A,$10
-		JR		NC,L7DB4
-		LD		A,H
-L7DB4:	RLCA
+		LD	A,(L866B)
+		OR	$E0
+		INC	A
+		LD	A,$C4
+		JR	Z,L7DBB
+		LD	A,H
+		ADD	A,$10
+		JR	NC,L7DB4
+		LD	A,H
+L7DB4:		RLCA
 		RLCA
 		RLCA
 		AND	$07
@@ -1907,26 +1942,26 @@ L7DBB:		CALL	PrintChar
 		LD	A,STR_LIBERATED
 		CALL	PrintChar
 		CALL	L8C1A
-		LD		A,E
+		LD	A,E
 		CALL	Print2DigitsL
 		LD	A,STR_PLANETS
 		CALL	PrintChar
-L7DE3:	CALL	L964F
+L7DE3:		CALL	L964F
 		CALL	GetMaybeEnter
-		JR		C,L7DE3
-		LD		B,$C0
-		JP		PlaySound
-L7DF0:	ADD		A,A
-		ADD		A,(IX+$03)
-		AND		$7F
-		LD		B,A
-		LD		C,$0B
+		JR	C,L7DE3
+		LD	B,$C0
+		JP	PlaySound
+L7DF0:		ADD	A,A
+		ADD	A,(IX+$03)
+		AND	$7F
+		LD	B,A
+		LD	C,$0B
 		PUSH	BC
 		CALL	SetCursor
 		LD	A,CTRL_BLANKS
 		CALL	PrintChar
-		POP		BC
-		JP		SetCursor
+		POP	BC
+		JP	SetCursor
 
 #include "menus.asm"
 	
@@ -5829,7 +5864,7 @@ LA938:	LD		A,(LA2BD)
 		LD		B,A
 		CP		$85
 		JP		NC,PlaySound
-		LD		A,(L7CF8)
+		LD		A,(MENU_SOUND)
 		AND		A
 		RET		NZ
 		JP		PlaySound
