@@ -1,9 +1,23 @@
+	;; NB: This is 128K-specific patch code applied over the
+	;; sound-playing code.
+LB824:		LD	A,(Snd2)
+		CP	$80
+		RET	Z
+		LD	B,$C3
+		JP	PlaySound
+
 LB82F:	DEFB $3E,$11,$01,$FD,$7F,$ED,$79,$C5,$CD,$35,$C0,$C1,$3E,$10,$ED,$79
 LB83F:	DEFB $C9,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$50,$01,$FD,$7F,$3E
 LB84F:	DEFB $11,$F3,$32,$67,$96,$ED,$79,$FB,$C5,$42,$CD,$16,$C2,$C1,$3E,$10
-LB85F:	DEFB $F3,$32,$67,$96,$ED,$79,$FB,$C9,$F3,$21,$D3,$BD,$11,$00,$40,$01
+LB85F:	DEFB $F3,$32,$67,$96,$ED,$79,$FB,$C9
+
+	;; NB: Not sure what this brief interlude is for!
+LB867:	DEFB $F3,$21,$D3,$BD,$11,$00,$40,$01
 LB86F:	DEFB $05,$00,$ED,$B0,$11,$00,$5B,$01,$00,$A5,$21,$54,$60,$C3,$00,$40
-LB87F:	DEFB $ED,$B0,$C3,$30,$70,$21,$23,$C5,$16,$00,$5E,$23,$CD,$11,$C0,$14
+LB87F:	DEFB $ED,$B0,$C3,$30,$70
+
+	;; NB: This is 128K-specific code, copied into another bank.
+LB884:	DEFB $21,$23,$C5,$16,$00,$5E,$23,$CD,$11,$C0,$14
 LB88F:	DEFB $7A,$FE,$0B,$20,$F5,$C9,$01,$FD,$FF,$ED,$51,$06,$BF,$ED,$59,$C9
 LB89F:	DEFB $EE,$0E,$18,$0E,$4D,$0D,$8E,$0C,$DA,$0B,$2F,$0B,$8F,$0A,$F7,$09
 LB8AF:	DEFB $68,$09,$E1,$08,$61,$08,$E9,$07,$77,$07,$3A,$4E,$96,$17,$D0,$CD
@@ -132,7 +146,10 @@ LBFEF:	DEFB $56,$04,$35,$36,$FF,$FF,$90,$0E,$0C,$36,$24,$35,$45,$4E,$44,$4D
 LBFFF:	DEFB $35,$26,$34,$25,$0D,$FF,$0E,$27,$FF,$FF,$40,$02,$36,$0C,$24,$36
 LC00F:	DEFB $0C,$24,$34,$4C,$0C,$4C,$36,$FF,$FF,$F0,$67,$10,$F6,$06,$16,$07
 LC01F:	DEFB $FF,$FF,$27,$50,$51,$BB,$FF,$5D,$97,$FF,$FF,$03,$CA,$44,$F0,$0F
-LC02F:	DEFB $FF,$8C,$01,$0C,$FF,$FF,$A0,$40,$30,$6C,$31,$6C,$41,$6C,$FF,$FF
+LC02F:	DEFB $FF,$8C,$01,$0C,$FF,$FF,$A0,$40,$30
+	;; NB: This chunk gets destroyed by moving all the following data
+	;; down during initialisation.
+LC038:	DEFB $6C,$31,$6C,$41,$6C,$FF,$FF
 LC03F:	DEFB $B3,$47,$10,$43,$00,$FF,$FF,$00,$86,$82,$12,$FF,$FF,$03,$86,$41
 LC04F:	DEFB $11,$03,$FF,$FF,$D3,$29,$31,$51,$01,$41,$29,$01,$31,$19,$01,$29
 LC05F:	DEFB $41,$01,$FF,$00,$F3,$EB,$E3,$DB,$FF,$FF,$D3,$09,$31,$51,$00,$41
@@ -155,7 +172,11 @@ LC15F:	DEFB $7E,$76,$6C,$06,$FF,$41,$94,$FF,$3E,$97,$FF,$FF,$C0,$22,$04,$96
 LC16F:	DEFB $86,$7E,$76,$6C,$06,$FF,$41,$6C,$FF,$2E,$6F,$FF,$FF,$A0,$7B,$F0
 LC17F:	DEFB $A6,$5E,$FF,$7C,$3E,$FF,$FF,$B8,$7B,$C0,$A6,$5E,$FF,$7C,$3E,$FF
 LC18F:	DEFB $52,$27,$FF,$FF,$C3,$FC,$02,$C0,$A6,$5E,$FF,$FB,$44,$3E,$FF,$FF
-LC19F:	DEFB $92,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+LC19F:	DEFB $92
+	;; End of 128K code.
+
+	;; Start of area that gets moved down...
+LC1A0:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 LC1AF:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00
 
 	;;  Background wall tiles
@@ -176,11 +197,14 @@ IMG_2x24:
 IMG_CHARS:
 #insert "img_chars.bin"
 
-	DEFB $00,$03,$00,$03,$00,$3C,$00,$CF,$01,$F3,$0E,$7C,$3F,$9F,$FF
+LFA60:	DEFB $00,$03,$00,$03,$00,$3C,$00,$CF,$01,$F3,$0E,$7C,$3F,$9F,$FF
 LFA6F:	DEFB $3C,$FC,$F3,$F3,$CF,$CF,$3E,$3C,$F8,$F3,$E4,$CF,$9C,$3E,$78,$79
 LFA7F:	DEFB $F8,$67,$F0,$07,$C8,$78,$3C,$1F,$F0,$27,$C8,$38,$38,$5F,$F4,$4C
 LFA8F:	DEFB $64,$73,$9C,$1E,$F0,$23,$88,$3C,$78,$1F,$F0,$27,$C8,$78,$3C,$7F
-LFA9F:	DEFB $FC,$3F,$F8,$0F,$E0,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+LFA9F:	DEFB $FC,$3F,$F8,$0F,$E0,$00,$00,$00,$00,$00,$00,$00,$00
+	;; End of area that gets moved down.
+	
+LFAAC:	DEFB $00,$00,$00
 LFAAF:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 LFABF:	DEFB $65,$72,$20,$20,$20,$20,$20,$20,$EA,$06,$00,$00,$48,$05,$0D,$00
 LFACF:	DEFB $00,$22,$0D,$80,$00,$00,$70,$5C,$00,$00,$00,$00,$00,$00,$00,$00

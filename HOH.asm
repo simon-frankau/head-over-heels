@@ -4787,7 +4787,7 @@ SetFloorAddr:	LD	C,A
 		LD	L,A
 		LD	H,$00
 		ADD	HL,HL		; x $30 (floor tile size)
-		LD	DE,LF610
+		LD	DE,IMG_2x24 - MAGIC_OFFSET	; The floor tile images.
 		ADD	HL,DE	 	; Add to floor tile base.
 		LD	(FloorAddr),HL
 		RET
@@ -8063,12 +8063,6 @@ Have48K:	; Move the data end of things down by 360 bytes...
 		LD	BC,L390C ; Up to 0xFAAC
 		LDIR
 		RET
-	
-LB824:		LD	A,(Snd2)
-		CP	$80
-		RET	Z
-		LD	B,$C3
-		JP	PlaySound
 
 #include "data_trailer.asm"
 	
