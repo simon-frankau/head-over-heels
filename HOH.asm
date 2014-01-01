@@ -639,13 +639,12 @@ L74D2:	DEFB $FF,$FF,$FF,$FF,$FF,$FF,$E0,$FF
 SelectStick:	LD	A,STR_JOY_MENU
 		CALL	PrintChar
 		LD	IX,StickType
-		CALL	L7E2E
-SelSt_1:	CALL	L7E11
+		CALL	DrawMenu
+SelSt_1:	CALL	MenuLoop
 		JR	C,SelSt_1
 		RET
 	
-StickType:	DEFB $00
-L752D:		DEFB $03,$04,$08,$E4
+StickType:	DEFB $00,$03,$04,$08,$E4
 	
 InitStick:	LD	B,$04
 IS_1:		IN	A,($1F)			; Kempston port
@@ -917,8 +916,7 @@ SBF_4:		LD	HL,LF943
 SBF_5:		LDDR
 		RET
 
-L76DE:	DEFB $E0
-L76DF:	DEFB $76
+L76DE:	DEFW L76E0
 L76E0:	DEFB $00
 L76E1:	DEFB $00
 L76E2:	DEFB $00
@@ -1764,16 +1762,18 @@ L7C76:	POP		HL
 		EX		DE,HL
 		LDIR
 		RET
-L7C88:	DEFB $00,$00
+	
+MenuCursor:	DEFW $0000
+
 L7C8A:	DEFB $1E,$60,$60,$98,$8C,$60,$2F,$60,$48,$AF,$8C,$48
 L7C96:		LD	A,STR_GO_TITLE_SCREEN
 		CALL	PrintChar
 		LD		IX,L7CD4
 		LD		(IX+$00),$00
 		CALL	L7CCC
-		CALL	L7E2E
+		CALL	DrawMenu
 L7CA9:	CALL	L8D18
-		CALL	L7E11
+		CALL	MenuLoop
 		JR		C,L7CA9
 		LD		A,(IX+$00)
 		CP		$01
@@ -1784,7 +1784,7 @@ L7CA9:	CALL	L8D18
 L7CC0:	CP		$03
 		LD		HL,L7C96
 		PUSH	HL
-		JP		Z,L7D4C
+		JP		Z,GoSensMenu
 		JP		L7CD9
 L7CCC:	LD		E,$03
 		LD		HL,L7C8A
@@ -1793,8 +1793,8 @@ L7CD4:	DEFB $00,$04,$05,$89,$9A
 L7CD9:	LD		A,STR_SOUND_MENU
 		CALL	PrintChar
 		LD		IX,L7CF8
-		CALL	L7E2E
-L7CE5:	CALL	L7E11
+		CALL	DrawMenu
+L7CE5:	CALL	MenuLoop
 		JR		C,L7CE5
 		LD		A,(L7CF8)
 		CP		$02
@@ -1807,7 +1807,7 @@ L7CF8:	DEFB $00,$03,$07,$08,$96
 L7CFD:	LD		A,STR_SELECT_THEN_SHIFT
 		CALL	PrintChar
 		LD		IX,L7D47
-		CALL	L7E2E
+		CALL	DrawMenu
 		LD		B,$08
 L7D0B:	PUSH	BC
 		LD		A,B
@@ -1820,7 +1820,7 @@ L7D0B:	PUSH	BC
 		CALL	L75ED
 		POP		BC
 		DJNZ	L7D0B
-L7D1B:	CALL	L7E06
+L7D1B:	CALL	MenuLoopAlt
 		JR		C,L7D1B
 		RET		NZ
 		LD	A,STR_PRESS_KEYS_REQD
@@ -1838,15 +1838,20 @@ L7D1B:	CALL	L7E06
 		CALL	PrintChar
 		JR		L7D1B
 L7D47:	DEFB $00,$08,$00,$85,$8E
-L7D4C:		LD	A,STR_SENSITIVITY_MENU
+
+
+	;; Run the sensitivity menu.
+GoSensMenu:	LD	A,STR_SENSITIVITY_MENU
 		CALL	PrintChar
-		LD		IX,L7D63
-		CALL	L7E2E
-L7D58:	CALL	L7E11
-		JR		C,L7D58
-		LD		A,(IX+$00)
-		JP		L7132
+		LD	IX,L7D63
+		CALL	DrawMenu
+L7D58:		CALL	MenuLoop
+		JR	C,L7D58
+		LD	A,(IX+$00)
+		JP	L7132
+
 L7D63:	DEFB $01,$02,$05,$09,$9E
+
 L7D68:	LD		A,(L8A15)
 		CP		$01
 		RET		C
@@ -1854,8 +1859,8 @@ L7D68:	LD		A,(L8A15)
 		CALL	PrintChar
 		LD		IX,L7D8D
 		LD		(IX+$00),$00
-		CALL	L7E2E
-L7D7E:	CALL	L7E11
+		CALL	DrawMenu
+L7D7E:	CALL	MenuLoop
 		JR		C,L7D7E
 		LD		A,(IX+$00)
 		CP		$02
@@ -1917,81 +1922,106 @@ L7DF0:	ADD		A,A
 		CALL	PrintChar
 		POP		BC
 		JP		SetCursor
-L7E06:	CALL	L75D1
-		RET		C
-		LD		A,C
-		CP		$01
-		JR		NZ,L7E16
-		AND		A
-		RET
+
+MENU_CUR_ITEM:	EQU $00		; Currently-selected menu item index
+	;; Top bit of NUM_ITEMS is set if you don't want the currently-selected
+	;; line to be double-height
+MENU_NUM_ITEMS:	EQU $01		; Number of items in the menu
+MENU_INIT_X:	EQU $02		; Initial X coordinate of the menu items
+MENU_INIT_Y:	EQU $03		; Initial Y coordinate of the menu items
+MENU_STR_BASE:	EQU $04		; First string index of items in the menu
 	
-L7E11:	CALL	L75D1
-		RET		C
-		LD		A,C
-L7E16:		AND		A
-		RET		Z
-		LD		A,(IX+$00)
-		INC		A
-		CP		A,(IX+$01)
-		JR		C,L7E22
-		XOR		A
-L7E22:	LD	(IX+$00),A
+MenuLoopAlt:	CALL	L75D1
+		RET	C
+		LD	A,C
+		CP	$01
+		JR	NZ,MenuLoopCore
+		AND	A
+		RET
+
+	;; A loop that's repeatedly called for menus.
+MenuLoop:	CALL	L75D1
+		RET	C
+		LD	A,C
+	;; NB: Fall through
+	
+MenuLoopCore:	AND	A
+		RET	Z
+		LD	A,(IX+MENU_CUR_ITEM)
+		INC	A
+		CP	A,(IX+MENU_NUM_ITEMS)
+		JR	C,MLC_1
+		XOR	A
+MLC_1:		LD	(IX+MENU_CUR_ITEM),A
 		PUSH	IX
 		LD	B,$88
 		CALL	PlaySound
 		POP	IX
-L7E2E:		LD	B,(IX+$03)
+	;; NB: Fall through
+
+	;; Draw the menu pointed to by IX.
+DrawMenu:
+	;; Set cursor and initialise variables for menu-drawing
+		LD	B,(IX+MENU_INIT_Y)
 		RES	7,B
-		LD	C,(IX+$02)
-		LD	(L7C88),BC
+		LD	C,(IX+MENU_INIT_X)
+		LD	(MenuCursor),BC
 		CALL	SetCursor
-		LD	B,(IX+$01)
-		LD	C,(IX+$00)
+		LD	B,(IX+MENU_NUM_ITEMS)
+		LD	C,(IX+MENU_CUR_ITEM)
 		INC	C
-L7E44:		LD	A,$AF
+	;; The main menu-item-drawing loop
+DM_1:		LD	A,STR_ARROW_NONSEL 	; Arrow to use for non-selected items
 		DEC	C
 		PUSH	BC
-		JR	NZ,L7E60
-		BIT	7,(IX+$03)
-		JR	NZ,L7E59
-		LD	A,CTRL_DOUBLE
+		JR	NZ,DM_3
+	;; This is the currently-selected item
+		BIT	7,(IX+MENU_INIT_Y) 	; Is bit 7 of MENU_INIT_Y set?
+		JR	NZ,DM_2
+		LD	A,CTRL_DOUBLE 		; No - use double height
 		CALL	PrintChar
-		LD	A,$AE
-		JR	L7E60
-L7E59:		LD	A,CTRL_SINGLE
+		LD	A,STR_ARROW_SEL
+		JR	DM_3
+DM_2:		LD	A,CTRL_SINGLE 		; Yes - use single height
 		CALL	PrintChar
-		LD	A,STR_ARROW1
-L7E60:		CALL	PrintChar
-		LD		A,(IX+$01)
-		POP		BC
+		LD	A,STR_ARROW_SEL 	; Arrow to use for selected items
+	;; Draw the arrow
+DM_3:		CALL	PrintChar
+	;; Calculate the string index to use, and print the string
+		LD	A,(IX+MENU_NUM_ITEMS)
+		POP	BC
 		PUSH	BC
-		SUB		B
-		ADD		A,(IX+$04)
+		SUB	B
+		ADD	A,(IX+MENU_STR_BASE)
 		CALL	PrintChar
-		POP		HL
+	;; Update the cursor position
+		POP	HL
 		PUSH	HL
-		LD		BC,(L7C88)
-		LD		A,L
-		AND		A
-		JR		NZ,L7E80
-		BIT		7,(IX+$03)
-		JR		NZ,L7E80
-		INC		B
-L7E80:	INC		B
+		LD	BC,(MenuCursor)
+		LD	A,L			; Check if this is current item
+		AND	A
+		JR	NZ,DM_4
+		BIT	7,(IX+MENU_INIT_Y) 	; Is current item and bit 7 of MENU_INIT_Y set?
+		JR	NZ,DM_4
+		INC	B			; No - advance 2 lines
+DM_4:		INC	B			; Yes - just advance 1
 		PUSH	BC
 		CALL	SetCursor
+	;; Make sure we're back to single-line
 		LD	A,CTRL_SINGLE
 		CALL	PrintChar
-		BIT		7,(IX+$03)
-		JR		NZ,L7E95
+	;; And if bit 7 is not set, print out blanks to overwrite the changing parts.
+		BIT	7,(IX+MENU_INIT_Y)
+		JR	NZ,DM_5
 		LD	A,CTRL_BLANKS
 		CALL	PrintChar
-L7E95:	POP		BC
-		INC		B
-		LD		(L7C88),BC
+	;; Finally, write out the cursor position. Again.
+DM_5:		POP	BC
+		INC	B
+		LD	(MenuCursor),BC
 		CALL	SetCursor
-		POP		BC
-		DJNZ	L7E44
+		POP	BC
+		DJNZ	DM_1
 		SCF
 		RET
 	
@@ -2112,9 +2142,9 @@ STR_FINISH_RESTART:	EQU $AC
 					DEFM STR_PRESS,CTRL_ATTR3,STR_ANY_KEY,STR_TO,"RESTART"
 STR_SPACES:		EQU $AD
 					DEFM DELIM,"   "
-STR_ARROW1:		EQU $AE
+STR_ARROW_SEL:		EQU $AE
 					DEFM DELIM,CTRL_ATTR3,CHAR_ARR1,CHAR_ARR2,STR_SPACES
-STR_ARROW2:		EQU $AF
+STR_ARROW_NONSEL:	EQU $AF
 					DEFM DELIM,CTRL_SINGLE,CTRL_ATTR1
 					DEFM CHAR_ARR3,CHAR_ARR4,STR_SPACES
 CTRL_WIPE_SETPOS:	EQU $B0
