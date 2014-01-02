@@ -1,18 +1,18 @@
 	;;
-	;; blit.asm
+	;; blit_mask.asm
 	;;
 	;; Masked blit into an offscreen buffer.
 	;;
 
 	;; Exported functions:
-	;; * Blit3of3
+	;; * BlitMask3of3
 
-	;; BlitNofM does a masked blit into a destination buffer assumed 6 bytes wide.
+	;; BlitMaskNofM does a masked blit into a destination buffer assumed 6 bytes wide.
 	;; The blit is from a source N bytes wide in a buffer M bytes wide.
 	;; The height is in B.
 	;; Destination is BC', source image is in DE', mask is in HL'.
 
-Blit1of3:	EXX
+BlitMask1of3:	EXX
 		LD	A,(BC)
 		AND	(HL)
 		EX	DE,HL
@@ -29,10 +29,10 @@ Blit1of3:	EXX
 		INC	HL
 		INC	DE
 		EXX
-		DJNZ	Blit1of3
+		DJNZ	BlitMask1of3
 		RET
 
-Blit2of3:	EXX
+BlitMask2of3:	EXX
 		LD	A,(BC)
 		AND	(HL)
 		EX	DE,HL
@@ -56,10 +56,10 @@ Blit2of3:	EXX
 		INC	HL
 		INC	DE
 		EXX
-		DJNZ	Blit2of3
+		DJNZ	BlitMask2of3
 		RET
 
-Blit3of3:	EXX
+BlitMask3of3:	EXX
 		LD	A,(BC)
 		AND	(HL)
 		EX	DE,HL
@@ -90,10 +90,10 @@ Blit3of3:	EXX
 		ADD	A,$04
 		LD	C,A
 		EXX
-		DJNZ	Blit3of3
+		DJNZ	BlitMask3of3
 		RET
 
-Blit1of4:	EXX
+BlitMask1of4:	EXX
 		LD	A,(BC)
 		AND	(HL)
 		EX	DE,HL
@@ -112,10 +112,10 @@ Blit1of4:	EXX
 		INC	HL
 		INC	DE
 		EXX
-		DJNZ	Blit1of4
+		DJNZ	BlitMask1of4
 		RET
 
-Blit2of4:	EXX
+BlitMask2of4:	EXX
 		LD	A,(BC)
 		AND	(HL)
 		EX	DE,HL
@@ -141,10 +141,10 @@ Blit2of4:	EXX
 		INC	HL
 		INC	DE
 		EXX
-		DJNZ	Blit2of4
+		DJNZ	BlitMask2of4
 		RET
 	
-Blit3of4:	EXX
+BlitMask3of4:	EXX
 		LD	A,(BC)
 		AND	(HL)
 		EX	DE,HL
@@ -177,10 +177,10 @@ Blit3of4:	EXX
 		INC	HL
 		INC	DE
 		EXX
-		DJNZ	Blit3of4
+		DJNZ	BlitMask3of4
 		RET
 
-Blit4of4:	EXX
+BlitMask4of4:	EXX
 		LD	A,(BC)
 		AND	(HL)
 		EX	DE,HL
@@ -220,10 +220,10 @@ Blit4of4:	EXX
 		INC	C
 		INC	C
 		EXX
-		DJNZ	Blit4of4
+		DJNZ	BlitMask4of4
 		RET
 
-Blit1of5:	EXX
+BlitMask1of5:	EXX
 		LD	A,(BC)
 		AND	(HL)
 		EX	DE,HL
@@ -244,10 +244,10 @@ Blit1of5:	EXX
 		INC	HL
 		INC	DE
 		EXX
-		DJNZ	Blit1of5
+		DJNZ	BlitMask1of5
 		RET
 
-Blit2of5:	EXX
+BlitMask2of5:	EXX
 		LD	A,(BC)
 		AND	(HL)
 		EX	DE,HL
@@ -275,10 +275,10 @@ Blit2of5:	EXX
 		INC	HL
 		INC	DE
 		EXX
-		DJNZ	Blit2of5
+		DJNZ	BlitMask2of5
 		RET
 
-Blit3of5:	EXX
+BlitMask3of5:	EXX
 		LD	A,(BC)
 		AND	(HL)
 		EX	DE,HL
@@ -313,10 +313,10 @@ Blit3of5:	EXX
 		INC	HL
 		INC	DE
 		EXX
-		DJNZ	Blit3of5
+		DJNZ	BlitMask3of5
 		RET
 
-Blit4of5:	EXX
+BlitMask4of5:	EXX
 		LD	A,(BC)
 		AND	(HL)
 		EX	DE,HL
@@ -358,10 +358,10 @@ Blit4of5:	EXX
 		INC	HL
 		INC	DE
 		EXX
-		DJNZ	Blit4of5
+		DJNZ	BlitMask4of5
 		RET
 
-Blit5of5:	EXX
+BlitMask5of5:	EXX
 		LD	A,(BC)
 		AND	(HL)
 		EX	DE,HL
@@ -409,5 +409,5 @@ Blit5of5:	EXX
 		INC	C
 		INC	C
 		EXX
-		DJNZ	Blit5of5
+		DJNZ	BlitMask5of5
 		RET

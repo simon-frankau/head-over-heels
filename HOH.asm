@@ -3029,7 +3029,7 @@ Draw3x24:	LD	L,$00
 		LD	BC,SpriteBuff
 		EXX
 		LD	B,$18
-		CALL	Blit3of3
+		CALL	BlitMask3of3
 		JP	BlitScreen
 
 	;; Takes coordinates in BC, and clears a 3x24 section of display
@@ -3064,7 +3064,7 @@ Draw3x32:	LD	(SpriteCode),A
 		LD	BC,SpriteBuff
 		EXX
 		LD	B,$20
-		CALL	Blit3of3 		; Draw into buffer.
+		CALL	BlitMask3of3 		; Draw into buffer.
 		JP	BlitScreen		; Buffer to screen.
 
 ClearSpriteBuf:	LD	HL,SpriteBuff
@@ -3977,7 +3977,7 @@ L9643:		LD	A,$BF
 
 #include "sound.asm"
 	
-#include "blit.asm"
+#include "blit_mask.asm"
 	
 L9BBE:		LD	HL,(SpriteXExtent)
 		LD	A,H

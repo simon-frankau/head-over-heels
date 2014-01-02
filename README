@@ -22,7 +22,7 @@ equs.asm       	    Nasty hack providing symbols for various addresses
 
 sound.asm	    48K sound production
 
-blit.asm	    Masked blit into an offscreen buffer
+blit_mask.asm	    Masked blit into an offscreen buffer
 blit_rot.asm	    Blit with rotation into offscreen buffer
 blit_screen.asm	    Copy sprite from buffer to screen
 
