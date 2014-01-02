@@ -30,6 +30,9 @@ print_char.asm	    Text-printing functions
 
 menus.asm	    Menu-related stuff. Includes main strings table.
 
+attr_scheme.asm	    Attribute colour schemes
+controls.asm	    Controls configuration and reading
+
 Binary files
 ------------
 
