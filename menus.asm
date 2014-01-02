@@ -3,10 +3,10 @@
 MenuCursor:	DEFW $0000
 
 	;; Long version used elsewhere. Only 2 used in main menu!
-MainMenuSpriteList:	DEFB $1E,$60,$60
-			DEFB $98,$8C,$60
-			DEFB $2F,$60,$48
-			DEFB $AF,$8C,$48
+MainMenuSpriteList:	DEFB SPR_HEAD1,            $60,$60
+			DEFB SPR_HEELS1 | SPR_FLIP,$8C,$60
+			DEFB SPR_CROWN,            $60,$48
+			DEFB SPR_CROWN  | SPR_FLIP,$8C,$48
 
 GoMainMenu:	LD	A,STR_GO_TITLE_SCREEN
 		CALL	PrintChar
@@ -140,7 +140,7 @@ MENU_PLAY_GAME:	DEFB $00		; Selected menu item
 		DEFB STR_OLD_GAME	; Old game, new game, main menu.
 
 	;; FIXME: Game over screen?
-GameOverScreen:	CALL	L964F		; FIXME: ?
+GameOverScreen:	CALL	AltPlaySound
 		CALL	ScreenWipe
 		LD	A,STR_TITLE_SCREEN_EXT
 		CALL	PrintChar
@@ -177,7 +177,7 @@ GOS_2:		CALL	PrintChar
 		CALL	Print2DigitsL
 		LD	A,STR_PLANETS
 		CALL	PrintChar
-GOS_3:		CALL	L964F
+GOS_3:		CALL	AltPlaySound
 		CALL	GetMaybeEnter
 		JR	C,GOS_3
 		LD	B,$C0

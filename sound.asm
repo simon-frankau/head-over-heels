@@ -4,7 +4,7 @@ L964C:	DEFB $00
 L964D:	DEFB $00
 SndEnable:	DEFB $80	; Top bit set if sound enabled.
 	
-L964F:		LD	A,(Snd2)
+AltPlaySound:	LD	A,(Snd2)
 		CP	$00
 		RET	Z
 		LD	B,$C3
