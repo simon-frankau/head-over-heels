@@ -32,6 +32,9 @@ menus.asm	    Menu-related stuff. Includes main strings table.
 
 attr_scheme.asm	    Attribute colour schemes
 controls.asm	    Controls configuration and reading
+sprite_stuff.asm    FIXME: Sprite odds and ends
+screen_bits.asm	    FIXME: More screen/sprite bits
+get_sprite	    FIXME: Return pointer to sprite data
 
 Binary files
 ------------
