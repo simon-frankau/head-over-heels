@@ -789,95 +789,97 @@ GetMaybeEnter:	CALL	GetInput
 		XOR	A
 		RET
 
-L75E5:	LD		DE,L74D2
-		LD		L,A
-		LD		H,$00
-		ADD		HL,DE
+L75E5:		LD	DE,L74D2
+		LD	L,A
+		LD	H,$00
+		ADD	HL,DE
 		RET
-L75ED:	CALL	L75E5
-		LD		C,$00
-L75F2:	LD		A,(HL)
-		LD		B,$FF
-L75F5:	CP		$FF
-		JR		Z,L760F
-L75F9:	INC		B
+
+L75ED:		CALL	L75E5
+		LD	C,$00
+L75F2:		LD	A,(HL)
+		LD	B,$FF
+L75F5:		CP	$FF
+		JR	Z,L760F
+L75F9:		INC	B
 		SCF
 		RRA
-		JR		C,L75F9
+		JR	C,L75F9
 		PUSH	HL
 		PUSH	AF
-		LD		A,C
-		ADD		A,B
+		LD	A,C
+		ADD	A,B
 		PUSH	BC
-		LD		B,A
+		LD	B,A
 		CALL	GetCharStrId
 		CALL	PrintCharAttr2
-		POP		BC
-		POP		AF
-		POP		HL
-		JR		L75F5
-L760F:	LD		DE,L0008
-		ADD		HL,DE
-		LD		A,C
-		ADD		A,$05
-		LD		C,A
-		CP		$2D
-		JR		C,L75F2
+		POP	BC
+		POP	AF
+		POP	HL
+		JR	L75F5
+L760F:		LD	DE,L0008
+		ADD	HL,DE
+		LD	A,C
+		ADD	A,$05
+		LD	C,A
+		CP	$2D
+		JR	C,L75F2
 		RET
-L761C:	CALL	L75E5
+
+L761C:		CALL	L75E5
 		PUSH	HL
 		CALL	GetInputWait
-		LD		HL,LBF20
-		LD		E,$FF
-		LD		BC,L0009
+		LD	HL,LBF20
+		LD	E,$FF
+		LD	BC,L0009
 		CALL	FillValue
-L762E:	CALL	GetInput
-		JR		NZ,L762E
-		LD		A,B
-		CP		$1E
-		JR		Z,L765B
-L7638:	LD		A,C
-		AND		(HL)
-		CP		(HL)
-		LD		(HL),A
-		JR		Z,L762E
+L762E:		CALL	GetInput
+		JR	NZ,L762E
+		LD	A,B
+		CP	$1E
+		JR	Z,L765B
+L7638:		LD	A,C
+		AND	(HL)
+		CP	(HL)
+		LD	(HL),A
+		JR	Z,L762E
 		CALL	GetCharStrId
 		CALL	PrintCharAttr2
-		LD		HL,(CharCursor)
+		LD	HL,(CharCursor)
 		PUSH	HL
 		LD	A,STR_ENTER_TO_FINISH
 		CALL	PrintChar
 		CALL	GetInputWait
-		POP		HL
-		LD		(CharCursor),HL
-		LD		A,$C0
-		SUB		L
-		CP		$14
-		JR		NC,L762E
-L765B:	EXX
-		LD		HL,LBF20
-		LD		A,$FF
-		LD		B,$09
-L7663:	CP		(HL)
-		INC		HL
-		JR		NZ,L766E
+		POP	HL
+		LD	(CharCursor),HL
+		LD	A,$C0
+		SUB	L
+		CP	$14
+		JR	NC,L762E
+L765B:		EXX
+		LD	HL,LBF20
+		LD	A,$FF
+		LD	B,$09
+L7663:		CP	(HL)
+		INC	HL
+		JR	NZ,L766E
 		DJNZ	L7663
 		EXX
-		LD		A,$1E
-		JR		L7638
-L766E:	POP		HL
-		LD		BC,L0008
-		LD		A,$09
-		LD		DE,LBF20
-L7677:	EX		AF,AF'
-		LD		A,(DE)
-		LD		(HL),A
-		INC		DE
-		ADD		HL,BC
-		EX		AF,AF'
-		DEC		A
-		JR		NZ,L7677
-		JP		GetInputWait
+		LD	A,$1E
+		JR	L7638
+L766E:		POP	HL
+		LD	BC,L0008
+		LD	A,$09
+		LD	DE,LBF20
+L7677:		EX	AF,AF'
+		LD	A,(DE)
+		LD	(HL),A
+		INC	DE
+		ADD	HL,BC
+		EX	AF,AF'
+		DEC	A
+		JR	NZ,L7677
+		JP	GetInputWait
 
 PrintCharAttr2:	PUSH	AF
 		LD	A,CTRL_ATTR2
