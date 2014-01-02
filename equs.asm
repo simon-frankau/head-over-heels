@@ -1,5 +1,17 @@
-	;; FIXME: Want to move from explicit refs to labels
-	;; everywhere, and this is a grim step along the way.
+	;; 
+	;; equs.asm
+	;;
+	;; Constants file.
+	;;
+	
+	;; All 16-bit constants have been replaced with a 'LXXXX'
+	;; label, allowing search and replace of interesting constants
+	;; with nice names.
+	;;
+	;; This file EQUs up those ugly names.
+	;;
+	;; FIXME: It should go away!
+	;; 
 
 L0000:	EQU $0000
 L0001:	EQU $0001
@@ -63,6 +75,7 @@ L4C50:	EQU $4C50
 L523E:	EQU $523E
 L569A:	EQU $569A
 L5800:	EQU $5800
+L5B00:	EQU $5B00
 L5C71:	EQU $5C71
 L6088:	EQU $6088
 L6B16:	EQU $6B16
@@ -101,6 +114,7 @@ LFA80:	EQU $FA80
 LFB28:	EQU $FB28
 LFB49:	EQU $FB49
 LFEFE:	EQU $FEFE
+LFF7F:	EQU $FF7F
 LFFEE:	EQU $FFEE
 LFFF5:	EQU $FFF5
 LFFFA:	EQU $FFFA

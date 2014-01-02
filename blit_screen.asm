@@ -1,4 +1,12 @@
+	;;
+	;; blit_screen.asm
+	;;
 	;; Copy sprite from buffer to screen.
+	;;
+
+	;; Exported functions:
+	;; * BlitScreen
+
 BlitScreen:
 	;; Construct X coordinate: 2 * (XHigh) - $80
 		LD	HL,(SpriteXExtent)
@@ -29,7 +37,7 @@ BlitScreen:
 		EX	AF,AF'
 	;; Construct Y coordinate: (YHigh) - $48
 		LD	A,H
-L940A:		SUB	$48	; FIXME: Self-modifying code?
+BlitYOffset:	SUB	$48		; Target of self-modifying code
 		LD	B,A
 		CALL	GetScrMemAddr
 	;; Screen address now in DE

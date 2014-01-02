@@ -1,4 +1,15 @@
+	;;
+	;; print_char.asm
+	;;
 	;; Text-printing functions
+	;;
+
+	;; Exported functions:
+	;; * PrintChar
+	;; * SetCursor
+	;; * Print4DigitsL
+	;; * Print2DigitsL
+	;; * Print2DigitsR
 
 CharDoublerBuf:	DEFS $10,$00 	; 16 bytes to hold double-height character.
 
@@ -8,6 +19,10 @@ IsDoubleHeight:	DEFB $00	; Non-zero if printing double-height.
 KeepAttr:	DEFB $FF	; If set to zero, step through attribute codes 1, 2, 3.
 
 	;; Main character-printing entry point.
+	;;
+	;; Takes a character code in A.
+	;; The code can be an index into the string tables (Strings, Strings2),
+	;; if the top bit is set.
 PrintChar:	JP	PrintCharBase	; NB: Target of self-modifying code.
 
 	;; Default character printer

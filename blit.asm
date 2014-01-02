@@ -1,3 +1,11 @@
+	;;
+	;; blit.asm
+	;;
+	;; Masked blit into an offscreen buffer.
+	;;
+
+	;; Exported functions:
+	;; * Blit3of3
 
 	;; BlitNofM does a masked blit into a destination buffer assumed 6 bytes wide.
 	;; The blit is from a source N bytes wide in a buffer M bytes wide.

@@ -1,4 +1,11 @@
-	;; Menu-related stuff
+	;;
+	;; menus.asm
+	;;
+	;; Menu-related stuff. Includes main strings table.
+	;;
+
+	;; Main exported functions:
+	;; * GoMainMenu
 
 MenuCursor:	DEFW $0000
 

@@ -1,7 +1,20 @@
+	;;
+	;; sound.asm
+	;;
+	;; 48K sound production
+	;;
+
+	;; Main exported functions:
+	;; * AltPlaySound
+	;; * IrqFn
+	;; * PlaySound
+
+	;; FIXME: Needs a good, old tidy-up.
+	
 SndCount:	DEFB $00
-Snd2:	DEFB $FF
-L964C:	DEFB $00
-L964D:	DEFB $00
+Snd2:		DEFB $FF
+L964C:		DEFB $00
+L964D:		DEFB $00
 SndEnable:	DEFB $80	; Top bit set if sound enabled.
 	
 AltPlaySound:	LD	A,(Snd2)
@@ -377,20 +390,21 @@ UnpackD_1:	RRC	D
 
 IrqArray:	DEFB $01,$02,$04,$06,$08,$0C,$10,$20
 
-SndThing:	DEFB $FF
-SndCtrl:	DEFB $00
-NoteLen:	DEFB $00
-ScorePtr:	DEFW $0000
-ScoreIdx:	DEFB $00
-Something:	DEFB $00
+SndThing:		DEFB $FF
+SndCtrl:		DEFB $00
+NoteLen:		DEFB $00
+ScorePtr:		DEFW $0000
+ScoreIdx:		DEFB $00
+Something:		DEFB $00
 SoundDelayTarget:	DEFW $0000
 SoundDelayConst:	DEFW $0000
-SoundLenConst:	DEFB $00
+SoundLenConst:		DEFB $00
 SoundDelayDelta:	DEFW $0000
-SoundTable:	DEFW $98E1,$98DD,$98CB,L9909,L9914
-		DEFW L991F,L9932,L993D,L994A,L994D,L9950,L9958,L996A
-		DEFW L995B,L9903,L9906,L9954,L9972,L9983,L99DD,L999E
-		DEFW L99A9,L98F7,L99CD,L99D5
+	;; FIXME: Some constants seem to overlap with the table?
+SoundTable:		DEFW $98E1,$98DD,$98CB,L9909,L9914
+			DEFW L991F,L9932,L993D,L994A,L994D,L9950,L9958,L996A
+			DEFW L995B,L9903,L9906,L9954,L9972,L9983,L99DD,L999E
+			DEFW L99A9,L98F7,L99CD,L99D5
 
 L98F7:	DEFB $10,$95,$6A,$62,$6A,$7D,$6D,$04
 	DEFB $8D,$96,$FF,$FF

@@ -1,4 +1,14 @@
-	;; A holds the rotation size. HL holds source data.
+	;;
+	;; blit_rot.asm
+	;;
+	;; Blit with rotation into an offscreen buffer
+	;;
+
+	;; Exported functions:
+	;; * BlitRot
+
+	;; A holds the rotation size (in 2-bit units). HL holds source data.
+	;; Reads other parameters from SpriteWidth and SpriteByteCount.
 	;; Uses buffer at LBF20.
 	;; Returns sprite in DE, mask in HL.
 BlitRot:	DEC	A

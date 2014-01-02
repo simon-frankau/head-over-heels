@@ -7,22 +7,57 @@ some more notes, script it, source control it, etc. so that I've got a
 better hope of tracking it all.
 
 Contents
---------
+========
 
-HOH.asm - The dissassembly of Head Over Heels.
+Assembly files
+--------------
 
-*.asm - The files representing the various sub-parts of the code.
+HOH.asm             The dissassembly of Head Over Heels
 
-*.bin - Game data.
+data_header.asm     The data before the main code section
+data_trailer.asm    The data after the main code section
 
-check.sh - Script to assemble HOH.asm and check it against the baseline.
+equs.asm       	    Nasty hack providing symbols for various addresses
+        	    and constants
 
-tape - This directory holds my attempts to extract the contents from a
-       tzx file. Somewhat abortive effort.
+sound.asm	    48K sound production
 
-memimage - This holds a memory dump from the game on start-up, plus tools
-           to extract and disassemble the dump, creating a baseline
-           disassembly.
+blit.asm	    Masked blit into an offscreen buffer
+blit_rot.asm	    Blit with rotation into offscreen buffer
+blit_screen.asm	    Copy sprite from buffer to screen
 
-graphics - Tools to extract the images from the binary files which
-           hold them.
+print_char.asm	    Text-printing functions
+
+menus.asm	    Menu-related stuff. Includes main strings table.
+
+Binary files
+------------
+
+screen.scr	    The screen buffer
+
+img_2x24.bin	    16x24 sprites
+img_3x24.bin	    24x24 sprites
+img_3x32.bin	    24x32 sprites
+img_3x56.bin	    24x56 sprites
+img_4x28.bin	    32x28 sprites
+img_chars.bin	    Font
+
+panels.asm	    The wall panel images. Should probably be
+		    converted to a .bin
+
+Miscellaneous other
+-------------------
+
+check.sh	    Script to assemble HOH.asm and check it against
+		    the baseline.
+
+tape/		    This directory holds my attempts to extract the
+                    contents from a tzx file. Somewhat abortive
+                    effort.
+
+memimage/	    This holds a memory dump from the game on
+                    start-up, plus tools to extract and disassemble
+                    the dump, creating a baseline disassembly.
+
+graphics/	    Tools to extract the images from the binary files which
+                    hold them.

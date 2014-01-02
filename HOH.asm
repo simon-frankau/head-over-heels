@@ -1,3 +1,11 @@
+	;; 
+	;; HOH.asm
+	;;
+	;; Main Head Over Heels source file
+	;;
+	;; Glues together all the other assembly files, binaries, etc.
+	;; 
+
 #target ROM
 #code 0, $10000
 	defs $4000, $00
@@ -3759,7 +3767,7 @@ DrawSprite:	PUSH	AF
 		PUSH	BC
 		PUSH	DE
 		XOR	A
-		LD	(L940A+1),A
+		LD	(BlitYOffset+1),A 	; Y offset for the BlitScreen call
 	;; Initialise sprite extents from origin and size.
 		LD	D,B
 		LD	A,B
@@ -3838,7 +3846,7 @@ DrS_4:		LD	(HL),A
 		JR	NZ,DrS_3 	; Repeat as necessary.
 	;; FIXME
 		LD	A,$48
-		LD	(L940A+1),A
+		LD	(BlitYOffset+1),A 	; Y offset for the BlitScreen call
 		RET
 
 	;; Converts a bitmap address to its corresponding attribute address.
