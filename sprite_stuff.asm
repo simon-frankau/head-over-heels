@@ -166,7 +166,7 @@ Draw3x32:	LD	(SpriteCode),A
 		LD	(SpriteYExtent),A	; Set adjusted extents.
 		CALL	ClearSpriteBuf 		; Clear buffer
 		LD	A,$02
-		LD	(LA05C),A 		; FIXME: ?
+		LD	(SpriteFlags),A 	; FIXME: ?
 		CALL	GetSpriteAddr
 		LD	BC,SpriteBuff
 		EXX

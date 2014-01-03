@@ -190,8 +190,9 @@ XC19F:	DEFB $92
 	;; End of 128K code.
 
 	;; Start of area that gets moved down...
-LC1A0:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-XC1AF:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00
+LC1A0:	DEFB $00,$00,$00,$00,$00,$00,$00,$00
+
+SpriteFlips:	DEFS $10,$00
 
 	;;  Background wall tiles
 #include "panels.asm"

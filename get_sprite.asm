@@ -77,8 +77,7 @@ SPR_DECK:	EQU $4B
 SPR_BALL:	EQU $4C
 SPR_HEAD:	EQU $4D
 
-	
-	;; Looks up based on SpriteCode.
+	;; Looks up based on SpriteCode. Top bit set means flip horizontally.
 	;; Return height in B, image in DE, mask in HL.
 GetSpriteAddr:	LD	A,(SpriteCode)
 		AND	$7F			; Top bit holds 'reverse?'. Ignore.
@@ -89,9 +88,9 @@ GetSpriteAddr:	LD	A,(SpriteCode)
 		CP	$10			; >= 0x10 -> 3x32
 		LD	H,$00
 		JR	NC,Sprite3x32
-	;; TODO: Somewhat mysterious below here...
+	;; NB: Some rather funny cases below here.
 		LD	L,A
-		LD	DE,(LA12A+1)
+		LD	DE,(BigSpriteThing+1)
 		INC	DE
 		INC	DE
 		LD	A,(DE)
@@ -101,21 +100,24 @@ GetSpriteAddr:	LD	A,(SpriteCode)
 		LD	A,(SpriteCode)
 		LD	C,A
 		RLA
-		LD	A,(L770F)
+		LD	A,(BigSpriteTest)
 		JR	C,GSA_1		; Top bit set?
-		CP	$06
+		CP	$06		; Then special case is 6.
 		JR	GSA_2
-GSA_1:		CP	$03
+GSA_1:		CP	$03		; Otherwise it's 3.
 GSA_2:		JR	Z,Sprite3x56
-		LD	A,(LAF5A)
+	;; And then a funny case...
+		LD	A,(BigSpriteFlipped)
 		XOR	C
 		RLA
-		LD	DE,LF9D8
-		LD	HL,LFA80
+	;; The data we'll return... (I guess it must be filled already!)
+		LD	DE,BigSpriteBuf
+		LD	HL,BigSpriteBuf + 56 * 3
 		RET	NC
+	;; And flip it if necessary.
 		LD	A,C
-		LD	(LAF5A),A
-		LD	B,$70
+		LD	(BigSpriteFlipped),A
+		LD	B,56*2
 		JR	FlipSprite3	; Tail call
 
 	;; Deal with a 3 byte x sprite 56 pixels high.
@@ -134,8 +136,8 @@ Sprite3x56:	LD	A,L
 		LD	H,A 		; 336x = 3x56x2x
 		LD	DE,IMG_3x56 - MAGIC_OFFSET
 		ADD	HL,DE
-		LD	DE,L00A8
-		LD	B,$70
+		LD	DE,56*3		; Point to mask
+		LD	B,56*2		; Height of image and mask
 		JR	Sprite3Wide
 
 	;; Deal with a 3 byte x 32 pixel high sprite.
@@ -152,18 +154,19 @@ Sprite3x32:	SUB	$10
 		ADD	HL,HL		; 3x32x2x
 		LD	DE,IMG_3x32 - MAGIC_OFFSET
 		ADD	HL,DE
-		LD	DE,L0060
-		LD	B,$40
+		LD	DE,32*3
+		LD	B,32*2
 		EX	DE,HL
 		ADD	HL,DE
 		EXX
 		CALL	NeedsFlip
 		EXX
 		CALL	NC,FlipSprite3
-		LD	A,(LA05C)
+	;; If bit 2 is set, move half a sprite down.
+		LD	A,(SpriteFlags)
 		AND	$02
 		RET	NZ
-		LD	BC,L0030
+		LD	BC,3*16
 		ADD	HL,BC
 		EX	DE,HL
 		ADD	HL,BC
@@ -185,8 +188,8 @@ Sprite3x24:	SUB	$18
 		ADD	HL,DE		; 144x = 3x24x2x
 		LD	DE,IMG_3x24 - MAGIC_OFFSET
 		ADD	HL,DE
-		LD	DE,L0048
-		LD	B,$30
+		LD	DE,24*3
+		LD	B,24*2
 Sprite3Wide:	EX	DE,HL
 		ADD	HL,DE
 		EXX
@@ -197,7 +200,7 @@ Sprite3Wide:	EX	DE,HL
 FlipSprite3:	PUSH	HL
 		PUSH	DE
 		EX	DE,HL
-		LD	D,$B9
+		LD	D,RevTable >> 8
 FS3_1:		LD	C,(HL)
 		LD	(FS3_2+1),HL	; Self-modifying code!
 		INC	HL
@@ -232,8 +235,8 @@ Sprite4x28:	SUB	$54
 		SBC	HL,DE		; 224x = 4x28x2x
 		LD	DE,IMG_4x28 - MAGIC_OFFSET
 		ADD	HL,DE
-		LD	DE,L0070
-		LD	B,$38		; 56 high (including image and mask)
+		LD	DE,28*4
+		LD	B,28*2
 		EX	DE,HL
 		ADD	HL,DE
 		EXX
@@ -244,7 +247,7 @@ Sprite4x28:	SUB	$54
 FlipSprite4:	PUSH	HL
 		PUSH	DE
 		EX	DE,HL
-		LD	D,$B9
+		LD	D,RevTable >> 8
 FS4_1:		LD	C,(HL)
 		LD	(FS4_2+1),HL	; Self-modifying code
 		INC	HL
@@ -289,7 +292,7 @@ NF_1:		RRCA
 		AND	$0F		; A contains next 4 bits.
 		LD	E,A
 		LD	D,$00
-		LD	HL,LC040
+		LD	HL,SpriteFlips - MAGIC_OFFSET
 		ADD	HL,DE
 		LD	A,B
 		AND	(HL)		; Perform bit-mask look-up

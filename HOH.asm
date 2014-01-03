@@ -23,6 +23,8 @@ SpriteBuff:	EQU $B800
 
 SomeBuff:	EQU $F944
 SomeBuffLen:	EQU $94
+
+BigSpriteBuf:	EQU $F9D8
 	
 	;; Main entry point
 Entry:		LD	SP,$FFF4
@@ -633,7 +635,7 @@ L770B:	DEFB $05
 L770C:	DEFB $04
 L770D:	DEFB $36
 L770E:	DEFB $34
-L770F:	DEFB $00
+BigSpriteTest:	DEFB $00
 L7710:	DEFB $00
 FloorCode:	DEFB $00
 L7712:	DEFB $00
@@ -714,7 +716,7 @@ L7752:		LD		IY,L7718
 		LD		HL,(LAF78)
 		LD		(LAF92),HL
 		LD		A,(L7710)
-		LD		(L770F),A
+		LD		(BigSpriteTest),A
 		LD		DE,L7744
 		LD		HL,L7748
 		LD		BC,L0004
@@ -1435,7 +1437,7 @@ L81DC:	PUSH	AF
 		LD		(SpriteCode),A
 		CALL	Sprite3x56
 		EX		DE,HL
-		LD		DE,LF9D8
+		LD		DE,BigSpriteBuf
 		PUSH	DE
 		LD		BC,L0150
 		LDIR
@@ -1480,7 +1482,7 @@ L8211:	LD		A,(DE)
 		RL		C
 L8224:	DJNZ	L8211
 		XOR		A
-		LD		(LAF5A),A
+		LD		(BigSpriteFlipped),A
 		RET
 L822B:	DEFB $00,$00
 L822D: 	DEFB $FF
@@ -3746,7 +3748,7 @@ L9EBD:	LD		A,(HL)
 FlipPanel:	LD		B,$38
 	;; Reverse a two-byte-wide image. Height in B, pointer to data in HL.
 FlipSprite:	PUSH	DE
-		LD	D,$B9
+		LD	D,RevTable >> 8
 		PUSH	HL
 FS_1:		INC	HL
 		LD	E,(HL)
@@ -3792,7 +3794,7 @@ LA058:	DEFB $00
 LA059:	DEFB $00
 LA05A:	DEFB $00
 LA05B:	DEFB $00
-LA05C:	DEFB $00
+SpriteFlags:	DEFB $00
 LA05D:	INC		HL
 		INC		HL
 		CALL	LA1D8
@@ -3911,9 +3913,9 @@ LA11E:		LD		A,(HL)
 		LD		L,A
 		OR		H
 		RET		Z
-		LD		(LA12A+1),HL
+		LD		(BigSpriteThing+1),HL
 		CALL	LA12F
-LA12A:		LD		HL,L0000 	; NB: Self-modifying code
+BigSpriteThing:		LD		HL,L0000 	; NB: Self-modifying code
 		JR		LA11E
 LA12F:		CALL	LA1BD
 		RET		NC
@@ -4040,7 +4042,7 @@ LA1D8:	INC		HL
 		BIT		3,A
 		JR		Z,LA1F3
 		CALL	LA1F3
-		LD		A,(LA05C)
+		LD		A,(SpriteFlags)
 		BIT		5,A
 		LD		A,$F0
 		JR		Z,LA1ED
@@ -4061,7 +4063,7 @@ LA1FB:	EX		AF,AF'
 		INC		HL
 		INC		HL
 		LD		A,(HL)
-		LD		(LA05C),A
+		LD		(SpriteFlags),A
 		DEC		HL
 		EX		AF,AF'
 		XOR		(HL)
@@ -5481,8 +5483,10 @@ SpriteWidth:	DEFB $04	; Width of sprite in bytes.
 	;; Current sprite we're drawing.
 SpriteCode:	DEFB $00
 
+RevTable:	EQU $B900
+	
 	;; Initialise a look-up table of byte reverses.
-InitRevTbl:	LD	HL,LB900
+InitRevTbl:	LD	HL,RevTable
 RevLoop_1:	LD	C,L
 		LD	A,$01
 		AND	A
@@ -5506,7 +5510,7 @@ LADB7:		LD	(SpriteCode),A
 		LD	H,$14
 LADCE:	CP		$18
 		JR	NC,LADE1
-		LD	A,(LA05C)
+		LD	A,(SpriteFlags)
 		AND	$02
 		LD	D,$04
 		LD	H,$0C
@@ -5530,7 +5534,7 @@ LADE1:	LD		A,B
 		RRA
 		LD	(SpriteWidth),A
 		RET
-LADF4:	LD		HL,(LA12A+1)
+LADF4:	LD		HL,(BigSpriteThing+1)
 		INC	HL
 		INC	HL
 		BIT	5,(HL)
@@ -5562,7 +5566,8 @@ LAE15:	ADD		A,B
 
 #include "get_sprite.asm"
 	
-LAF5A:	DEFB $00,$1B,$00,$40,$BA,$7E,$AF,$80,$AF,$00,$00,$00,$00,$00,$00,$00
+BigSpriteFlipped:	DEFB $00
+	DEFB $1B,$00,$40,$BA,$7E,$AF,$80,$AF,$00,$00,$00,$00,$00,$00,$00
 LAF6A:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 LAF77:	DEFB $00
 LAF78:	DEFW LBA40
