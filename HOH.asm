@@ -3238,7 +3238,7 @@ L9BBE:		LD	HL,(SpriteXExtent)
 		JR	L9C01
 L9BF0:		LD	IY,L9E07
 		LD	IX,L9EBB
-		LD	HL,L9E46
+		LD	HL,Thingie1
 		CALL	L9C16
 		INC	E
 		SUB	$02
@@ -3247,7 +3247,7 @@ L9C01:		JR	NC,L9BF0
 		RET	NZ
 		LD	IY,L9DF8
 		LD	IX,L9EAD
-		LD	HL,L9E80
+		LD	HL,Thingie2
 		LD	(L9CD1+1),HL
 		EXX
 		JR	L9C28 		; Tail call.
@@ -3463,7 +3463,7 @@ L9D2F:	LD		B,B 	; NB: Target of self-modifying code? Perhaps just data?
 		NOP
 		NOP
 		NOP
-L9D45:	LD		HL,(FloorAddr)
+L9D45:		LD		HL,(FloorAddr)
 		LD		(L93E2),BC
 		LD		BC,L000A
 		ADD		HL,BC
@@ -3621,8 +3621,11 @@ SetFloorAddr:	LD	C,A
 		RET
 
 	;; Address of the sprite used to draw the floor.
-FloorAddr:	DEFW LF670
+FloorAddr:	DEFW IMG_2x24 - MAGIC_OFFSET + 2 * $30
 
+	;; HL points to some thing we read the bottom two bits of.
+	;; If they're set, we return the blank tile.
+	;; Otherwise we return the current tile address pointer, plus C, in BC.
 GetFloorAddr:	PUSH	AF
 		EXX
 		LD	A,(HL)
@@ -3639,80 +3642,93 @@ GetFloorAddr:	PUSH	AF
 		LD	B,A
 		POP	AF
 		RET
-GFA_1:		LD	BC,LF760
+GFA_1:		LD	BC,IMG_2x24 - MAGIC_OFFSET + 7 * $30
 		POP	AF
 		RET
 
-L9E46:	LD		B,A
-		LD		A,D
-		BIT		7,(HL)
+	;; Given the 'Thingie's are the only things to call
+	;; GetFloorAddr, I must conclude they are involved in actually
+	;; drawing the floor...
+	
+	;; FIXME: Very similar to Thingie2!
+Thingie1:	LD	B,A
+		LD	A,D
+		BIT	7,(HL)
 		EXX
-		LD		C,$00
-		JR		Z,L9E51
-		LD		C,$10
-L9E51:		CALL	GetFloorAddr
-		AND		$0F
-		ADD		A,A
-		LD		H,$00
-		LD		L,A
+		LD	C,$00
+		JR	Z,Thingie1b
+		LD	C,$10
+Thingie1b:	CALL	GetFloorAddr
+		AND	$0F
+		ADD	A,A
+		LD	H,$00
+		LD	L,A
 		EXX
-L9E5B:	EXX
+Thingie1c:	EXX
 		PUSH	HL
-		ADD		HL,BC
-		LD		A,(HL)
-		LD		(DE),A
-		INC		HL
-		INC		E
-		LD		A,(HL)
-		LD		(DE),A
-		LD		A,E
-		ADD		A,$05
-		LD		E,A
-		POP		HL
-		LD		A,L
-		ADD		A,$02
-		AND		$1F
-		LD		L,A
+		ADD	HL,BC
+		LD	A,(HL)
+		LD	(DE),A
+	;; Start of diff with Thingie2
+		INC	HL
+		INC	E
+		LD	A,(HL)
+		LD	(DE),A
+		LD	A,E
+		ADD	A,$05
+	;; End of diff with Thingie2
+		LD	E,A
+		POP	HL
+		LD	A,L
+		ADD	A,$02
+		AND	$1F
+		LD	L,A
 		EXX
-		DJNZ	L9E5B
+		DJNZ	Thingie1c
 		RET
-L9E73:	LD		B,A
-		LD		A,D
-		BIT		7,(HL)
+
+	;; Like Thingie2, but we set the bottom bit on C.
+Thingie3:	LD	B,A
+		LD	A,D
+		BIT	7,(HL)
 		EXX
-		LD		C,$01
-		JR		Z,L9E8B
-		LD		C,$11
-		JR		L9E8B
-L9E80:	LD		B,A
-		LD		A,D
-		BIT		7,(HL)
+		LD	C,$01
+		JR	Z,Thingie2b
+		LD	C,$11
+		JR	Thingie2b
+
+Thingie2:	LD	B,A
+		LD	A,D
+		BIT	7,(HL)
 		EXX
-		LD		C,$00
-		JR		Z,L9E8B
-		LD		C,$10
-L9E8B:		CALL	GetFloorAddr
-		AND		$0F
-		ADD		A,A
-		LD		H,$00
-		LD		L,A
+		LD	C,$00
+		JR	Z,Thingie2b
+		LD	C,$10
+Thingie2b:	CALL	GetFloorAddr
+		AND	$0F
+		ADD	A,A
+		LD	H,$00
+		LD	L,A
 		EXX
-L9E95:	EXX
+Thingie2c:	EXX
 		PUSH	HL
-		ADD		HL,BC
-		LD		A,(HL)
-		LD		(DE),A
-		LD		A,E
-		ADD		A,$06
-		LD		E,A
-		POP		HL
-		LD		A,L
-		ADD		A,$02
-		AND		$1F
-		LD		L,A
+		ADD	HL,BC
+		LD	A,(HL)
+		LD	(DE),A
+	;; Start of diff with Thingie1
+		LD	A,E
+		ADD	A,$06
+	;; End of diff with Thingie1
+		LD	E,A
+		POP	HL
+		LD	A,L
+		ADD	A,$02
+		AND	$1F
+		LD	L,A
 		EXX
-		DJNZ	L9E95
+		DJNZ	Thingie2c
 		RET
+
 L9EA9:	EXX
 		INC		HL
 		JR		L9EAE
@@ -5124,9 +5140,9 @@ LAAB3:	SCF
 		AND		A
 		JR		NZ,LAAF6
 		LD		A,(FloorCode)
-		CP		$06
+		CP		$06 		; Deadly floor?
 		JR		Z,LAAED
-		CP		$07
+		CP		$07 		; No floor?
 		JR		NZ,LAAF6
 		CALL	LA94B
 		PUSH	IY
@@ -5149,8 +5165,9 @@ LAAED:	LD		C,(IY+$09)
 LAAF6:	XOR		A
 		SCF
 		RET
-LAAF9:	LD		A,(FloorCode)
-		CP		$07
+
+LAAF9:		LD		A,(FloorCode)
+		CP		$07 		; No floor?
 		JR		NZ,LAAF6
 		LD		(IY+$0A),$22
 		JR		LAAF6
