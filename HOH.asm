@@ -2091,12 +2091,12 @@ L887E:	PUSH	AF
 		JR		Z,L8887
 		LD	A,CTRL_ATTR3
 L8887:		CALL	PrintChar
-		POP		BC
-		LD		A,C
+		POP	BC
+		LD	A,C
 		ADD	A,CTRL_POS1
 		CALL	PrintChar
-		POP		AF
-		JP		Print2DigitsR
+		POP	AF
+		JP	Print2DigitsR
 L8895:	LD		A,D
 		SUB		$09
 		LD		HL,L866B
@@ -3230,7 +3230,7 @@ L9BBE:		LD	HL,(SpriteXExtent)
 		JR	NC,L9BF0
 		LD	IY,L9DF8
 		LD	IX,L9EA9
-		LD	HL,L9E73
+		LD	HL,Thingie3
 		CALL	L9C16
 		CP	$FF
 		RET	Z
@@ -5129,84 +5129,94 @@ LAA7E:	LD		C,$C0
 		RET		C
 		LD		C,(IX+$03)
 		RET
-LAAB1:	CP		$FF
-LAAB3:	SCF
-		LD		(IY+$0D),A
-		LD		(IY+$0E),A
-		RET		NZ
-		BIT		0,(IY+$09)
-		JR		Z,LAAF9
-		LD		A,(LA2BC)
-		AND		A
-		JR		NZ,LAAF6
-		LD		A,(FloorCode)
-		CP		$06 		; Deadly floor?
-		JR		Z,LAAED
-		CP		$07 		; No floor?
-		JR		NZ,LAAF6
+
+FloorThing1:	CP	$FF
+	;; NB: Fall through.
+FloorThing2:	SCF
+		LD	(IY+$0D),A
+		LD	(IY+$0E),A
+		RET	NZ
+		BIT	0,(IY+$09)
+		JR	Z,FloorCheck
+		LD	A,(LA2BC)
+		AND	A
+		JR	NZ,RetZeroC
+		LD	A,(FloorCode)
+		CP	$06 		; Deadly floor?
+		JR	Z,DeadlyFloorCase
+		CP	$07 		; No floor?
+		JR	NZ,RetZeroC
+	;; Code to handle no floor...
 		CALL	LA94B
 		PUSH	IY
-		POP		DE
-		AND		A
-		SBC		HL,DE
-		JR		Z,LAAE6
-		LD		HL,L7041
-		LD		A,(HL)
-		OR		$03
-		LD		(HL),A
-		JR		LAAF6
-LAAE6:	LD		A,$05
-		LD		(LB218),A
-		AND		A
+		POP	DE
+		AND	A
+		SBC	HL,DE
+		JR	Z,FloorThing3
+		LD	HL,L7041
+		LD	A,(HL)
+		OR	$03
+		LD	(HL),A
+		JR	RetZeroC
+
+FloorThing3:	LD	A,$05
+		LD	(LB218),A
+		AND	A
 		RET
-LAAED:	LD		C,(IY+$09)
-		LD		B,(IY+$04)
+
+DeadlyFloorCase:LD	C,(IY+$09)
+		LD	B,(IY+$04)
 		CALL	LB2F8
-LAAF6:	XOR		A
+
+	;; Return with 0 in A, and carry flag set.
+RetZeroC:	XOR	A
 		SCF
 		RET
 
-LAAF9:		LD		A,(FloorCode)
-		CP		$07 		; No floor?
-		JR		NZ,LAAF6
-		LD		(IY+$0A),$22
-		JR		LAAF6
-LAB06:	LD		A,(IY+$07)
-		SUB		$C0
-LAB0B:	LD		BC,L0000
-		LD		(LAA72),BC
-		JR		Z,LAAB3
-		INC		A
-		JR		Z,LAAB1
+FloorCheck:	LD	A,(FloorCode)
+		CP	$07 		; No floor?
+		JR	NZ,RetZeroC
+		LD	(IY+$0A),$22 	; Update this, then.
+		JR	RetZeroC
+
+LAB06:		LD	A,(IY+$07)
+		SUB	$C0
+LAB0B:		LD	BC,L0000
+		LD	(LAA72),BC
+		JR	Z,FloorThing2
+		INC	A
+		JR	Z,FloorThing1
 		CALL	LB0F9
-		LD		C,B
-		INC		C
+		LD	C,B
+		INC	C
 		EXX
-		LD		A,(IY+$0E)
-		AND		A
-		JR		Z,LAB64
-		LD		H,A
-		LD		L,(IY+$0D)
+		LD	A,(IY+$0E)
+		AND	A
+		JR	Z,LAB64
+		LD	H,A
+		LD	L,(IY+$0D)
 		PUSH	HL
-		POP		IX
-		BIT		7,(IX+$04)
-		JR		NZ,LAB64
-		LD		A,(IX+$07)
-		SUB		$06
+		POP	IX
+		BIT	7,(IX+$04)
+		JR	NZ,LAB64
+		LD	A,(IX+$07)
+		SUB	$06
 		EXX
-		CP		B
+		CP	B
 		EXX
-		JR		NZ,LAB64
+		JR	NZ,LAB64
 		CALL	LACD3
-		JR		NC,LAB64
-LAB3F:	BIT		1,(IX+$09)
-		JR		Z,LAB4E
-		RES		5,(IX-$06)
-		LD		A,(IX-$07)
-		JR		LAB55
-LAB4E:	RES		5,(IX+$0C)
+		JR	NC,LAB64
+LAB3F:		BIT	1,(IX+$09)
+		JR	Z,LAB4E
+		RES	5,(IX-$06)
+		LD	A,(IX-$07)
+		JR	LAB55
+
+LAB4E:		RES		5,(IX+$0C)
 		LD		A,(IX+$0B)
-LAB55:	OR		$E0
+
+LAB55:		OR		$E0
 		LD		C,A
 		LD		A,(IY+$0C)
 		AND		C
@@ -6116,23 +6126,23 @@ LB2DF:	LD		C,(IY+$09)
 		JR		Z,LB2F8
 		BIT		4,(IX+$09)
 		RET		NZ
-LB2F8:	BIT		3,B
+LB2F8:		BIT		3,B
 		LD		B,$03
 		JR		NZ,LB304
 		DEC		B
 		BIT		2,C
 		JR		NZ,LB304
 		DEC		B
-LB304:	XOR		A
+LB304:		XOR		A
 		LD		HL,LA28E
 		CP		(HL)
 		JR		Z,LB30D
 		RES		0,B
-LB30D:	INC		HL
+LB30D:		INC		HL
 		CP		(HL)
 		JR		Z,LB313
 		RES		1,B
-LB313:	LD		A,B
+LB313:		LD		A,B
 		AND		A
 		RET		Z
 		LD		HL,LB21A
