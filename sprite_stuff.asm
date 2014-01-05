@@ -68,7 +68,7 @@ L8E1D:		CALL	LAA49
 		LD	DE,(LA28B)
 		LD	D,$03
 		CALL	DrawFromList
-		LD	DE,(LA294)
+		LD	DE,(Character)
 	;; NB: Fall through
 	
 Draw2FromList:	LD	D,$02

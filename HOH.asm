@@ -297,7 +297,7 @@ L7229:	LD		A,$04
 		LD		A,$02
 		JR		Z,L7234
 		DEC		A
-L7234:	LD		(LA294),A
+L7234:	LD		(Character),A
 		CALL	L725C
 		CALL	L7297
 		JR		C,L7240
@@ -315,7 +315,7 @@ L724D:	PUSH	AF
 		RL		E
 		RET
 L7255:	LD		IY,LA2C0
-		LD		A,(LA294)
+		LD		A,(Character)
 L725C:	LD		(IY+$0A),$00
 		RES		3,(IY+$04)
 		BIT		0,A
@@ -337,7 +337,7 @@ L728C:	LD		HL,(L703B)
 		AND		A
 		SBC		HL,DE
 		RET
-L7297:	LD		A,(LA294)
+L7297:	LD		A,(Character)
 		LD		HL,L7044
 		LD		E,A
 		RRA
@@ -406,7 +406,7 @@ L7305:		LD		HL,(LAF92) 	; NB: Referenced as data.
 		LD		HL,LAF82
 		LD		BC,L0008
 		JP		FillZero
-L7314:	LD		HL,LA294
+L7314:	LD		HL,Character
 		BIT		0,(HL)
 		LD		HL,LA2C0
 		RET		Z
@@ -1247,7 +1247,7 @@ L7B0E:		XOR	A
 		LD	(LB218),A
 		RET
 
-L7B43:		LD	(LA294),A
+L7B43:		LD	(Character),A
 		PUSH	AF
 		LD	(LFB28),A
 		CALL	L7BBF
@@ -1262,7 +1262,7 @@ L7B59:		LD	A,(LA2BC)
 		JR	NZ,L7B56
 		POP	AF
 		XOR	$03
-		LD	(LA294),A
+		LD	(Character),A
 		CALL	LA58B
 		JP	L72A0		; Tail call
 
@@ -1271,7 +1271,7 @@ L7B6B:		CALL	L7C76
 		AND	D
 		LD	A,$08
 		CALL	UpdateAttribs	; Blacked-out attributes
-		JP	L8906		; Tail call
+		JP	DoContinue	; Tail call
 
 L7B78:		CALL	L774D
 		CALL	L7C76
@@ -1315,7 +1315,7 @@ L7BBF:	CALL	L7C76
 		CALL	L7C76
 		SBC		A,D
 		AND		D
-		LD		A,(LA294)
+		LD		A,(Character)
 		CP		$03
 		JR		NZ,L7BDC
 		LD		HL,LFB28
@@ -1334,7 +1334,7 @@ L7BDC:	CALL	L728C
 		CALL	LB104
 		CALL	LACD6
 		JR		NC,L7C0C
-		LD		A,(LA294)
+		LD		A,(Character)
 		RRA
 		JR		C,L7C00
 		EXX
@@ -2042,47 +2042,61 @@ L880A:	LD		H,$88
 		SUB		L
 		ADC		A,B
 		LD		A,D
-L8827:	LD		HL,LA28B
+	;; NB: Fall through
+	
+L8827:		LD	HL,LA28B
 		CALL	SetBit
 		CALL	L8E1D
-		LD		B,$C2
-		JP		PlaySound
-L8835:	LD		A,(LA294)
-		AND		$02
-		RET		Z
-		LD		A,$06
-		CALL	L8873
-		LD		A,$02
-		JR		L8827
-L8844:	LD		A,(LA294)
-		AND		$02
-		RET		Z
-		XOR		A
-		JR		L8873
-L884D:	LD		A,(LA294)
-		AND		$01
-		RET		Z
-		JR		L8873
-L8855:	LD		IX,L8763
-		LD		C,$02
-		JR		L885F
-L885D:	LD		C,$04
-L885F:	LD		A,(LA294)
-		CP		$03
-		JR		Z,L886C
+		LD	B,$C2
+		JP	PlaySound
+
+BoostDonuts:	LD	A,(Character)
+		AND	$02
+		RET	Z		; Must be Head
+		LD	A,CNT_DONUTS
+		CALL	BoostCountPlus
+		LD	A,$02		; FIXME: ?
+		JR	L8827
+	
+BoostSpeed:	LD	A,(Character)
+		AND	$02		; Must be Head
+		RET	Z
+		XOR	A		; Sets to CNT_SPEED
+		JR	BoostCountPlus
+	
+BoostSpring:	LD	A,(Character)
+		AND	$01		; Must be Heels
+		RET	Z
+		JR	BoostCountPlus  ; $01 = CNT_SPRING
+
+BoostInvuln:	LD	IX,L8763
+		LD	C,CNT_HEELS_INVULN
+		JR	BoostMaybeDbl
+BoostLives:	LD	C,CNT_HEELS_LIVES
+BoostMaybeDbl:	LD	A,(Character)
+		CP	$03		; Head and Heels?
+		JR	Z,BoostCountDbl	; Then increment both
 		RRA
-		AND		$01
-		ADD		A,C
-		JR		L8873
-L886C:	LD		A,C
+		AND	$01		; If Head, add 1
+		ADD	A,C
+		JR	BoostCountPlus
+	
+	;; Boosts two subsequent counts. For use when Head and Heels are joined.
+BoostCountDbl:	LD	A,C
 		PUSH	AF
-		CALL	L8878
+		CALL	BoostCount
 		POP	AF
 		INC	A
-L8873:		PUSH	AF
+	;; NB: Fall through
+
+	;; FIXME: Does some other thing before boosting the count.
+BoostCountPlus:	PUSH	AF
 		CALL	L9DF4
 		POP	AF
-L8878:		CALL	GetCountAddr
+	;; NB: Fall through
+
+	;; Boosts whichever count index is provided in A, and displays it.
+BoostCount:	CALL	GetCountAddr
 		CALL	AddBCD
 	;; NB: Fall through
 
@@ -2101,58 +2115,64 @@ SN_1:		CALL	PrintChar
 		POP	AF
 		JP	Print2DigitsR
 
-L8895:		LD	A,D
+	;; FIXME: Decode!
+	;; NB: Not directly called from any code I've seen!
+EndThing:	LD	A,D
 		SUB	$09
 		LD	HL,L866B
 		CALL	SetBit
 		LD	B,$C1
 		CALL	PlaySound
-		JP	L8D9E
-L88A6:		LD	B,$C2
+		JP	L8D9E			; FIXME: Tail call to end screen thing
+
+	;; FIXME: Decode!
+	;; NB: Not directly called from any code I've seen!
+SaveContinue:	LD	B,$C2
 		CALL	PlaySound
 		CALL	GetContinueData
 		LD	IX,L866C
 		LD	DE,L0004
 		LD	B,$06
-L88B7:		LD	(HL),$80
-L88B9:		LD	A,(IX+$00)
+SC_1:		LD	(HL),$80
+SC_2:		LD	A,(IX+$00)
 		ADD	IX,DE
 		RRA
 		RR	(HL)
-		JR	NC,L88B9
+		JR	NC,SC_2
 		INC	HL
-		DJNZ	L88B7
+		DJNZ	SC_1
 		EX	DE,HL
 		LD	HL,Continues
 		INC	(HL)
-		LD	HL,LA294
+		LD	HL,Character
 		LD	A,(HL)
 		LDI
 		LD	HL,Lives
 		LDI
 		LDI
 		CP	$03
-		JR	Z,L88EF
+		JR	Z,SC_3
 		LD	HL,LA2A6
 		CP	(HL)
-		JR	NZ,L88EF
+		JR	NZ,SC_3
 		LD	HL,LFB49
 		LD	BC,L0004
 		LDIR
 		LD	HL,LFB28
-		JR	L88FA
-L88EF:		LD	HL,LA2A2
+		JR	SC_4
+SC_3:		LD	HL,LA2A2
 		LD	BC,L0004
 		LDIR
 		LD	HL,L703B
-L88FA:		LDI
+SC_4:		LDI
 		LDI
 		LD	HL,L703B
 		LDI
 		LDI
 		RET
 
-L8906:		LD	HL,Continues
+	;; FIXME: Decode!
+DoContinue:	LD	HL,Continues
 		DEC	(HL)
 		CALL	GetContinueData
 		LD	A,(HL)
@@ -2169,20 +2189,20 @@ L8906:		LD	HL,Continues
 		LD	DE,L0004
 		LD	B,$2F
 		RR	(HL)
-		JR	L8934
-L892A:		RR	(HL)
+		JR	DC_2
+DC_1:		RR	(HL)
 		SRL	(IX+$00)
-		JR	NZ,L8939
+		JR	NZ,DC_3
 		INC	IX
-L8934:		SCF
+DC_2:		SCF
 		RR	(IX+$00)
-L8939:		RL	(HL)
+DC_3:		RL	(HL)
 		ADD	HL,DE
-		DJNZ	L892A
+		DJNZ	DC_1
 		PUSH	IX
-L8940:		POP	HL 	; FIXME: Self-modifying code or something?
+		POP	HL
 		INC	HL
-		LD	DE,LA294
+		LD	DE,Character
 		LD	A,(HL)
 		LDI
 		LD	DE,Lives
@@ -2192,26 +2212,26 @@ L8940:		POP	HL 	; FIXME: Self-modifying code or something?
 		LDI
 		BIT	0,A
 		LD	DE,LA2C5
-		JR	Z,L895E
+		JR	Z,DC_4
 		LD	DE,LA2D7
-L895E:		LD	BC,L0003
+DC_4:		LD	BC,L0003
 		LDIR
 		LD	DE,L703B
 		LDI
 		LDI
 		CP	$03
-		JR	Z,L8984
+		JR	Z,DC_5
 		LD	BC,(Lives)
 		DEC	B
-		JP	M,L8984
+		JP	M,DC_5
 		DEC	C
-		JP	M,L8984
+		JP	M,DC_5
 		XOR	$03
 		LD	(LFB28),A
 		PUSH	HL
 		CALL	L7B43
 		POP	HL
-L8984:		LD	DE,L703B
+DC_5:		LD	DE,L703B
 		LDI
 		LDI
 		LD	BC,(L703B)
@@ -2290,7 +2310,7 @@ DecrementBCD:	LD	A,(HL)
 		OR	$FF
 		RET
 
-	;; Given a count index in A, return the default (?) value in A, and address in HL.
+	;; Given a count index in A, return the pick-up increment in A, and address in HL.
 	;; Leaves the count index in C.
 	;; Some special case, based on LB218...
 GetCountAddr:	LD	C,A
@@ -2307,10 +2327,10 @@ GCA_1:		LD	HL,Speed 	; Points to start of array of counts
 		RET
 
 	;; Indices for counts of main quantities we hold
-CNT_LIGHTNING:		EQU $00
+CNT_SPEED:		EQU $00
 CNT_SPRING:		EQU $01
-CNT_HEELS_SHIELD:	EQU $02
-CNT_HEAD_SHIELD:	EQU $03
+CNT_HEELS_INVULN:	EQU $02
+CNT_HEAD_INVULN:	EQU $03
 CNT_HEELS_LIVES:	EQU $04
 CNT_HEAD_LIVES:		EQU $05
 CNT_DONUTS:		EQU $06
@@ -2326,21 +2346,8 @@ DefCounts:	DEFB $99	; Speed
 
 Continues:	DEFB $00
 
-ContinueData:	DEFB $00,$00,$00,$00,$00,$00,$00,$00
-X8A1E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-X8A2E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-X8A3E:	DEFB $00,$00
-	
-L8A40:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-X8A4E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-X8A5E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-X8A6E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-X8A7E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-X8A8E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-X8A9E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-X8AAE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-X8ABE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-X8ACE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	;; 11 continue slots, it seems
+ContinueData:	DEFS 11*$12,$00
 	
 L8ADC:	DEFB $00,$00
 L8ADE:	DEFB $00
@@ -2770,7 +2777,7 @@ L9042:	LD		A,$FB
 L9044:	LD		(IY+$0B),A
 		LD		(IY+$0A),$00
 		RET
-L904C:	LD		A,(LA294)
+L904C:	LD		A,(Character)
 		AND		$02
 		JR		L905C
 L9053:	LD		A,$C0
@@ -4236,7 +4243,7 @@ Lives:		DEFB $04	; Heels lives
 		DEFB $04	; Head lives
 Donuts:		DEFB $00	; Donuts
 LA293:	DEFB $00
-LA294:	DEFB $03
+Character:	DEFB $03	; $3 = Both, $2 = Head, $1 = Heels
 LA295:	DEFB $01
 LA296:	DEFB $00
 LA297:	DEFB $00
@@ -4325,7 +4332,7 @@ LA361:	LD		A,(LA314)
 		AND		A
 		JR		Z,LA37E
 		EXX
-		LD		HL,LA294
+		LD		HL,Character
 		LD		A,(LB21A)
 		AND		(HL)
 		EXX
@@ -4342,7 +4349,7 @@ LA37E:	LD		HL,LA296
 		DEC		(HL)
 		JR		NZ,LA3A8
 		LD		(HL),$03
-		LD		HL,(LA294)
+		LD		HL,(Character)
 		LD		A,H
 		ADD		A,A
 		OR		H
@@ -4386,7 +4393,7 @@ LA3C9:	CALL	LA94B
 LA3E5:	LD		A,(L7042)
 		RRA
 		JR		NC,LA451
-		LD		A,(LA294)
+		LD		A,(Character)
 		OR		$FD
 		INC		A
 		LD		HL,LA2BC
@@ -4443,7 +4450,7 @@ LA461:	LD		A,(LA295)
 		PUSH	HL
 		POP		IY
 		CALL	LB0C6
-		LD		A,(LA294)
+		LD		A,(Character)
 		CP		$03
 		JR		Z,LA499
 		LD		HL,LA2A6
@@ -4464,10 +4471,10 @@ LA499:	LD		HL,L0000
 		LD		(LA2A7),HL
 		JP		L70BA
 LA4A2:	DEC		(HL)
-		LD		HL,(LA294)
+		LD		HL,(Character)
 		JP		LA543
 LA4A9:	DEC		(HL)
-		LD		HL,(LA294)
+		LD		HL,(Character)
 		JP		NZ,LA54C
 		LD		A,$07
 		LD		(LB218),A
@@ -4527,7 +4534,7 @@ LA518:	LD		HL,LFB28
 		RET
 LA51E:	CALL	LA518
 LA521:	LD		A,(LA2A6)
-		LD		(LA294),A
+		LD		(Character),A
 		CALL	LA58B
 		CALL	LA94B
 		LD		DE,L0005
@@ -4613,7 +4620,7 @@ LA5D2:	EX		AF,AF'
 LA5E3:	RES		4,(IY+$0B)
 		SET		5,(IY+$0B)
 		DEC		(IY+$07)
-LA5EE:	LD		A,(LA294)
+LA5EE:	LD		A,(Character)
 		AND		$02
 		JR		NZ,LA5FB
 LA5F5:	LD		A,(LA2BB)
@@ -4666,7 +4673,7 @@ LA669:	CALL	LA788
 		INC		A
 		JR		NZ,LA69C
 		XOR		A
-		LD		HL,LA294
+		LD		HL,Character
 		BIT		0,(HL)
 		JR		Z,LA684
 		LD		(LA2E4),A
@@ -4688,13 +4695,13 @@ LA69C:	EX		AF,AF'
 		LD		HL,LA2EA
 		LD		DE,LA2F6
 LA6AB:	PUSH	DE
-		LD		A,(LA294)
+		LD		A,(Character)
 		RRA
 		JR		NC,LA6B8
 		CALL	L8CF0
 		LD		(LA2C8),A
 LA6B8:	POP		HL
-		LD		A,(LA294)
+		LD		A,(Character)
 		AND		$02
 		JR		Z,LA6C6
 		CALL	L8CF0
@@ -4702,11 +4709,11 @@ LA6B8:	POP		HL
 LA6C6:	SET		5,(IY+$0B)
 		JR		LA6E4
 LA6CC:	SET		5,(IY+$0B)
-LA6D0:	LD		A,(LA294)
+LA6D0:	LD		A,(Character)
 		RRA
 		JR		NC,LA6D9
 		LD		(IY+$08),B
-LA6D9:	LD		A,(LA294)
+LA6D9:	LD		A,(Character)
 		AND		$02
 		JR		Z,LA6E4
 		LD		A,C
@@ -4746,7 +4753,7 @@ LA724:	XOR		A
 LA729:	LD		C,A
 		CALL	LA81A
 		RES		5,(IY+$0B)
-		LD		A,(LA294)
+		LD		A,(Character)
 		AND		$02
 		JR		NZ,LA73E
 		DEC		C
@@ -4828,7 +4835,7 @@ LA7D0:	CALL	LA94B
 		DEC		(HL)
 		RET
 LA7E0:		LD		HL,Speed
-		LD		A,(LA294) ; Could bottom bit be 'is currently Heels'?
+		LD		A,(Character) ; Could bottom bit be 'is currently Heels'?
 		AND		$01
 		OR		(HL)
 		RET		Z
@@ -4837,7 +4844,7 @@ LA7E0:		LD		HL,Speed
 		PUSH	BC
 		JR		NZ,LA7FE
 		LD		(HL),$02
-		LD		A,(LA294)
+		LD		A,(Character)
 		RRA
 		JR		C,LA7FE
 		LD		A,$00
@@ -4858,7 +4865,7 @@ LA7FE:	LD		A,$81
 LA81A:	LD		A,$02
 		LD		(LA2A1),A
 		RET
-LA820:	LD		A,(LA294)
+LA820:	LD		A,(Character)
 		LD		B,A
 		DEC		A
 		JR		NZ,LA82B
@@ -4893,7 +4900,7 @@ LA851:	LD		A,(IX+$08)
 		CP		$2C
 		JR		NZ,LA863
 LA862:	INC		C
-LA863:	LD		A,(LA294)
+LA863:	LD		A,(Character)
 		AND		$02
 		JR		NZ,LA873
 		PUSH	BC
@@ -4926,7 +4933,7 @@ LA89A:	LD		A,(L7040)
 		LD		A,(LA28B)
 		RRA
 LA8A3:	JP		NC,L719E
-		LD		A,(LA294)
+		LD		A,(Character)
 		AND		$01
 		JR		Z,LA8A3
 		LD		A,$87
@@ -5002,7 +5009,7 @@ LA938:	LD		A,(LA2BD)
 		AND		A
 		RET		NZ
 		JP		PlaySound
-LA94B:	LD		HL,LA294
+LA94B:	LD		HL,Character
 		BIT		0,(HL)
 		LD		HL,LA2C0
 		RET		NZ
@@ -5015,7 +5022,7 @@ LA958:	XOR		A
 		LD		A,$08
 		LD		(LA2B8),A
 		CALL	L7255
-		LD		A,(LA294)
+		LD		A,(Character)
 		LD		(LA2A6),A
 		CALL	LA94B
 		PUSH	HL
@@ -5129,7 +5136,7 @@ LAA0C:	LD		A,$80
 LAA42:	LD		A,(LAF77)
 		LD		(LA2BC),A
 		RET
-LAA49:	LD		A,(LA294)
+LAA49:	LD		A,(Character)
 		LD		HL,LA295
 		RRA
 		OR		(HL)
@@ -5309,7 +5316,7 @@ LABA6:	LD		A,(LA2BC)
 		AND		A
 		JR		Z,LABE7
 		CALL	LACAF
-		LD		A,(LA294)
+		LD		A,(Character)
 		CP		$03
 		LD		A,$F4
 		JR		Z,LABBA
@@ -6203,7 +6210,7 @@ LB313:		LD		A,B
 		LD		(HL),$0C
 		LD		A,(LB218)
 		AND		A
-		CALL	NZ,L8855
+		CALL	NZ,BoostInvuln
 		LD		B,$C6
 		JP		PlaySound
 LB333:	LD		(IX+$0F),$08
@@ -6622,7 +6629,7 @@ LB621:	LD		A,$30
 LB629:	SUB		B
 		RET		C
 		PUSH	AF
-		LD		A,(LA294)
+		LD		A,(Character)
 		CP		$03
 		JR		NZ,LB638
 		POP		AF
