@@ -13,3 +13,6 @@ done
 ~/bin/lua5.1 xbmify.lua 2 ../img_2x24.bin > ../out/img_2x24.xbm
 
 ~/bin/lua5.1 xbmify.lua 1 ../img_chars.bin > ../out/img_chars.xbm
+
+~/bin/scr2gif ../screen.scr 
+mv ../screen.gif ../out
