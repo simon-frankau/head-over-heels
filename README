@@ -36,6 +36,8 @@ sprite_stuff.asm    FIXME: Sprite odds and ends
 screen_bits.asm	    FIXME: More screen/sprite bits
 get_sprite.asm	    Given a sprite index, return pointers to the data
 
+status.asm	    Counts for lives etc.
+
 Binary files
 ------------
 
