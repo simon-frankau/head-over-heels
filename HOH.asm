@@ -238,110 +238,119 @@ L71A3:	LD		A,(L7041)
 		JR		Z,L719E
 		CP		L
 		JR		Z,L719E
-L71BF:	CALL	L7297
-		LD		BC,(LA2BB)
-		JR		NC,L71C9
-		LD		(HL),C
-L71C9:	INC		HL
+	;; NB: Fall through
+
+SwitchChar:	CALL	SwitchHelper
+		LD	BC,(LA2BB)
+		JR	NC,SwC_1
+		LD	(HL),C
+SwC_1:		INC	HL
 		RRA
-		JR		NC,L71CE
-		LD		(HL),C
-L71CE:	LD		HL,L7041
-		LD		IY,LA2C0
-		LD		A,E
-		CP		$03
-		JR		Z,L7229
-		LD		A,(LA295)
-		AND		A
-		JR		Z,L7229
-		LD		A,(IY+$05)
-		INC		A
-		SUB		(IY+$17)
-		CP		$03
-		JR		NC,L7229
-		LD		C,A
-		LD		A,(IY+$06)
-		INC		A
-		SUB		(IY+$18)
-		CP		$03
-		JR		NC,L7229
-		LD		B,A
-		LD		A,(IY+$07)
-		SUB		$06
-		CP		A,(IY+$19)
-		JR		NZ,L7229
-		LD		E,$FF
-		RR		B
-		JR		C,L720E
-		RR		B
+		JR	NC,SwC_2
+		LD	(HL),C
+SwC_2:		LD	HL,L7041
+		LD	IY,LA2C0
+		LD	A,E
+		CP	$03
+		JR	Z,SwC_6
+		LD	A,(LA295)
+		AND	A
+		JR	Z,SwC_6
+		LD	A,(IY+$05)
+		INC	A
+		SUB	(IY+$17)
+		CP	$03
+		JR	NC,SwC_6
+		LD	C,A
+		LD	A,(IY+$06)
+		INC	A
+		SUB	(IY+$18)
+		CP	$03
+		JR	NC,SwC_6
+		LD	B,A
+		LD	A,(IY+$07)
+		SUB	$06
+		CP	A,(IY+$19)
+		JR	NZ,SwC_6
+		LD	E,$FF
+		RR	B
+		JR	C,SwC_3
+		RR	B
 		CCF
-		CALL	L724D
-L720E:	RR		C
-		JR		C,L7219
-		RR		C
-		CALL	L724D
-		JR		L721D
-L7219:	RLC		E
-		RLC		E
-L721D:	LD		A,$03
-		INC		E
-		JR		Z,L7234
-		DEC		E
-		LD		(IY+$1E),E
-		RES		1,(HL)
+		CALL	SwitchGet
+SwC_3:		RR	C
+		JR	C,SwC_4
+		RR	C
+		CALL	SwitchGet
+		JR	SwC_5
+SwC_4:		RLC	E
+		RLC	E
+SwC_5:		LD	A,$03
+		INC	E
+		JR	Z,SwC_7 	; Switch to Both
+		DEC	E
+		LD	(IY+$1E),E
+		RES	1,(HL)
 		RET
-L7229:	LD		A,$04
-		XOR		(HL)
-		LD		(HL),A
-		AND		$04
-		LD		A,$02
-		JR		Z,L7234
-		DEC		A
-L7234:	LD		(Character),A
-		CALL	L725C
-		CALL	L7297
-		JR		C,L7240
-		INC		HL
-L7240:	LD		A,(HL)
-		LD		(LA2BB),A
-		LD		A,(LA295)
-		AND		A
-		JP		NZ,L8E1D
-		JR		L72B1
-L724D:	PUSH	AF
-		RL		E
-		POP		AF
+SwC_6:		LD	A,$04
+		XOR	(HL)
+		LD	(HL),A
+		AND	$04
+		LD	A,$02
+		JR	Z,SwC_7       	; Zero: Switch to Head
+		DEC	A             	; Otherwise Heels
+SwC_7:		LD	(Character),A
+		CALL	SetCharFlags
+		CALL	SwitchHelper
+		JR	C,SwC_8
+		INC	HL
+SwC_8:		LD	A,(HL)
+		LD	(LA2BB),A
+		LD	A,(LA295)
+		AND	A
+		JP	NZ,L8E1D
+		JR	L72B1
+
+SwitchGet:	PUSH	AF
+		RL	E
+		POP	AF
 		CCF
-		RL		E
+		RL	E
 		RET
-L7255:	LD		IY,LA2C0
-		LD		A,(Character)
-L725C:	LD		(IY+$0A),$00
-		RES		3,(IY+$04)
-		BIT		0,A
-		JR		NZ,L726C
-		LD		(IY+$0A),$01
-L726C:	LD		(IY+$1C),$00
-		RES		3,(IY+$16)
-		BIT		1,A
-		JR		NZ,L727C
-		LD		(IY+$1C),$01
-L727C:	RES		1,(IY+$1B)
-		CP		$03
-		RET		NZ
-		SET		3,(IY+$04)
-		SET		1,(IY+$1B)
+
+SetCharThing:	LD	IY,LA2C0
+		LD	A,(Character)
+	;; NB: Fall through
+	
+SetCharFlags:	LD	(IY+$0A),$00 	; Default to 0.
+		RES	3,(IY+$04)
+		BIT	0,A 		; Have a Heels?
+		JR	NZ,SCF_1
+		LD	(IY+$0A),$01 	; No, set to 1.
+SCF_1:		LD	(IY+$1C),$00	; Default to 0.
+		RES	3,(IY+$16)
+		BIT	1,A 		; Have a Head?
+		JR	NZ,SCF_2
+		LD	(IY+$1C),$01 	; No, set to 1.
+SCF_2:		RES	1,(IY+$1B)
+		CP	$03
+		RET	NZ
+		SET	3,(IY+$04) 	; If Both, set these. Otherwise, was reset.
+		SET	1,(IY+$1B)
 		RET
-L728C:	LD		HL,(L703B)
-		LD		DE,(LFB28)
-		AND		A
-		SBC		HL,DE
+
+L728C:		LD	HL,(L703B)
+		LD	DE,(LFB28)
+		AND	A
+		SBC	HL,DE
 		RET
-L7297:	LD		A,(Character)
-		LD		HL,L7044
-		LD		E,A
+
+SwitchHelper:	LD	A,(Character)
+		LD	HL,L7044
+		LD	E,A
 		RRA
 		RET
+
 L72A0:	XOR		A
 		JR		L72A9
 L72A3:	LD		A,$FF
@@ -406,12 +415,14 @@ L7305:		LD		HL,(LAF92) 	; NB: Referenced as data.
 		LD		HL,LAF82
 		LD		BC,L0008
 		JP		FillZero
-L7314:	LD		HL,Character
-		BIT		0,(HL)
-		LD		HL,LA2C0
+	
+L7314:		LD		HL,Character
+		BIT		0,(HL) 		; Heels?
+		LD		HL,LA2C0	; No Heels case
 		RET		Z
-		LD		HL,LA2D2
+		LD		HL,LA2D2 	; Have Heels case
 		RET
+
 L7321:	POP		IX
 		LD		C,(IX+$00)
 		INC		IX
@@ -1277,7 +1288,7 @@ L7B78:		CALL	L774D
 		CALL	L7C76
 		SBC	A,D
 		AND	D
-		CALL	L7255
+		CALL	SetCharThing
 		CALL	L7C1A
 		CALL	L7395
 		XOR	A
@@ -1309,57 +1320,57 @@ L7BB3:		LD	A,(AttribScheme)
 		CALL	PrintStatus
 		JP	L8E1D		; Tail call
 
-L7BBF:	CALL	L7C76
-		LD		E,E
-		XOR		A
+L7BBF:		CALL	L7C76
+		LD	E,E
+		XOR	A
 		CALL	L7C76
-		SBC		A,D
-		AND		D
-		LD		A,(Character)
-		CP		$03
-		JR		NZ,L7BDC
-		LD		HL,LFB28
-		SET		0,(HL)
+		SBC	A,D
+		AND	D
+		LD	A,(Character)
+		CP	$03
+		JR	NZ,L7BDC
+		LD	HL,LFB28
+		SET	0,(HL)
 		CALL	L7752
-		LD		A,$01
-		JR		L7C14
-L7BDC:	CALL	L728C
-		JR		NZ,L7C10
+		LD	A,$01
+		JR	L7C14
+L7BDC:		CALL	L728C
+		JR	NZ,L7C10
 		CALL	L72A3
 		CALL	L774D
-		LD		HL,LA2C0
+		LD	HL,LA2C0
 		CALL	LB104
 		EXX
-		LD		HL,LA2D2
+		LD	HL,LA2D2
 		CALL	LB104
 		CALL	LACD6
-		JR		NC,L7C0C
-		LD		A,(Character)
+		JR	NC,L7C0C
+		LD	A,(Character)
 		RRA
-		JR		C,L7C00
+		JR	C,L7C00
 		EXX
-L7C00:	LD		A,B
-		ADD		A,$05
+L7C00:		LD	A,B
+		ADD	A,$05
 		EXX
-		CP		B
-		JR		C,L7C0C
-		LD		A,$FF
-		LD		(L7B8F),A
-L7C0C:	LD		A,$01
-		JR		L7C14
-L7C10:	CALL	L7752
-		XOR		A
-L7C14:	LD		(LA295),A
-		JP		L7C1A
-L7C1A:	LD		HL,(L7718)
-		LD		A,(L7717)
+		CP	B
+		JR	C,L7C0C
+		LD	A,$FF
+		LD	(L7B8F),A
+L7C0C:		LD	A,$01
+		JR	L7C14
+L7C10:		CALL	L7752
+		XOR	A
+L7C14:		LD	(LA295),A
+		JP	L7C1A
+L7C1A:		LD	HL,(L7718)
+		LD	A,(L7717)
 		PUSH	AF
-		BIT		1,A
-		JR		Z,L7C29
-		DEC		H
-		DEC		H
-		DEC		H
-		DEC		H
+		BIT	1,A
+		JR	Z,L7C29
+		DEC	H
+		DEC	H
+		DEC	H
+		DEC	H
 L7C29:	RRA
 		LD		A,L
 		JR		NC,L7C30
@@ -1405,6 +1416,7 @@ L7C61:	INC		HL
 		DEC		HL
 		LD		(HL),A
 		RET
+
 L7C6B:	LD		HL,LBA00
 L7C6E:	LD		A,(HL)
 		AND		A
@@ -2481,29 +2493,34 @@ L9042:	LD		A,$FB
 L9044:	LD		(IY+$0B),A
 		LD		(IY+$0A),$00
 		RET
-L904C:	LD		A,(Character)
-		AND		$02
-		JR		L905C
-L9053:	LD		A,$C0
-		LD		BC,LCF3E
-		OR		A,(IY+$0C)
-		INC		A
-L905C:	RET		Z
-L905D:	LD		A,$05
+	
+L904C:		LD	A,(Character)
+		AND	$02			; Test if we have Head (returns early if not)
+		JR	L905C
+
+L9053:		LD	A,$C0
+		LD	BC,LCF3E
+		OR	A,(IY+$0C)
+		INC	A
+	;; NB: Fall through
+
+L905C:		RET	Z	
+L905D:		LD	A,$05
 		CALL	LA92C
-		LD		A,(IY+$0A)
-		AND		$80
-		OR		$11
-		LD		(IY+$0A),A
-		LD		(IY+$0F),$08
-		LD		(IY+$04),$80
+		LD	A,(IY+$0A)
+		AND	$80
+		OR	$11
+		LD	(IY+$0A),A
+		LD	(IY+$0F),$08
+		LD	(IY+$04),$80
 		CALL	L92A6
 		CALL	L92D2
-		LD		A,(IY+$0F)
-		AND		$07
-		JP		NZ,L92B7
-		LD		HL,(L822B)
-		JP		L8D4B
+		LD	A,(IY+$0F)
+		AND	$07
+		JP	NZ,L92B7
+		LD	HL,(L822B)
+		JP	L8D4B
+
 L9088:	LD		B,(IY+$08)
 		BIT		5,(IY+$0C)
 		SET		5,(IY+$0C)
@@ -4102,7 +4119,7 @@ LA3E5:	LD		A,(L7042)
 		INC		A
 		LD		HL,LA2BC
 		OR		(HL)
-		JR		NZ,LA44E
+		JR		NZ,LA44E ; Jumps if not Head (alone) or ...
 		LD		A,(LA28B)
 		OR		$F9
 		INC		A
@@ -4230,14 +4247,14 @@ LA508:	LD		A,(HL)
 		AND		A
 		JR		NZ,LA51E
 		LD		(LA295),A
-LA50F:	CALL	L71BF
+LA50F:	CALL	SwitchChar
 		LD		HL,L0000
 		LD		(LB219),HL
 LA518:	LD		HL,LFB28
 		SET		0,(HL)
 		RET
 LA51E:	CALL	LA518
-LA521:	LD		A,(LA2A6)
+LA521:		LD		A,(LA2A6)
 		LD		(Character),A
 		CALL	LA58B
 		CALL	LA94B
@@ -4538,8 +4555,8 @@ LA7D0:	CALL	LA94B
 		JR		Z,LA7E0
 		DEC		(HL)
 		RET
-LA7E0:		LD		HL,Speed
-		LD		A,(Character) ; Could bottom bit be 'is currently Heels'?
+LA7E0:		LD		HL,Speed ; FIXME: Fast if have Speed or are Heels...
+		LD		A,(Character)
 		AND		$01
 		OR		(HL)
 		RET		Z
@@ -4713,7 +4730,8 @@ LA938:	LD		A,(LA2BD)
 		AND		A
 		RET		NZ
 		JP		PlaySound
-LA94B:	LD		HL,Character
+	
+LA94B:		LD		HL,Character
 		BIT		0,(HL)
 		LD		HL,LA2C0
 		RET		NZ
@@ -4725,7 +4743,7 @@ LA958:	XOR		A
 		LD		(LA30A),A
 		LD		A,$08
 		LD		(LA2B8),A
-		CALL	L7255
+		CALL	SetCharThing
 		LD		A,(Character)
 		LD		(LA2A6),A
 		CALL	LA94B
@@ -4840,7 +4858,8 @@ LAA0C:	LD		A,$80
 LAA42:	LD		A,(LAF77)
 		LD		(LA2BC),A
 		RET
-LAA49:	LD		A,(Character)
+	
+LAA49:		LD		A,(Character)
 		LD		HL,LA295
 		RRA
 		OR		(HL)
