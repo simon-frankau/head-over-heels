@@ -81,7 +81,7 @@ GCM_1:		PUSH	BC
 		PUSH	BC
 		LD	A,B
 		DEC	A
-		CALL	L75ED		; FIXME: ?
+		CALL	ListControls
 		POP	BC
 		DJNZ	GCM_1
 GCM_2:		CALL	MenuStepAlt
@@ -97,7 +97,7 @@ GCM_2:		CALL	MenuStepAlt
 		LD	A,(IX+MENU_CUR_ITEM)
 		CALL	PrepCtrlEdit
 		LD	A,(IX+MENU_CUR_ITEM)
-		CALL	L761C		; FIXME: ?
+		CALL	EditControls
 		LD	A,STR_PRESS_SHFT_TO_FIN
 		CALL	PrintChar
 		JR	GCM_2
@@ -184,8 +184,8 @@ GOS_2:		CALL	PrintChar
 		CALL	Print2DigitsL
 		LD	A,STR_PLANETS
 		CALL	PrintChar
-GOS_3:		CALL	AltPlaySound
-		CALL	GetMaybeEnter
+GOS_3:		CALL	AltPlaySound 	; Loop here until key pressed.
+		CALL	GetInputEntSh
 		JR	C,GOS_3
 		LD	B,$C0
 		JP	PlaySound
@@ -212,18 +212,17 @@ MENU_INIT_X:	EQU $02		; Initial X coordinate of the menu items
 MENU_INIT_Y:	EQU $03		; Initial Y coordinate of the menu items
 MENU_STR_BASE:	EQU $04		; First string index of items in the menu
 
-	;; FIXME: This alternate version uses something other than
-	;; enter to step through.
-MenuStepAlt:	CALL	GetMaybeEnter
+	;; Version of MenuStep that doesn't step on Enter.
+MenuStepAlt:	CALL	GetInputEntSh
 		RET	C
 		LD	A,C
 		CP	$01
-		JR	NZ,MenuStepCore
+		JR	NZ,MenuStepCore		; Call if the key pressed /wasn't/ Enter
 		AND	A
 		RET
 
 	;; A loop that's repeatedly called for menus.
-MenuStep:	CALL	GetMaybeEnter
+MenuStep:	CALL	GetInputEntSh
 		RET	C
 		LD	A,C
 	;; NB: Fall through

@@ -32,7 +32,7 @@ L8DC2:		LD	A,STR_EMPIRE_BLURB
 		LD	DE,(L866B)
 		LD	D,$05
 		CALL	DrawFromList
-L8DDF:		CALL	GetInputWait
+L8DDF:		CALL	WaitInputClear
 		CALL	L8DED
 		CALL	ScreenWipe
 		LD	B,$C1
@@ -41,9 +41,9 @@ L8DDF:		CALL	GetInputWait
 L8DED:		LD	HL,LA800
 L8DF0:		PUSH	HL
 		CALL	AltPlaySound
-		CALL	GetMaybeEnter
+		CALL	GetInputEntSh
 		POP	HL
-		RET	NC
+		RET	NC		; Return if key was pressed.
 		DEC	HL
 		LD	A,H
 		OR	L

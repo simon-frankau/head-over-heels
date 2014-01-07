@@ -2,11 +2,14 @@
 	;; controls.asm
 	;;
 	;; Control configuration and reading functions
-	;;
-	;; FIXME: Needs more analysis
 	;; 
 
-
+	;; Main exported functions:
+	;; * InitStick
+	;; * WaitInputClear
+	;; * GetInputEntSh
+	;; * ListControls
+	
 DELIM:	EQU $FF			; String delimiter
 	
 	;; Strings table for indices >= 0x60 (i.e. 0xE0 once the top bit is set).
@@ -45,21 +48,25 @@ STR_SPC:	EQU $ED
 			DEFB DELIM,CTRL_ATTR3,"SPC"
 			DEFB DELIM
 
+	;; NB: These are in port $FE scanning order.
 CharSet:	DEFB STR_SHIFT,"ZXCVASDFGQWERT1234509876POIUY"
 		DEFB STR_ENTER2,"LKJH",STR_SPC,STR_SSH,"MNB"
 		DEFB STR_F,STR_U,STR_D,STR_R,STR_L
 
-L74D2:	DEFB $FF,$FF,$FF,$FF,$FF,$FF,$E0,$FF
-	DEFB $FF,$FF,$FE,$FF,$FF,$FF,$FF,$E1
-	DEFB $FF,$FF,$FF,$FE,$FF,$FF,$FF,$FF
-	DEFB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-	DEFB $EF,$F7,$FB,$FD,$FE,$FF,$FF,$FF
-	DEFB $FD,$FE,$FF,$FF,$FF,$FF,$FF,$FF
-	DEFB $FF,$FF,$FF,$FF,$FF,$F0,$FF,$FF
-	DEFB $FF,$FF,$FF,$FF,$E0,$FE,$FF,$FF
-	DEFB $EF,$F7,$FB,$FD,$FE,$FF,$FF,$FF
+KeyMap:
+	;; Based on half-line keyboard scans.
+	;;   Left  Right Down  Up   Jump  Carry  Fire  Swop 
+	DEFB $FF,  $FF,	 $FF,  $FF, $FF,  $FF,   $E0,  $FF ; Shift,ZXCV = fire
+	DEFB $FF,  $FF,	 $FE,  $FF, $FF,  $FF,   $FF,  $E1 ; A = d, SDFG = swop 
+	DEFB $FF,  $FF,	 $FF,  $FE, $FF,  $FF,   $FF,  $FF ; Q = u
+	DEFB $FF,  $FF,	 $FF,  $FF, $FF,  $FF,   $FF,  $FF ; NA
+	DEFB $EF,  $F7,	 $FB,  $FD, $FE,  $FF,   $FF,  $FF ; 6 = l, 7 = r, 8 = d, 9 = u, 0 = u
+	DEFB $FD,  $FE,	 $FF,  $FF, $FF,  $FF,   $FF,  $FF ; O = l, P = r
+	DEFB $FF,  $FF,	 $FF,  $FF, $FF,  $F0,   $FF,  $FF ; Enter,LKJ = carry
+	DEFB $FF,  $FF,	 $FF,  $FF, $E0,  $FE,   $FF,  $FF ; B = l, N = r, M = d, SS = u, Spc = j
+	DEFB $EF,  $F7,	 $FB,  $FD, $FE,  $FF,   $FF,  $FF ; Obvious joystick mapping
 
-	;; FIXME: Suspect this is the stick-select screen
+	;; Joystick selection menu, called by InitStick
 GoStickMenu:	LD	A,STR_JOY_MENU
 		CALL	PrintChar
 		LD	IX,MENU_STICK
@@ -74,15 +81,15 @@ MENU_STICK:	DEFB $00		; Selected menu item
 		DEFB $08		; Initial row
 		DEFB STR_KEYSTICK	; Keyboard, Kempston, Fuller
 	
-InitStick:	LD	B,$04
+InitStick:	LD	B,$04			; Read 4 times.
 IS_1:		IN	A,($1F)			; Kempston port
 		AND	$1F
 		CP	$1F
-		JR	NC,IS_2
+		JR	NC,IS_2			; Break if equals $1F.
 		DJNZ	IS_1
 IS_2:		SBC	A,A
 		AND	$01
-		LD	(MENU_STICK),A
+		LD	(MENU_STICK),A 		; Init to 1 if didn't equal $1F.
 		CALL	GoStickMenu
 		LD	A,(MENU_STICK)
 		SUB	$01
@@ -90,14 +97,19 @@ IS_2:		SBC	A,A
 		LD	HL,Kempston
 		JR	Z,IS_3			; MENU_STICK = 1: Kempston
 		LD	HL,Fuller		; MENU_STICK = 2: Fuller
-IS_3:		LD	(InputThingJoy+1),HL	; Install joystick hooks
-		LD	(StickCall+1),HL
+IS_3:		LD	(GIC_Joy+1),HL		; Self-modifying code!
+		LD	(StickCall+1),HL	; Ditto
 		XOR	A
 		LD	(GI_Noppable),A		; NOP the RET to fall through
 		LD	A,$CD
-		LD	(InputThing),A 		; Make it into a 'CALL', so that it returns.
+		LD	(GetInputCtrls),A 	; Make it into a 'CALL', so that it returns.
 		RET
 
+	;; These functions return the keys as follows:
+	;; 0x10 - Left, 0x08 - Right, 0x04 - Down, 0x02 - Up, 0x01 - Fire
+	;; (i.e. same order as menu)
+	;; All bits are set by default, and reset if pressed.
+	
 	;;  Joystick handler for Kempston
 Kempston:	IN	A,($1F)
 		LD	B,A
@@ -133,9 +145,14 @@ Fuller:		IN	A,($7F)
 		OR	$E0
 		RET
 
-	;; FIXME: Work out precisely what this is doing...
+	;; Scan input and return single key/button.
+	;; Returns 0 in A if something pressed, and the code in B.
+	;; Otherwise returns non-zero in A.
+	;; We return LBF20 + row idx in HL, apparently to help EditControls,
+	;; and C the actual bit-mask.
 GetInput:	LD		HL,LBF20
 		LD		BC,LFEFE
+	;; This bit scans for any key pressed. Jumps to GI_2 if found.
 GI_1:		IN		A,(C)
 		OR		$E0
 		INC		A
@@ -143,28 +160,31 @@ GI_1:		IN		A,(C)
 		INC		HL
 		RLC		B
 		JR		C,GI_1
-		INC		A
+		INC		A		; Return 1 if nothing found.
 GI_Noppable:	RET				; May get overwritten for fall-through.
+	;; Now scan stick...
 StickCall:	CALL		Kempston
 		INC		A
 		JR		NZ,GI_2
-		DEC		A
+		DEC		A 		; Return -1 if nothing found.
 		RET
-GI_2:		DEC		A
+	;; Found something!
+GI_2:		DEC		A 		; Back to what we saw.
+	;; Find first un-set bit.
 		LD		BC,LFF7F
-GI_3:		RLC		C
-		INC		B
+GI_3:		RLC		C		; Generate the bit mask for one key
+		INC		B 		; Count with B
 		RRA
 		JR		C,GI_3
 		LD		A,L
-		SUB		$20
+		SUB		LBF20 & $FF	; Convert back to index
 		LD		E,A
 		ADD		A,A
 		ADD		A,A
-		ADD		A,E
-		ADD		A,B
-		LD		B,A
-		XOR		A
+		ADD		A,E 		; x5
+		ADD		A,B		; Add half-keyboard/joystick bit index
+		LD		B,A 		; And stash results in B...
+		XOR		A		; returning zero
 		RET
 
 	;; Given an index in B, get the string identifier for it in A.
@@ -177,123 +197,135 @@ GetCharStrId:	LD		A,B
 		LD		A,(HL)
 		RET
 
-	;;  Like GetInput, but blocking.
-GetInputWait:	CALL	GetInput
-		JR	Z,GetInputWait
+	;; Wait until nothing is pressed
+WaitInputClear:	CALL	GetInput
+		JR	Z,WaitInputClear
 		RET
 
 	;; Checks keys.
 	;; Carry is set if nothing was detected
 	;; Returns zero in C if enter was detected
-	;;
-	;; FIXME: Reverse how this actually works!
-GetMaybeEnter:	CALL	GetInput
+GetInputEntSh:	CALL	GetInput
 		SCF
 		RET	NZ
 		LD	A,B
 		LD	C,$00
 		CP	$1E
-		RET	Z
+		RET	Z	; Return 0 in C if Enter
 		INC	C
 		AND	A
-		RET	Z
+		RET	Z	; Return 1 in C if Shift...
 		CP	$24
-		RET	Z
+		RET	Z	; or symbol shift.
 		INC	C
 		XOR	A
-		RET
+		RET		; Otherwise, return 2 in C.
 
-L75E5:		LD	DE,L74D2
+
+	;; Index into the key map. Takes index in A, returns address in HL.
+GetKeyMapAddr:	LD	DE,KeyMap
 		LD	L,A
 		LD	H,$00
 		ADD	HL,DE
 		RET
 
-L75ED:		CALL	L75E5
-		LD	C,$00
-L75F2:		LD	A,(HL)
+ListControls:	CALL	GetKeyMapAddr
+		LD	C,$00			; Half-row-based counter
+LC_1:		LD	A,(HL)			; Load the contents of the map
 		LD	B,$FF
-L75F5:		CP	$FF
-		JR	Z,L760F
-L75F9:		INC	B
-		SCF
+LC_2:		CP	$FF
+		JR	Z,LC_4			; Nothing of interest left? Done.
+LC_3:		INC	B
+		SCF				; (NB: Fill 'done' bits)
 		RRA
-		JR	C,L75F9
+		JR	C,LC_3			; Find index of next bit in B.
 		PUSH	HL
 		PUSH	AF
 		LD	A,C
-		ADD	A,B
+		ADD	A,B			; Put index into A...
 		PUSH	BC
 		LD	B,A
 		CALL	GetCharStrId
-		CALL	PrintCharAttr2
+		CALL	PrintCharAttr2 		; and print corresponding string.
 		POP	BC
 		POP	AF
 		POP	HL
-		JR	L75F5
-L760F:		LD	DE,L0008
+		JR	LC_2			; Looping until nothing interesting left.
+LC_4:		LD	DE,L0008		; Go to next half-row...
 		ADD	HL,DE
 		LD	A,C
-		ADD	A,$05
+		ADD	A,$05			; updating the counter,
 		LD	C,A
-		CP	$2D
-		JR	C,L75F2
+		CP	9 * 5			; until all rows are down.
+		JR	C,LC_1
 		RET
 
-L761C:		CALL	L75E5
+EditControls:	CALL	GetKeyMapAddr
 		PUSH	HL
-		CALL	GetInputWait
+		CALL	WaitInputClear
+	;; Initialise the buffer
 		LD	HL,LBF20
 		LD	E,$FF
 		LD	BC,L0009
 		CALL	FillValue
-L762E:		CALL	GetInput
-		JR	NZ,L762E
+	;; Get a character...
+EC_1:		CALL	GetInput
+		JR	NZ,EC_1
 		LD	A,B
 		CP	$1E
-		JR	Z,L765B
-L7638:		LD	A,C
+		JR	Z,EC_3			; If it's enter, jump to EC_3.
+	;; got it, and it's not enter.
+EC_2:		LD	A,C
+	;; Loop until released (?)
 		AND	(HL)
 		CP	(HL)
 		LD	(HL),A
-		JR	Z,L762E
+		JR	Z,EC_1
+	;; Print the character
 		CALL	GetCharStrId
 		CALL	PrintCharAttr2
+	;; Now print the enter to finish message (after first char).
 		LD	HL,(CharCursor)
 		PUSH	HL
 		LD	A,STR_ENTER_TO_FINISH
 		CALL	PrintChar
-		CALL	GetInputWait
+		CALL	WaitInputClear
 		POP	HL
 		LD	(CharCursor),HL
+	;; Get more characters, as long as we don't run out of space.
 		LD	A,$C0
 		SUB	L
 		CP	$14
-		JR	NC,L762E
-L765B:		EXX
+		JR	NC,EC_1
+	;; Now update map (?)
+EC_3:		EXX
+	;; Search for a pressed key...
 		LD	HL,LBF20
 		LD	A,$FF
 		LD	B,$09
-L7663:		CP	(HL)
+EC_4:		CP	(HL)
 		INC	HL
-		JR	NZ,L766E
-		DJNZ	L7663
+		JR	NZ,EC_5
+		DJNZ	EC_4
+	;; Found nothing, must be first char, treat enter as the key to set.
 		EXX
 		LD	A,$1E
-		JR	L7638
-L766E:		POP	HL
+		JR	EC_2
+	;; Found something!
+EC_5:		POP	HL
+	;; And copy our buffer over to the main KeyMap buffer.
 		LD	BC,L0008
 		LD	A,$09
 		LD	DE,LBF20
-L7677:		EX	AF,AF'
+EC_6:		EX	AF,AF'
 		LD	A,(DE)
 		LD	(HL),A
 		INC	DE
 		ADD	HL,BC
 		EX	AF,AF'
 		DEC	A
-		JR	NZ,L7677
-		JP	GetInputWait
+		JR	NZ,EC_6
+		JP	WaitInputClear 		; Tail call
 
 PrintCharAttr2:	PUSH	AF
 		LD	A,CTRL_ATTR2

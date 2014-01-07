@@ -42,7 +42,7 @@ L7041:		DEFB $00
 L7042:		DEFB $00
 FrameCounter:	DEFB $01
 L7044:		DEFB $FB,$FB
-L7046:		CALL	GameOverScreen
+FinishGame:	CALL	GameOverScreen
 
 Main:		LD	SP,$FFF4
 		CALL	GoMainMenu
@@ -61,7 +61,7 @@ MainLoop:	CALL	WaitFrame
 		CALL	L713F
 		CALL	L7095
 		CALL	L93B0
-		CALL	L70FD
+		CALL	CheckPause
 		CALL	L71A3
 		LD	HL,LA2BE
 		LD	A,(HL)
@@ -86,7 +86,7 @@ L7095:	CALL	L708B
 		DEC		(HL)
 		LD		A,(HL)
 		INC		A
-		JP		Z,L7046
+		JP		Z,FinishGame
 		LD		B,$C1
 		CP		$30
 		PUSH	AF
@@ -132,30 +132,36 @@ WaitFrame:	LD		A,(FrameCounter)
 		LD		(FrameCounter),A
 		RET
 
-L70FD:	CALL	L9643
-		RET		NZ
-		LD		B,$C0
+	;; Checks for pausing key, and if it's pressed, pauses. 
+CheckPause:	CALL	IsHPressed
+		RET	NZ
+	;; Play pause sound
+		LD	B,$C0
 		CALL	PlaySound
-		CALL	GetInputWait
+	;; Display pause message...
+		CALL	WaitInputClear
 		LD	A,STR_FINISH_RESTART
 		CALL	PrintChar
-L710E:	CALL	GetMaybeEnter
-		JR		C,L710E
-		DEC		C
-		JP		Z,L7046
-		CALL	GetInputWait
+	;; Wait for a key...
+CP_1:		CALL	GetInputEntSh
+		JR	C,CP_1
+		DEC	C
+		JP	Z,FinishGame		; Pressed a shift key.
+	;; Continue
+	;; FIXME: Interesting one to understand...
+		CALL	WaitInputClear
 		CALL	L7BB3
-		LD		HL,L4C50
-L7120:	PUSH	HL
-		LD		DE,L6088
+		LD	HL,L4C50
+CP_2:		PUSH	HL
+		LD	DE,L6088
 		CALL	LA0A8
-		POP		HL
-		LD		A,L
-		LD		H,A
-		ADD		A,$14
-		LD		L,A
-		CP		$B5
-		JR		C,L7120
+		POP	HL
+		LD	A,L
+		LD	H,A
+		ADD	A,$14
+		LD	L,A
+		CP	$B5
+		JR	C,CP_2
 		RET
 
 	;; Receives sensitivity in A
@@ -166,24 +172,24 @@ SetSens:	LD	HL,HighSensFn 		; High sensitivity routine
 SetSens_1:	LD	(SensFnCall+1),HL	; Modifies code
 		RET
 
-L713F:	CALL	InputThing
-		BIT		7,A
-		LD		HL,L7040
+L713F:		CALL	GetInputCtrls
+		BIT	7,A
+		LD	HL,L7040
 		CALL	L718F
-		BIT		5,A
+		BIT	5,A
 		CALL	L718E
-		BIT		6,A
+		BIT	6,A
 		CALL	L718E
-		LD		C,A
+		LD	C,A
 		RRA
 		CALL	L8C90
-		CP		$FF
-		JR		Z,L7189
+		CP	$FF
+		JR	Z,L7189
 		RRA
-SensFnCall:	JP		C,LowSensFn 	; NB: Self-modifying code target
-		LD		A,C
-		LD		(L703E),A
-		LD		(L703F),A
+SensFnCall:	JP	C,LowSensFn 		; NB: Self-modifying code target
+		LD	A,C
+		LD	(L703E),A
+		LD	(L703F),A
 		RET
 
 HighSensFn:	LD		A,(L703E)
@@ -2936,41 +2942,46 @@ Attrib5:	DEFB $46
 
 #include "screen_bits.asm"
 
-InputThing:	JP	InputThingKbd	; If joystick used, this is rewritten as 'CALL'.
+	;; Return in A a bit mask of currently pressed controls (pressed = low).
+GetInputCtrls:	JP	GIC_Kbd		; If joystick used, this is rewritten as 'CALL'.
 		RLCA
 		RLCA
 		RLCA
 		EX 	AF,AF'
-InputThingJoy:	CALL 	Kempston	; Rewritten with the appropriate joystick call.
+GIC_Joy:	CALL 	Kempston	; Rewritten with the appropriate joystick call.
 		LD 	B,0
 		LD 	E,A
-		JR 	IT_2	
-InputThingKbd:	LD	B,$FE
+		JR 	GIC_2		; Then feed the joystick moves through the lookup, too.
+GIC_Kbd:	LD	B,$FE
 		LD	A,$FF
-		LD	HL,L74D2
-IT_1:		EX	AF,AF'
+		LD	HL,KeyMap
+	;; Do one half-row at a time, B from $FE to $7F (one bit low at a time)
+GIC_1:		EX	AF,AF'
 		LD	C,$FE
 		IN	E,(C)
-IT_2:		LD	C,$08
-IT_3:		LD	A,(HL)
+GIC_2:		LD	C,$08		; We'll loop 8 times, to build a bit-mask
+GIC_3:		LD	A,(HL)
 		OR	E
 		OR	$E0
-		CP	$FF
+		CP	$FF		; Carry if there's a bit low in read value and (HL)
 		CCF
-		RL	D
+		RL	D		; Which becomes a bit set in D.
 		INC	HL
 		DEC	C
-		JR	NZ,IT_3
+		JR	NZ,GIC_3	; And loop, for 8 control bits.
 		EX	AF,AF'
-		AND	D
+		AND	D		; And in the extra bits...
 		RLC	B
-		JR	C,IT_1
+		JR	C,GIC_1		; then do the next half-row
+	;; Bits are currently set as in the order in controls menu, so...
 		RRCA
 		RRCA
 		RRCA
+	;; Now: (MSB) Carry Fire Swop Left Right Down Up Jump (LSB)
 		RET
 
-L9643:		LD	A,$BF
+	;; Checks to see if the button 'H' is pressed.
+IsHPressed:	LD	A,$BF
 		IN	A,($FE)
 		AND	$10
 		RET
@@ -4222,7 +4233,7 @@ LA4DA:	INC		HL
 		LD		A,(HL)
 		DEC		HL
 		OR		(HL)
-		JP		Z,L7046
+		JP		Z,FinishGame
 		LD		A,D
 		AND		A
 		JR		NZ,LA521
