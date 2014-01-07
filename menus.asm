@@ -67,11 +67,14 @@ MENU_SOUND:	DEFB $00		; Selected menu item
 		DEFB $08		; Initial row
 		DEFB STR_LOTS		; Lots of it, not so much, pardon
 
-	;; FIXME: Look at details of this
-GoControlsMenu:	LD	A,STR_SELECT_THEN_SHIFT
+	;; Run the controls-editing menu
+GoControlsMenu:
+	;; Draw the menu boilerplate
+		LD	A,STR_SELECT_THEN_SHIFT
 		CALL	PrintChar
 		LD	IX,MENU_CONTROLS
 		CALL	DrawMenu
+	;; Then draw the current controls
 		LD	B,$08
 GCM_1:		PUSH	BC
 		LD	A,B
@@ -84,6 +87,7 @@ GCM_1:		PUSH	BC
 		CALL	ListControls
 		POP	BC
 		DJNZ	GCM_1
+	;; Then do the control-editing loop
 GCM_2:		CALL	MenuStepAlt
 		JR	C,GCM_2
 		RET	NZ
