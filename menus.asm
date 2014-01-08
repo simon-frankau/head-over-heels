@@ -15,6 +15,7 @@ MainMenuSpriteList:	DEFB SPR_HEAD1,            $60,$60
 			DEFB SPR_CROWN,            $60,$48
 			DEFB SPR_CROWN  | SPR_FLIP,$8C,$48
 
+	;; Main menu - returns with carry for new game, without for old.
 GoMainMenu:	LD	A,STR_GO_TITLE_SCREEN
 		CALL	PrintChar
 		LD	IX,MENU_MAIN

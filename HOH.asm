@@ -46,23 +46,24 @@ FinishGame:	CALL	GameOverScreen
 
 Main:		LD	SP,$FFF4
 		CALL	GoMainMenu
-		JR	NC,Main_1
-		CALL	L7B0E
-		JR	Main_2
-Main_1:		CALL	AltPlaySound
-		CALL	L7B6B
-Main_2:		CALL	L8DC2
+		JR	NC,MainContinue
+		CALL	InitNewGame
+		JR	MainStart
+MainContinue:	CALL	AltPlaySound
+		CALL	InitContinue
+MainStart:	CALL	L8DC2
 		LD	A,$40
 		LD	(L8F18),A
 MainB:		XOR	A
 		LD	(L703D),A
 		CALL	L7B91
+	;; The main game-playing loop
 MainLoop:	CALL	WaitFrame
-		CALL	L713F
-		CALL	L7095
-		CALL	L93B0
+		CALL	MainLoop1
+		CALL	MainLoop2
+		CALL	MainLoop3
 		CALL	CheckPause
-		CALL	L71A3
+		CALL	MainLoop4
 		LD	HL,LA2BE
 		LD	A,(HL)
 		SUB	$01
@@ -77,7 +78,7 @@ L708B:	LD		HL,(L703B)
 		XOR		A
 		SBC		HL,BC
 		RET
-L7095:	CALL	L708B
+MainLoop2:	CALL	L708B
 		RET		NZ
 		LD		(L7041),A
 		DEC		A
@@ -172,7 +173,7 @@ SetSens:	LD	HL,HighSensFn 		; High sensitivity routine
 SetSens_1:	LD	(SensFnCall+1),HL	; Modifies code
 		RET
 
-L713F:		CALL	GetInputCtrls
+MainLoop1:	CALL	GetInputCtrls
 		BIT	7,A
 		LD	HL,L7040
 		CALL	L718F
@@ -229,7 +230,7 @@ L7196:	BIT		1,(HL)
 		RET
 L719E:	LD		B,$C4
 		JP		PlaySound
-L71A3:	LD		A,(L7041)
+MainLoop4:	LD		A,(L7041)
 		RRA
 		RET		NC
 		LD		A,(LA2BC)
@@ -1241,7 +1242,7 @@ L7AF3:	LD		B,$03
 InitStuff:	CALL	IrqInstall
 		JP	InitRevTbl
 
-L7B0E:		XOR	A
+InitNewGame:	XOR	A
 		LD	(L866B),A
 		LD	(LB218),A
 		LD	(Continues),A
@@ -1249,11 +1250,10 @@ L7B0E:		XOR	A
 		LD	(LA2C8),A
 		LD	A,$1F
 		LD	(LA2DA),A
-		CALL	L8C47
-		CALL	L7C76
-		ADD	A,C
-		AND	D
-		CALL	L87D1
+		CALL	InitNewGame1
+		CALL	Reinitialise
+		DEFW	StatusReinit
+		CALL	InitNewGame2
 		LD	HL,L8940
 		LD	(L703B),HL
 		LD	A,$01
@@ -1283,17 +1283,15 @@ L7B59:		LD	A,(LA2BC)
 		CALL	LA58B
 		JP	L72A0		; Tail call
 
-L7B6B:		CALL	L7C76
-		ADD	A,C
-		AND	D
+InitContinue:	CALL	Reinitialise
+		DEFW	StatusReinit
 		LD	A,$08
 		CALL	UpdateAttribs	; Blacked-out attributes
 		JP	DoContinue	; Tail call
 
 L7B78:		CALL	L774D
-		CALL	L7C76
-		SBC	A,D
-		AND	D
+		CALL	Reinitialise
+		DEFW	ReinitThing
 		CALL	SetCharThing
 		CALL	L7C1A
 		CALL	L7395
@@ -1326,12 +1324,10 @@ L7BB3:		LD	A,(AttribScheme)
 		CALL	PrintStatus
 		JP	L8E1D		; Tail call
 
-L7BBF:		CALL	L7C76
-		LD	E,E
-		XOR	A
-		CALL	L7C76
-		SBC	A,D
-		AND	D
+L7BBF:		CALL	Reinitialise
+		DEFW	LAF5B
+		CALL	Reinitialise
+		DEFW	ReinitThing
 		LD	A,(Character)
 		CP	$03
 		JR	NZ,L7BDC
@@ -1430,20 +1426,32 @@ L7C6E:	LD		A,(HL)
 		INC		HL
 		INC		HL
 		JR		L7C6E
-L7C76:	POP		HL
-		LD		E,(HL)
-		INC		HL
-		LD		D,(HL)
-		INC		HL
+
+	;; A funky shuffle routine: Load a pointer from the top of stack.
+	;; (i.e. our return address contains data to skip over)
+	;; The pointed value points to a size. We copy that much data
+	;; from directly after it to a size later.
+	;; i.e. 5 A B C D E M N O P Q becomes 5 A B C D E A B C D E.
+	;; Useful for reinitialising structures.
+Reinitialise:
+	;; Dereference top of stack into HL, incrementing pointer
+		POP	HL
+		LD	E,(HL)
+		INC	HL
+		LD	D,(HL)
+		INC	HL
 		PUSH	HL
-		EX		DE,HL
+		EX	DE,HL
+	;; Dereference /that/ into bottom of BC
 		LD		C,(HL)
 		LD		B,$00
+	;; Then increment HL and set DE = HL + BC
 		INC		HL
 		LD		D,H
 		LD		E,L
 		ADD		HL,BC
 		EX		DE,HL
+	;; Finally LDIR
 		LDIR
 		RET
 	
@@ -2000,7 +2008,7 @@ L87A6:	LD		(IY+$04),A
 		POP		HL
 		CALL	L875C
 		JR		L8791
-L87D1:	LD		HL,L866C
+InitNewGame2:	LD		HL,L866C
 		LD		DE,L0004
 		LD		B,$34
 L87D9:	RES		0,(HL)
@@ -2129,7 +2137,7 @@ L8C30:	LD		A,E
 		JR		NZ,L8C2B
 		EXX
 		RET
-L8C47:	LD		HL,L8AE2
+InitNewGame1:	LD		HL,L8AE2
 		LD		BC,L012D
 		JP		FillZero
 L8C50:	CALL	L708B
@@ -2902,7 +2910,7 @@ L93A2:	XOR		C
 		LD		(IY+$0F),A
 		RET
 L93AA:	DEFB $00,$00,$00,$00,$00,$00
-L93B0:	LD		A,(L703D)
+MainLoop3:	LD		A,(L703D)
 		XOR		$80
 		LD		(L703D),A
 		CALL	LA361
@@ -3922,9 +3930,19 @@ FillValue:	LD	(HL),E
 		JR	NZ,FillValue
 		RET
 
-LA281:	DEFB $09,$00,$00,$00,$00,$00,$08,$08,$00,$00
-LA28B:	DEFB $00
-
+StatusReinit:	DEFB $09	; Number of bytes to reinit with
+	
+		DEFB $00	; FIXME
+		DEFB $00	; Speed reset
+		DEFB $00	; Springs reset
+		DEFB $00	; Heels invuln reset
+		DEFB $00	; Head invuln reset
+		DEFB $08	; Heels lives reset
+		DEFB $08	; Head lives reset
+		DEFB $00	; Donuts reset
+		DEFB $00	; FIXME
+	
+LA28B:		DEFB $00
 Speed:		DEFB $00	; Speed
 		DEFB $00	; Springs
 Invuln:		DEFB $00	; Heels invuln
@@ -3932,16 +3950,24 @@ Invuln:		DEFB $00	; Heels invuln
 Lives:		DEFB $04	; Heels lives
 		DEFB $04	; Head lives
 Donuts:		DEFB $00	; Donuts
-LA293:	DEFB $00
+LA293:		DEFB $00
 Character:	DEFB $03	; $3 = Both, $2 = Head, $1 = Heels
 LA295:	DEFB $01
 LA296:	DEFB $00
 LA297:	DEFB $00
 LA298:	DEFB $03
-LA299:	DEFB $02,$03,$00,$00,$FF
-LA29E:	DEFB $00
-LA29F:	DEFB $00
-LA2A0:	DEFB $FF
+LA299:	DEFB $02
+	
+ReinitThing:	DEFB $03	; Three bytes to reinit with
+	
+		DEFB $00
+		DEFB $00
+		DEFB $FF
+	
+LA29E:		DEFB $00
+LA29F:		DEFB $00
+LA2A0:		DEFB $FF
+	
 LA2A1:	DEFB $02
 LA2A2:	DEFB $00
 LA2A3:	DEFB $00,$00,$00
@@ -5338,8 +5364,19 @@ LAE15:	ADD		A,B
 #include "get_sprite.asm"
 	
 BigSpriteFlipped:	DEFB $00
-	DEFB $1B,$00,$40,$BA,$7E,$AF,$80,$AF,$00,$00,$00,$00,$00,$00,$00
-LAF6A:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+LAF5B:	DEFB $1B		; Reinitialisation size
+
+	DEFB $00
+	DEFW LBA40
+	DEFW LAF7E
+	DEFW LAF80
+	DEFW $0000
+	DEFW $0000
+	DEFW $0000,$0000
+	DEFW $0000,$0000
+	DEFW $0000,$0000
+	DEFW $0000,$0000
+
 LAF77:	DEFB $00
 LAF78:	DEFW LBA40
 LAF7A:	DEFW LAF7E
@@ -5350,6 +5387,7 @@ LAF82:	DEFW $0000,$0000
 LAF86:	DEFW $0000,$0000
 LAF8A:	DEFW $0000,$0000
 LAF8E:	DEFW $0000,$0000
+	
 LAF92:	DEFW LBA40
 LAF94:	DEFW $0000
 	
