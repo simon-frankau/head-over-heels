@@ -35,11 +35,11 @@ Entry:		LD	SP,$FFF4
 L703B:		DEFB $00
 L703C:		DEFB $00
 L703D:		DEFB $00
-L703E:		DEFB $EF
-L703F:		DEFB $FF
-L7040:		DEFB $00
-L7041:		DEFB $00
-L7042:		DEFB $00
+LastDir:	DEFB $EF
+CurrDir:	DEFB $FF
+CarryPressed:	DEFB $00	; Bit 1 means 'currently pressed'. Bit 0 is 'newly triggered'.
+SwopPressed:	DEFB $00	; Ditto
+FirePressed:	DEFB $00	; Ditto
 FrameCounter:	DEFB $01
 L7044:		DEFB $FB,$FB
 FinishGame:	CALL	GameOverScreen
@@ -59,7 +59,7 @@ MainB:		XOR	A
 		CALL	L7B91
 	;; The main game-playing loop
 MainLoop:	CALL	WaitFrame
-		CALL	MainLoop1
+		CALL	CheckCtrls
 		CALL	MainLoop2
 		CALL	MainLoop3
 		CALL	CheckPause
@@ -80,9 +80,9 @@ L708B:	LD		HL,(L703B)
 		RET
 MainLoop2:	CALL	L708B
 		RET		NZ
-		LD		(L7041),A
+		LD		(SwopPressed),A
 		DEC		A
-		LD		(L703F),A
+		LD		(CurrDir),A
 		LD		HL,L8F18
 		DEC		(HL)
 		LD		A,(HL)
@@ -173,64 +173,73 @@ SetSens:	LD	HL,HighSensFn 		; High sensitivity routine
 SetSens_1:	LD	(SensFnCall+1),HL	; Modifies code
 		RET
 
-MainLoop1:	CALL	GetInputCtrls
-		BIT	7,A
-		LD	HL,L7040
-		CALL	L718F
-		BIT	5,A
-		CALL	L718E
-		BIT	6,A
-		CALL	L718E
+	;; Read all the inputs and set input variables
+CheckCtrls:	CALL	GetInputCtrls
+		BIT	7,A			; Carry pressed?
+		LD	HL,CarryPressed
+		CALL	KeyTrigger2
+		BIT	5,A			; Swop pressed?
+		CALL	KeyTrigger
+		BIT	6,A			; Fire pressed?
+		CALL	KeyTrigger
 		LD	C,A
 		RRA
-		CALL	L8C90
+		CALL	LookupDir
 		CP	$FF
-		JR	Z,L7189
-		RRA
+		JR	Z,NoKeysPressed
+		RRA				; Lowest bit held 'is diagonal?'
 SensFnCall:	JP	C,LowSensFn 		; NB: Self-modifying code target
-		LD	A,C
-		LD	(L703E),A
-		LD	(L703F),A
+		LD	A,C			; Not a diagonal move. Simple write.
+		LD	(LastDir),A
+		LD	(CurrDir),A
 		RET
 
-HighSensFn:	LD		A,(L703E)
-		XOR		C
+	;; If we receive diagonal input, set the new direction
+HighSensFn:	LD	A,(LastDir)
+		XOR	C
 		CPL
-		XOR		C
-		AND		$FE
-		XOR		C
-		LD		(L703F),A
+		XOR	C
+		AND	$FE
+		XOR	C
+		LD	(CurrDir),A
 		RET
 
-LowSensFn:	LD		A,(L703E)
-		XOR		C
-		AND		$FE
-		XOR		C
-		LD		B,A
-		OR		C
-		CP		B
-		JR		Z,L7185
-		LD		A,B
-		XOR		$FE
-L7185:		LD		(L703F),A
+	;; If we receive diagonal input, prefer the old direction
+LowSensFn:	LD	A,(LastDir)
+		XOR	C
+		AND	$FE
+		XOR	C
+		LD	B,A
+		OR	C
+		CP	B
+		JR	Z,LSF
+		LD	A,B
+		XOR	$FE
+LSF:		LD	(CurrDir),A
 		RET
 
-L7189:	LD		A,C
-		LD		(L703F),A
+NoKeysPressed:	LD	A,C
+		LD	(CurrDir),A
 		RET
-L718E:	INC		HL
-L718F:	RES		0,(HL)
-		JR		Z,L7196
-		RES		1,(HL)
+
+	;; Keytrigger: Writes to (HL+1), based on whether Z flag is set (meaning key pressed).
+	;; Bit 1 is 'is currently set', bit 0 is 'newly pressed'.
+KeyTrigger:	INC	HL
+	;; Version without the inc
+KeyTrigger2:	RES	0,(HL)
+		JR	Z,KT
+		RES	1,(HL) 		; Key not pressed, reset bits 0 and 1 and return.
 		RET
-L7196:	BIT		1,(HL)
-		RET		NZ
-		SET		1,(HL)
-		SET		0,(HL)
+	;; Key pressed:
+KT:		BIT	1,(HL) 		; If bit 1 set, already processed already...
+		RET	NZ		; so return (bit 0 reset).
+		SET	1,(HL)		; Otherwise set both bits.
+		SET	0,(HL)
 		RET
-L719E:	LD		B,$C4
+
+L719E:		LD		B,$C4
 		JP		PlaySound
-MainLoop4:	LD		A,(L7041)
+MainLoop4:	LD		A,(SwopPressed)
 		RRA
 		RET		NC
 		LD		A,(LA2BC)
@@ -255,7 +264,7 @@ SwC_1:		INC	HL
 		RRA
 		JR	NC,SwC_2
 		LD	(HL),C
-SwC_2:		LD	HL,L7041
+SwC_2:		LD	HL,SwopPressed
 		LD	IY,LA2C0
 		LD	A,E
 		CP	$03
@@ -2175,15 +2184,30 @@ L8C82:	LD		A,E
 		OR		C
 		JR		NZ,L8C82
 		RET
-L8C90:	AND		$0F
-		ADD		A,$9B
+
+	;; Given a direction bitmask in A, return a direction code.
+LookupDir:	AND		$0F
+		ADD		A,DirTable & $FF
 		LD		L,A
-		ADC		A,$8C
+		ADC		A,DirTable >> 8
 		SUB		L
 		LD		H,A
 		LD		A,(HL)
 		RET
-L8C9B:	DEFB $FF,$00,$04,$FF,$06,$07,$05,$06,$02,$01,$03,$02,$FF,$00,$04,$FF
+
+	;; Input into this look-up table is the 4-bit bitmask:
+	;; Left Right Down Up.
+	;; 
+	;; Combinations are mapped to the following directions:
+	;;
+	;; $05 $04 $03
+	;; $06 $FF $02
+	;; $07 $00 $01
+	;;
+DirTable:	DEFB $FF,$00,$04,$FF,$06,$07,$05,$06
+		DEFB $02,$01,$03,$02,$FF,$00,$04,$FF
+	
+	
 L8CAB:	LD		L,A
 		ADD		A,A
 		ADD		A,L
@@ -2346,7 +2370,7 @@ L8EEB:	CALL	L9319
 		LD		A,(HL)
 		LD		(HL),$FF
 		PUSH	AF
-		CALL	L8C90
+		CALL	LookupDir
 		INC		A
 		SUB		$01
 		CALL	NC,L921B
@@ -2421,7 +2445,7 @@ L8F8B:	PUSH	IY
 		RET
 L8F97:	LD		A,(L822D)
 		AND		A,(IY+$0C)
-		CALL	L8C90
+		CALL	LookupDir
 		CP		$FF
 		SCF
 		RET		Z
@@ -2725,7 +2749,7 @@ L9226:	CALL	L9319
 		CP		E
 		JP		C,L923F
 		LD		A,C
-		CALL	L8C90
+		CALL	LookupDir
 		LD		(IY+$10),A
 		JP		L9149
 L923F:	CALL	L92CF
@@ -2742,7 +2766,7 @@ L9251:	AND		A
 		JR		NZ,L9257
 		XOR		$0F
 L9257:	OR		C
-L9258:	CALL	L8C90
+L9258:	CALL	LookupDir
 		JR		L921B
 L925D:	CALL	L9269
 		XOR		$0F
@@ -2816,7 +2840,7 @@ L92DF:	AND		A,(IY+$0C)
 		CP		$FF
 		LD		(L8ED9),A
 		RET		Z
-		CALL	L8C90
+		CALL	LookupDir
 		CP		$FF
 		LD		(L8ED9),A
 		RET		Z
@@ -4089,7 +4113,7 @@ LA3A8:	LD		A,$FF
 		LD		A,(LA2BB)
 		SCF
 		RLA
-		LD		(L703F),A
+		LD		(CurrDir),A
 		JR		LA3C6
 LA3C3:	LD		(LB218),A
 LA3C6:	CALL	LA597
@@ -4106,7 +4130,7 @@ LA3C9:	CALL	LA94B
 		JR		NZ,LA3E5
 		LD		A,$06
 		LD		(LB218),A
-LA3E5:	LD		A,(L7042)
+LA3E5:	LD		A,(FirePressed)
 		RRA
 		JR		NC,LA451
 		LD		A,(Character)
@@ -4295,7 +4319,7 @@ LA572:	POP		HL
 LA58B:	AND		$01
 		RLCA
 		RLCA
-		LD		HL,L7041
+		LD		HL,SwopPressed
 		RES		2,(HL)
 		OR		(HL)
 		LD		(HL),A
@@ -4341,9 +4365,9 @@ LA5EE:	LD		A,(Character)
 		JR		NZ,LA5FB
 LA5F5:	LD		A,(LA2BB)
 		JP		LA669
-LA5FB:	LD		A,(L703F)
+LA5FB:	LD		A,(CurrDir)
 		RRA
-		CALL	L8C90
+		CALL	LookupDir
 		INC		A
 		JP		NZ,LA665
 		JR		LA5F5
@@ -4380,7 +4404,7 @@ LA65B:	XOR		A
 		LD		(LA29E),A
 		CALL	LA89A
 		CALL	LA820
-LA665:	LD		A,(L703F)
+LA665:	LD		A,(CurrDir)
 		RRA
 LA669:	CALL	LA788
 		CALL	LA774
@@ -4490,7 +4514,7 @@ LA73E:	INC		(IY+$07)
 LA756:	INC		(IY+$07)
 LA759:	LD		A,$83
 		CALL	LA931
-		LD		A,(L703F)
+		LD		A,(CurrDir)
 		RRA
 LA762:	CALL	LA788
 LA765:	CALL	LA774
@@ -4499,7 +4523,7 @@ LA765:	CALL	LA774
 		LD		BC,L184D
 		JP		LA6D0
 LA774:	LD		A,(LA2BB)
-		CALL	L8C90
+		CALL	LookupDir
 		RRA
 		RES		4,(IY+$04)
 		RRA
@@ -4525,7 +4549,7 @@ LA7A3:	CALL	LA81A
 		LD		A,$FF
 LA7A8:	PUSH	AF
 		AND		A,(IY+$0C)
-		CALL	L8C90
+		CALL	LookupDir
 		CP		$FF
 		JR		Z,LA7C6
 		CALL	LA94B
@@ -4568,7 +4592,7 @@ LA7E0:		LD		HL,Speed ; FIXME: Fast if have Speed or are Heels...
 LA7FE:	LD		A,$81
 		CALL	LA931
 		POP		AF
-		CALL	L8C90
+		CALL	LookupDir
 		CP		$FF
 		RET		Z
 		CALL	LA94B
@@ -4590,7 +4614,7 @@ LA820:	LD		A,(Character)
 LA82B:	LD		A,(LA2BC)
 		AND		A
 		RET		NZ
-		LD		A,(L703F)
+		LD		A,(CurrDir)
 		RRA
 		RET		C
 		LD		C,$00
@@ -4643,7 +4667,7 @@ LA88F:	LD		HL,L080C
 		LD		(LA296),HL
 		LD		B,$C7
 		JP		PlaySound
-LA89A:	LD		A,(L7040)
+LA89A:	LD		A,(CarryPressed)
 		RRA
 		RET		NC
 		LD		A,(LA28B)
@@ -4923,7 +4947,7 @@ FloorThing2:	SCF
 		AND	A
 		SBC	HL,DE
 		JR	Z,FloorThing3
-		LD	HL,L7041
+		LD	HL,SwopPressed
 		LD	A,(HL)
 		OR	$03
 		LD	(HL),A
