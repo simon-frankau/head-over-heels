@@ -7,32 +7,36 @@
 	;; reverse-engineering
 	;; 
 
+	;; Exported functions:
+	;; * CharThing
+	;; * CharThing3
+	
 	;; Something of an epic function...
 	;; Think it involves general movement/firing etc.
-LA361:		LD	A,(LA314)
+CharThing:	LD	A,(LA314)
 		RLA
 		CALL	C,LA316
 		LD	HL,LB219
 		LD	A,(HL)
 		AND	A
-		JR	Z,LA37E
+		JR	Z,EPIC_1
 		EXX
 		LD	HL,Character
 		LD	A,(LB21A)
 		AND	(HL)
 		EXX
-		JP	NZ,LA4B8
-		CALL	LA4B8
-LA37E:		LD	HL,LA296
+		JP	NZ,CharThing2 		; NB: Tail call
+		CALL	CharThing2
+EPIC_1:		LD	HL,LA296
 		LD	A,(HL)
 		AND	A
-		JP	NZ,LA4A9
+		JP	NZ,EPIC_14
 		INC	HL
 		OR	(HL)
-		JP	NZ,LA4A2
+		JP	NZ,EPIC_13
 		LD	HL,LA298
 		DEC	(HL)
-		JR	NZ,LA3A8
+		JR	NZ,EPIC_2
 		LD	(HL),$03
 		LD	HL,(Character)
 		LD	A,H
@@ -47,51 +51,52 @@ LA37E:		LD	HL,LA296
 		RRA
 		LD	A,$03
 		CALL	C,DecCount
-LA3A8:		LD	A,$FF
+EPIC_2:		LD	A,$FF
 		LD	(LA2BF),A
 		LD	A,(LB218)
 		AND	A
-		JR	Z,LA3C6
+		JR	Z,EPIC_4
 		LD	A,(LA2BC)
 		AND	A
-		JR	Z,LA3C3
+		JR	Z,EPIC_3
 		LD	A,(LA2BB)
 		SCF
 		RLA
 		LD	(CurrDir),A
-		JR	LA3C6
-LA3C3:		LD	(LB218),A
-LA3C6:		CALL	LA597
-LA3C9:		CALL	LA94B
+		JR	EPIC_4
+EPIC_3:		LD	(LB218),A
+EPIC_4:		CALL	CharThing4
+	;; NB: Big loop back up to here.
+EPIC_5:		CALL	LA94B
 		PUSH	HL
 		POP	IY
 		LD	A,(IY+$07)
 		CP	$84
-		JR	NC,LA3E5
+		JR	NC,EPIC_6
 		XOR	A
 		LD	(LA29F),A
 		LD	A,(L7712)
 		AND	A
-		JR	NZ,LA3E5
+		JR	NZ,EPIC_6
 		LD	A,$06
 		LD	(LB218),A
 	;; Check for Fire being pressed
-LA3E5:		LD	A,(FirePressed)
+EPIC_6:		LD	A,(FirePressed)
 		RRA
-		JR	NC,LA451
+		JR	NC,EPIC_8
 		LD	A,(Character)
 		OR	$FD
 		INC	A
 		LD	HL,LA2BC
 		OR	(HL)
-		JR	NZ,LA44E ; Jumps if not Head (alone) or ...
+		JR	NZ,EPIC_7 ; Jumps if not Head (alone) or ...
 		LD	A,(LA28B)
 		OR	$F9
 		INC	A
-		JR	NZ,LA44E
+		JR	NZ,EPIC_7
 		LD	A,(LA2B8)
 		CP	$08
-		JR	NZ,LA44E
+		JR	NZ,EPIC_7
 		LD	HL,LA2D7
 		LD	DE,LA2AE
 		LD	BC,L0003
@@ -114,75 +119,77 @@ LA3E5:		LD	A,(FirePressed)
 		CALL	PlaySound
 		LD	A,(Donuts)
 		AND	A
-		JR	NZ,LA451
+		JR	NZ,EPIC_8
 		LD	HL,LA28B
 		RES	2,(HL)
 		CALL	L8E1D
-		JR	LA451
-LA44E:		CALL	NopeNoise
-LA451:		LD	HL,LB218
+		JR	EPIC_8
+EPIC_7:		CALL	NopeNoise
+EPIC_8:		LD	HL,LB218
 		LD	A,(HL)
 		AND	$7F
 		RET	Z
 		LD	A,(LB219)
 		AND	A
-		JR	Z,LA461
+		JR	Z,EPIC_9
 		LD	(HL),$00
 		RET
-LA461:		LD	A,(LA295)
+EPIC_9:		LD	A,(LA295)
 		AND	A
-		JR	Z,LA499
+		JR	Z,EPIC_12
 		CALL	LA94B
 		PUSH	HL
 		POP	IY
 		CALL	LB0C6
 		LD	A,(Character)
 		CP	$03
-		JR	Z,LA499
+		JR	Z,EPIC_12
 		LD	HL,LA2A6
 		CP	(HL)
-		JR	Z,LA482
+		JR	Z,EPIC_10
 		XOR	$03
 		LD	(HL),A
-		JR	LA48D
-LA482:		LD	HL,LFB49
+		JR	EPIC_11
+EPIC_10:	LD	HL,LFB49
 		LD	DE,LA2A2
 		LD	BC,L0005
 		LDIR
-LA48D:		LD	HL,L0000
+EPIC_11:	LD	HL,L0000
 		LD	(LA2CD),HL
 		LD	(LA2DF),HL
 		CALL	L72A0
-LA499:		LD	HL,L0000
+EPIC_12:	LD	HL,L0000
 		LD	(LA2A7),HL
 		JP	L70BA
-LA4A2:		DEC	(HL)
+EPIC_13:	DEC	(HL)
 		LD	HL,(Character)
-		JP	LA543
-LA4A9:		DEC	(HL)
+		JP	EPIC_25
+EPIC_14:	DEC	(HL)
 		LD	HL,(Character)
-		JP	NZ,LA54C
+		JP	NZ,EPIC_27
 		LD	A,$07
 		LD	(LB218),A
-		JP	LA3C9
-LA4B8:		DEC	(HL)
-		JP	NZ,LA549
+		JP	EPIC_5
+
+	
+CharThing2:	DEC	(HL)
+		JP	NZ,EPIC_26
 		LD	HL,L0000
 		LD	(LA2A7),HL
 		LD	HL,Lives
 		LD	BC,(LB21A)
 		LD	B,$02
 		LD	D,$FF
-LA4CD:		RR	C
-		JR	NC,LA4DA
+EPIC_16:	RR	C
+		JR	NC,EPIC_17
 		LD	A,(HL)
 		SUB	$01
 		DAA
 		LD	(HL),A
-		JR	NZ,LA4DA
+		JR	NZ,EPIC_17
 		LD	D,$00
-LA4DA:		INC	HL
-		DJNZ	LA4CD
+EPIC_17:	INC	HL
+		DJNZ	EPIC_16
 		DEC	HL
 		LD	A,(HL)
 		DEC	HL
@@ -190,38 +197,38 @@ LA4DA:		INC	HL
 		JP	Z,FinishGame
 		LD	A,D
 		AND	A
-		JR	NZ,LA521
+		JR	NZ,EPIC_24
 		LD	HL,Lives
 		LD	A,(LA295)
 		AND	A
-		JR	Z,LA50F
+		JR	Z,EPIC_21
 		LD	A,(LA2A6)
 		CP	$03
-		JR	NZ,LA504
+		JR	NZ,EPIC_19
 		LD	A,(HL)
 		AND	A
 		LD	A,$01
-		JR	NZ,LA4FF
+		JR	NZ,EPIC_18
 		INC	A
-LA4FF:		LD	(LA2A6),A
-		JR	LA521
-LA504:		RRA
-		JR	C,LA508
+EPIC_18:	LD	(LA2A6),A
+		JR	EPIC_24
+EPIC_19:	RRA
+		JR	C,EPIC_20
 		INC	HL
-LA508:		LD	A,(HL)
+EPIC_20:	LD	A,(HL)
 		AND	A
-		JR	NZ,LA51E
+		JR	NZ,EPIC_23
 		LD	(LA295),A
-LA50F:		CALL	SwitchChar
+EPIC_21:	CALL	SwitchChar
 		LD	HL,L0000
 		LD	(LB219),HL
-LA518:		LD	HL,LFB28
+EPIC_22:	LD	HL,LFB28
 		SET	0,(HL)
 		RET
-LA51E:		CALL	LA518
-LA521:		LD	A,(LA2A6)
+EPIC_23:	CALL	EPIC_22
+EPIC_24:	LD	A,(LA2A6)
 		LD	(Character),A
-		CALL	LA58B
+		CALL	CharThing3
 		CALL	LA94B
 		LD	DE,L0005
 		ADD	HL,DE
@@ -232,18 +239,18 @@ LA521:		LD	A,(LA2A6)
 		LD	A,(LA2A2)
 		LD	(LB218),A
 		JP	L70E6
-LA543:		PUSH	HL
+EPIC_25:	PUSH	HL
 		LD	HL,LA30A
-		JR	LA550
-LA549:		LD	HL,(LB21A)
-LA54C:		PUSH	HL
+		JR	EPIC_28
+EPIC_26:	LD	HL,(LB21A)
+EPIC_27:	PUSH	HL
 		LD	HL,LA2FC
-LA550:		LD	IY,LA2C0
+EPIC_28:	LD	IY,LA2C0
 		CALL	L8CF0
 		POP	HL
 		PUSH	HL
 		BIT	1,L
-		JR	Z,LA572
+		JR	Z,EPIC_29
 		PUSH	AF
 		LD	(LA2DA),A
 		RES	3,(IY+$16)
@@ -252,7 +259,7 @@ LA550:		LD	IY,LA2C0
 		LD	HL,LA2D2
 		CALL	LA0A5
 		POP	AF
-LA572:		POP	HL
+EPIC_29:	POP	HL
 		RR	L
 		RET	NC
 		XOR	$80
@@ -262,7 +269,8 @@ LA572:		POP	HL
 		CALL	LA05D
 		LD	HL,LA2C0
 		JP	LA0A5
-LA58B:		AND	$01
+	
+CharThing3:	AND	$01
 		RLCA
 		RLCA
 		LD	HL,SwopPressed
@@ -272,7 +280,7 @@ LA58B:		AND	$01
 		RET
 
 	;; Looks like more movement stuff
-LA597:		CALL	LA94B
+CharThing4:	CALL	LA94B
 		PUSH	HL
 		POP		IY
 		LD		A,$3F
@@ -284,129 +292,130 @@ LA597:		CALL	LA94B
 		LD		HL,LA29F
 		LD		A,(HL)
 		AND		A
-		JR		Z,LA608
+		JR		Z,EPIC_37
 		LD		A,(LA2BC)
 		AND		A
-		JR		Z,LA5BF
+		JR		Z,EPIC_31
 		LD		(HL),$00
-		JR		LA608
-LA5BF:	DEC		(HL)
+		JR		EPIC_37
+EPIC_31:	DEC		(HL)
 		CALL	LA94B
 		CALL	LAC41
-		JR		C,LA5D2
+		JR		C,EPIC_32
 		DEC		(IY+$07)
 		LD		A,$84
 		CALL	LA931
-		JR		LA5E3
-LA5D2:	EX		AF,AF'
+		JR		EPIC_33
+EPIC_32:	EX		AF,AF'
 		LD		A,$88
 		BIT		4,(IY+$0B)
 		SET		4,(IY+$0B)
 		CALL	Z,LA931
 		EX		AF,AF'
-		JR		Z,LA5EE
-LA5E3:	RES		4,(IY+$0B)
+		JR		Z,EPIC_34
+EPIC_33:	RES		4,(IY+$0B)
 		SET		5,(IY+$0B)
 		DEC		(IY+$07)
-LA5EE:	LD		A,(Character)
+EPIC_34:	LD		A,(Character)
 		AND		$02
-		JR		NZ,LA5FB
-LA5F5:	LD		A,(LA2BB)
-		JP		LA669
-LA5FB:	LD		A,(CurrDir)
+		JR		NZ,EPIC_36
+EPIC_35:	LD		A,(LA2BB)
+		JP		EPIC_43
+EPIC_36:	LD		A,(CurrDir)
 		RRA
 		CALL	LookupDir
 		INC		A
-		JP		NZ,LA665
-		JR		LA5F5
-LA608:	SET		4,(IY+$0B)
+		JP		NZ,EPIC_42
+		JR		EPIC_35
+EPIC_37:	SET		4,(IY+$0B)
 		SET		5,(IY+$0C)
 		CALL	LA94B
 		LD		A,(LB218)
 		AND		A
-		JR		NZ,LA622
+		JR		NZ,EPIC_38
 		CALL	LAA74
-		JP		NC,LA724
-		JP		NZ,LA712
-LA622:	LD		A,(LB218)
+		JP		NC,EPIC_57
+		JP		NZ,EPIC_56
+EPIC_38:	LD		A,(LB218)
 		RLA
-		JR		NC,LA62C
+		JR		NC,EPIC_39
 		LD		(IY+$0C),$FF
-LA62C:	LD		A,$86
+EPIC_39:	LD		A,$86
 		BIT		5,(IY+$0B)
 		SET		5,(IY+$0B)
 		CALL	Z,LA931
 		BIT		4,(IY+$0C)
 		SET		4,(IY+$0C)
-		JR		NZ,LA65B
+		JR		NZ,EPIC_41
 		CALL	LA94B
 		CALL	LAC41
-		JR		NC,LA654
-		JR		NZ,LA654
+		JR		NC,EPIC_40
+		JR		NZ,EPIC_40
 		LD		A,$88
 		CALL	LA931
-		JR		LA65B
-LA654:	DEC		(IY+$07)
+		JR		EPIC_41
+EPIC_40:	DEC		(IY+$07)
 		RES		4,(IY+$0B)
-LA65B:	XOR		A
+EPIC_41:	XOR		A
 		LD		(LA29E),A
 		CALL	LA89A
 		CALL	LA820
-LA665:	LD		A,(CurrDir)
+EPIC_42:	LD		A,(CurrDir)
 		RRA
-LA669:	CALL	LA788
-		CALL	LA774
+EPIC_43:	CALL	LA788
+		CALL	CharThing6
 		EX		AF,AF'
 		LD		A,(LA2A0)
 		INC		A
-		JR		NZ,LA69C
+		JR		NZ,EPIC_46
 		XOR		A
 		LD		HL,Character
 		BIT		0,(HL)
-		JR		Z,LA684
+		JR		Z,EPIC_44
 		LD		(LA2E4),A
 		LD		(LA2EA),A
-LA684:	BIT		1,(HL)
-		JR		Z,LA68E
+EPIC_44:	BIT		1,(HL)
+		JR		Z,EPIC_45
 		LD		(LA2F0),A
 		LD		(LA2F6),A
-LA68E:	EX		AF,AF'
+EPIC_45:	EX		AF,AF'
 		LD		BC,L1B21
-		JR		C,LA6CC
-		CALL	LA700
+		JR		C,EPIC_50
+		CALL	CharThing5
 		LD		BC,L181F
-		JR		LA6CC
-LA69C:	EX		AF,AF'
+		JR		EPIC_50
+EPIC_46:	EX		AF,AF'
 		LD		HL,LA2E4
 		LD		DE,LA2F0
-		JR		NC,LA6AB
+		JR		NC,EPIC_47
 		LD		HL,LA2EA
 		LD		DE,LA2F6
-LA6AB:	PUSH	DE
+EPIC_47:	PUSH	DE
 		LD		A,(Character)
 		RRA
-		JR		NC,LA6B8
+		JR		NC,EPIC_48
 		CALL	L8CF0
 		LD		(LA2C8),A
-LA6B8:	POP		HL
+EPIC_48:	POP		HL
 		LD		A,(Character)
 		AND		$02
-		JR		Z,LA6C6
+		JR		Z,EPIC_49
 		CALL	L8CF0
 		LD		(LA2DA),A
-LA6C6:	SET		5,(IY+$0B)
-		JR		LA6E4
-LA6CC:	SET		5,(IY+$0B)
-LA6D0:	LD		A,(Character)
+EPIC_49:	SET		5,(IY+$0B)
+		JR		EPIC_53
+EPIC_50:	SET		5,(IY+$0B)
+	;; NB: Top of a big loop
+EPIC_51:	LD		A,(Character)
 		RRA
-		JR		NC,LA6D9
+		JR		NC,EPIC_52
 		LD		(IY+$08),B
-LA6D9:	LD		A,(Character)
+EPIC_52:	LD		A,(Character)
 		AND		$02
-		JR		Z,LA6E4
+		JR		Z,EPIC_53
 		LD		A,C
 		LD		(LA2DA),A
-LA6E4:	LD		A,(LA2BF)
+EPIC_53:	LD		A,(LA2BF)
 		LD		(IY+$0C),A
 		CALL	LA94B
 		CALL	LB0BE
@@ -416,70 +425,73 @@ LA6E4:	LD		A,(LA2BF)
 		CALL	LA94B
 		CALL	LA0A5
 		JP		LA938
-LA700:	LD		HL,LA315
+	
+CharThing5:	LD		HL,LA315
 		DEC		(HL)
 		LD		A,$03
 		SUB		(HL)
 		RET		C
-		JR		Z,LA70F
+		JR		Z,EPIC_55
 		CP		$03
 		RET		NZ
 		LD		(HL),$40
-LA70F:	JP		LA316
-LA712:	LD		HL,LA29E
+EPIC_55:	JP		LA316
+EPIC_56:	LD		HL,LA29E
 		LD		A,(HL)
 		AND		A
 		LD		(HL),$FF
-		JR		Z,LA729
+		JR		Z,EPIC_58
 		CALL	LA89A
 		CALL	LA820
 		XOR		A
-		JR		LA729
-LA724:	XOR		A
+		JR		EPIC_58
+EPIC_57:	XOR		A
 		LD		(LA29E),A
 		INC		A
-LA729:	LD		C,A
+EPIC_58:	LD		C,A
 		CALL	LA81A
 		RES		5,(IY+$0B)
 		LD		A,(Character)
 		AND		$02
-		JR		NZ,LA73E
+		JR		NZ,EPIC_59
 		DEC		C
-		JR		NZ,LA756
+		JR		NZ,EPIC_60
 		INC		(IY+$07)
-LA73E:	INC		(IY+$07)
+EPIC_59:	INC		(IY+$07)
 		AND		A
-		JR		NZ,LA759
+		JR		NZ,EPIC_61
 		LD		A,$82
 		CALL	LA931
 		LD		HL,LA293
 		LD		A,(HL)
 		AND		A
-		JR		Z,LA765
+		JR		Z,EPIC_63
 		DEC		(HL)
 		LD		A,(LA2BB)
-		JR		LA762
-LA756:	INC		(IY+$07)
-LA759:	LD		A,$83
+		JR		EPIC_62
+EPIC_60:	INC		(IY+$07)
+EPIC_61:	LD		A,$83
 		CALL	LA931
 		LD		A,(CurrDir)
 		RRA
-LA762:	CALL	LA788
-LA765:	CALL	LA774
+EPIC_62:	CALL	LA788
+EPIC_63:	CALL	CharThing6
 		LD		BC,L1B21
-		JP		C,LA6D0
+		JP		C,EPIC_51
 		LD		BC,L184D
-		JP		LA6D0
-LA774:	LD		A,(LA2BB)
+		JP		EPIC_51
+
+CharThing6:	LD		A,(LA2BB)
 		CALL	LookupDir
 		RRA
 		RES		4,(IY+$04)
 		RRA
-		JR		C,LA786
+		JR		C,EPIC_65
 		SET		4,(IY+$04)
-LA786:	RRA
+EPIC_65:	RRA
 		RET
 
+	;; FIXME: Got to here.
 
 	;; Another character-updating function
 LA788:	OR		$F0

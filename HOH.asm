@@ -943,14 +943,14 @@ L7B43:		LD	(Character),A
 		CALL	LA958
 		JR	L7B59		; Tail call
 
-L7B56:		CALL	LA361
+L7B56:		CALL	CharThing
 L7B59:		LD	A,(LA2BC)
 		AND	A
 		JR	NZ,L7B56
 		POP	AF
 		XOR	$03
 		LD	(Character),A
-		CALL	LA58B
+		CALL	CharThing3
 		JP	L72A0		; Tail call
 
 InitContinue:	CALL	Reinitialise
@@ -2601,7 +2601,7 @@ L93AA:	DEFB $00,$00,$00,$00,$00,$00
 MainLoop3:	LD	A,(L703D)
 		XOR	$80
 		LD	(L703D),A 		; Toggle top bit of L703D
-		CALL	LA361
+		CALL	CharThing
 		LD	HL,(LAF80) 		; Init pointer...
 		JR	ML3_3			; and jump to test part
 ML3_1:		PUSH	HL
