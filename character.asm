@@ -14,6 +14,26 @@
 	;; * CharThing14
 	;; * CharThing15
 	;; * CharThing17
+
+	;; Unknown functions that are called:
+	;; L72A0
+	;; L8CD6
+	;; L8CF0
+	;; L8D7F
+	;; L8E1D
+	;; LA05D
+	;; LA0A5
+	;; LA316
+	;; LAA74
+	;; LAC12
+	;; LAC41
+	;; LAF96
+	;; LB010
+	;; LB03B
+	;; LB0BE
+	;; LB0C6
+	;; LB21C
+	
 	
 	;; Something of an epic function...
 	;; Think it involves general movement/firing etc.
