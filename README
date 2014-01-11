@@ -38,6 +38,7 @@ screen_bits.asm	    FIXME: More screen/sprite bits
 get_sprite.asm	    Given a sprite index, return pointers to the data
 
 status.asm	    Counts for lives etc.
+mainloop.asm	    The main game loop and some associated functions
 
 Binary files
 ------------
