@@ -63,7 +63,7 @@ CrownsSpriteList:	DEFB SPR_CROWN,$54,$60
 			DEFB SPR_CROWN,$7C,$98
 
 	;; FIXME: Draw the screen border stuff?
-L8E1D:		CALL	LAA49
+L8E1D:		CALL	CharThing17
 		LD	HL,PeripherySpriteList
 		LD	DE,(LA28B)
 		LD	D,$03

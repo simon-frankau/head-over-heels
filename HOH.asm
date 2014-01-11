@@ -78,7 +78,7 @@ L72F0:		RET		NZ 		; Self-modifying code
 		AND		D
 		RET
 L72F3:	PUSH	DE
-		CALL	LA94B
+		CALL	CharThing14
 		EX		DE,HL
 		LD		BC,L0012
 		PUSH	BC
@@ -940,7 +940,7 @@ L7B43:		LD	(Character),A
 		CALL	L7BBF
 		XOR	A
 		LD	(LA297),A
-		CALL	LA958
+		CALL	CharThing15
 		JR	L7B59		; Tail call
 
 L7B56:		CALL	CharThing
@@ -986,7 +986,7 @@ L7BA4:		LD	(WorldIdSnd),A
 		LD	B,A
 		CALL	PlaySound
 L7BAD:		CALL	L7395
-		CALL	LA958
+		CALL	CharThing15
 	;; NB: Fall through
 
 L7BB3:		LD	A,(AttribScheme)
@@ -1329,7 +1329,7 @@ L8313:	LD		(IY+$08),A
 		CP		$90
 		LD		C,$01
 L832A:	LD		A,C
-		CALL	Z,LA92C
+		CALL	Z,CharThing11
 		SCF
 		RET
 L8330:	DEFB $6E,$83,$73,$83,$75,$83,$77,$83,$77,$83,$7C,$83,$7C,$83,$81,$83
@@ -2056,7 +2056,7 @@ L8F18:	LD		H,B
 		LD		(IY+$0B),$F7
 		LD		(IY+$0A),$19
 		LD		A,$05
-		JP		LA92C
+		JP		CharThing11
 L8F2E:	NOP
 		LD		HL,L8F2E
 		LD		(HL),$FF
@@ -2207,7 +2207,7 @@ L9053:		LD	A,$C0
 
 L905C:		RET	Z	
 L905D:		LD	A,$05
-		CALL	LA92C
+		CALL	CharThing11
 		LD	A,(IY+$0A)
 		AND	$80
 		OR	$11
@@ -2235,7 +2235,7 @@ L9088:	LD		B,(IY+$08)
 		JR		NZ,L90CC
 		LD		(IY+$0F),$50
 		LD		A,$04
-		CALL	LA92C
+		CALL	CharThing11
 		JR		L90C6
 L90AD:	AND		$07
 		JR		NZ,L90C6
@@ -2321,7 +2321,7 @@ L9155:	PUSH	HL
 		JP		L92B7
 L9171:	NOP
 		LD		A,$01
-		CALL	LA92C
+		CALL	CharThing11
 		CALL	L92CF
 		LD		A,(IY+$11)
 		LD		B,A
@@ -2436,7 +2436,7 @@ L925D:	CALL	L9269
 		JR		L9258
 L9264:	CALL	L9269
 		JR		L9258
-L9269:	CALL	LA94B
+L9269:	CALL	CharThing14
 		LD		DE,L0005
 		ADD		HL,DE
 		LD		A,(HL)
@@ -2527,7 +2527,7 @@ L930F:	LD		A,(L822D)
 		INC		A
 		RET		Z
 L9314:	LD		A,$06
-		JP		LA92C
+		JP		CharThing11
 L9319:	BIT		4,(IY+$0C)
 		JR		Z,L9354
 L931F:	LD		HL,(L822B)
@@ -2548,7 +2548,7 @@ L933D:	PUSH	AF
 		RES		5,(IY+$0B)
 		INC		(IY+$07)
 		LD		A,$03
-		CALL	LA92C
+		CALL	CharThing11
 		POP		AF
 		RET		C
 		INC		(IY+$07)
@@ -3777,7 +3777,7 @@ FloorThing2:	SCF
 		CP	$07 		; No floor?
 		JR	NZ,RetZeroC
 	;; Code to handle no floor...
-		CALL	LA94B
+		CALL	CharThing14
 		PUSH	IY
 		POP	DE
 		AND	A
@@ -4028,7 +4028,7 @@ LAC97:	LD		A,(LA2BC)
 		CALL	LACD3
 		JR		NC,LACCC
 		JR		LAC6D
-LACAF:	CALL	LA94B
+LACAF:	CALL	CharThing14
 		PUSH	HL
 		POP		IX
 		RET
