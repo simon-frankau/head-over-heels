@@ -298,7 +298,7 @@ EPIC_29:	POP	HL
 		LD	HL,LA2C0
 		CALL	LA05D
 		LD	HL,LA2C0
-		JP	LA0A5
+		JP	LA0A5			; NB: Tail call
 	
 CharThing3:	AND	$01
 		RLCA

@@ -2839,66 +2839,17 @@ L9CFC:	LD		BC,L9D2F
 L9CFF:	ADD		HL,BC
 		EXX
 		JP		(IX)
-L9D03:	LD		B,B	; NB: Target of self-modifying code.
-L9D04:	NOP			; NB: Target of self-modifying code.
-		LD		(HL),B
-		NOP
-		LD		(HL),H
-		NOP
-		LD		(HL),A
-		NOP
-		SCF
-		LD		B,B
-		RLCA
-		LD		(HL),B
-		INC		BC
-		LD		(HL),H
-		NOP
-		LD		(HL),A
-		NOP
-		SCF
-		NOP
-		RLCA
-		NOP
-		INC		BC
-L9D19:	NOP			; NB: Target of self-modifying code.
-		LD		BC,L0D00
-		NOP
-		DEC		A
-		NOP
-		LD		A,L
-		LD		BC,L0D7C
-		LD		(HL),B
-		DEC		A
-		LD		B,B
-		LD		A,L
-		NOP
-		LD		A,H
-		NOP
-		LD		(HL),B
-		NOP
-		LD		B,B
-		NOP
-L9D2F:	LD		B,B 	; NB: Target of self-modifying code? Perhaps just data?
-		LD		BC,L0D70
-		LD		(HL),H
-		DEC		A
-		LD		(HL),A
-		LD		A,L
-		SCF
-		LD		A,H
-		RLCA
-		LD		(HL),B
-		INC		BC
-		LD		B,B
-		NOP
-		NOP
-		NOP
-		NOP
-		NOP
-		NOP
-		NOP
-		NOP
+
+
+	
+L9D03:	DEFB $40
+L9D04:	DEFB $00,$70,$00,$74,$00,$77,$00,$37,$40,$07,$70,$03
+	DEFB $74,$00,$77,$00,$37,$00,$07,$00,$03
+L9D19:	DEFB $00,$01,$00,$0d,$00,$3d,$00,$7d,$01,$7c,$0d
+	DEFB $70,$3d,$40,$7d,$00,$7c,$00,$70,$00,$40,$00
+L9D2F:	DEFB $40,$01,$70,$0d,$74,$3d,$77,$7d,$37,$7c,$07
+	DEFB $70,$03,$40,$00,$00,$00,$00,$00,$00,$00,$00
+	
 L9D45:		LD		HL,(FloorAddr)
 		LD		(L93E2),BC
 		LD		BC,L000A
@@ -3014,6 +2965,7 @@ L9DEA:	RL		C
 		RET
 L9DF4:	JP		(IX)
 L9DF6:	JP		(IY)
+	
 L9DF8:	EXX			; Self-modifying code, or actually just data!
 		LD		B,A
 		EX		DE,HL
