@@ -1596,7 +1596,8 @@ L828B:	LD		(IY+$0F),$00
 		CALL	L82E8
 		POP		HL
 		RET
-L82A1:	LD		(L822B),DE
+	
+L82A1:		LD		(L822B),DE
 		PUSH	DE
 		POP		IY
 		DEC		A
@@ -1618,7 +1619,7 @@ L82A1:	LD		(L822B),DE
 		BIT		6,(IY+$09)
 		RET		NZ
 		JP		(HL)
-L82C9:	BIT		5,(IY+$09)
+L82C9:		BIT		5,(IY+$09)
 		JR		Z,L82E8
 		CALL	L82E8
 		EX		AF,AF'
@@ -1632,6 +1633,7 @@ L82C9:	BIT		5,(IY+$09)
 		RET		C
 		EX		AF,AF'
 		RET
+	
 L82E8:	LD		C,(IY+$0F)
 		LD		A,C
 		AND		$F8
@@ -2946,35 +2948,37 @@ L93A2:	XOR		C
 		LD		(IY+$0F),A
 		RET
 L93AA:	DEFB $00,$00,$00,$00,$00,$00
-MainLoop3:	LD		A,(L703D)
-		XOR		$80
-		LD		(L703D),A
+	
+MainLoop3:	LD	A,(L703D)
+		XOR	$80
+		LD	(L703D),A 		; Toggle top bit of L703D
 		CALL	LA361
-		LD		HL,(LAF80)
-		JR		L93DD
-L93C0:	PUSH	HL
-		LD		A,(HL)
-		INC		HL
-		LD		H,(HL)
-		LD		L,A
-		EX		(SP),HL
-		EX		DE,HL
-		LD		HL,L000A
-		ADD		HL,DE
-		LD		A,(L703D)
-		XOR		(HL)
-		CP		$80
-		JR		C,L93DC
-		LD		A,(HL)
-		XOR		$80
-		LD		(HL),A
-		AND		$7F
+		LD	HL,(LAF80) 		; Init pointer...
+		JR	ML3_3			; and jump to test part
+ML3_1:		PUSH	HL
+		LD	A,(HL)
+		INC	HL
+		LD	H,(HL)
+		LD	L,A			; Read pointer in
+		EX	(SP),HL			; FIXME: Starts to get a bit mysterious
+		EX	DE,HL
+		LD	HL,L000A
+		ADD	HL,DE
+		LD	A,(L703D)
+		XOR	(HL)
+		CP	$80
+		JR	C,ML3_2
+		LD	A,(HL)
+		XOR	$80
+		LD	(HL),A
+		AND	$7F
 		CALL	NZ,L82A1
-L93DC:	POP		HL
-L93DD:	LD		A,H
-		OR		L
-		JR		NZ,L93C0
+ML3_2:		POP	HL
+ML3_3:		LD	A,H			; loop until null pointer.
+		OR	L
+		JR	NZ,ML3_1
 		RET
+
 L93E2:	DEFW $0000
 	
 Attrib0:	DEFB $00
@@ -4074,269 +4078,274 @@ LA33D:	LD		A,(DE)
 		JR		NZ,LA33B
 		RET
 LA349:	DEFB $00,$C0,$01,$D8,$00,$1C,$00,$84,$00,$10,$00,$20
-LA355:	DEFB $03,$00,$1B,$80
-LA359:	DEFB $38,$00,$21,$00,$08,$00,$04,$00
-LA361:	LD		A,(LA314)
+LA355:	DEFB $03,$00,$1B,$80,$38,$00,$21,$00,$08,$00,$04,$00
+
+	;; Something of an epic function...
+	;; Think it involves general movement/firing etc.
+LA361:		LD	A,(LA314)
 		RLA
 		CALL	C,LA316
-		LD		HL,LB219
-		LD		A,(HL)
-		AND		A
-		JR		Z,LA37E
+		LD	HL,LB219
+		LD	A,(HL)
+		AND	A
+		JR	Z,LA37E
 		EXX
-		LD		HL,Character
-		LD		A,(LB21A)
-		AND		(HL)
+		LD	HL,Character
+		LD	A,(LB21A)
+		AND	(HL)
 		EXX
-		JP		NZ,LA4B8
+		JP	NZ,LA4B8
 		CALL	LA4B8
-LA37E:	LD		HL,LA296
-		LD		A,(HL)
-		AND		A
-		JP		NZ,LA4A9
-		INC		HL
-		OR		(HL)
-		JP		NZ,LA4A2
-		LD		HL,LA298
-		DEC		(HL)
-		JR		NZ,LA3A8
-		LD		(HL),$03
-		LD		HL,(Character)
-		LD		A,H
-		ADD		A,A
-		OR		H
-		OR		L
+LA37E:		LD	HL,LA296
+		LD	A,(HL)
+		AND	A
+		JP	NZ,LA4A9
+		INC	HL
+		OR	(HL)
+		JP	NZ,LA4A2
+		LD	HL,LA298
+		DEC	(HL)
+		JR	NZ,LA3A8
+		LD	(HL),$03
+		LD	HL,(Character)
+		LD	A,H
+		ADD	A,A
+		OR	H
+		OR	L
 		RRA
 		PUSH	AF
-		LD		A,$02
+		LD	A,$02
 		CALL	C,DecCount
-		POP		AF
+		POP	AF
 		RRA
-		LD		A,$03
+		LD	A,$03
 		CALL	C,DecCount
-LA3A8:	LD		A,$FF
-		LD		(LA2BF),A
-		LD		A,(LB218)
-		AND		A
-		JR		Z,LA3C6
-		LD		A,(LA2BC)
-		AND		A
-		JR		Z,LA3C3
-		LD		A,(LA2BB)
+LA3A8:		LD	A,$FF
+		LD	(LA2BF),A
+		LD	A,(LB218)
+		AND	A
+		JR	Z,LA3C6
+		LD	A,(LA2BC)
+		AND	A
+		JR	Z,LA3C3
+		LD	A,(LA2BB)
 		SCF
 		RLA
-		LD		(CurrDir),A
-		JR		LA3C6
-LA3C3:	LD		(LB218),A
-LA3C6:	CALL	LA597
-LA3C9:	CALL	LA94B
+		LD	(CurrDir),A
+		JR	LA3C6
+LA3C3:		LD	(LB218),A
+LA3C6:		CALL	LA597
+LA3C9:		CALL	LA94B
 		PUSH	HL
-		POP		IY
-		LD		A,(IY+$07)
-		CP		$84
-		JR		NC,LA3E5
-		XOR		A
-		LD		(LA29F),A
-		LD		A,(L7712)
-		AND		A
-		JR		NZ,LA3E5
-		LD		A,$06
-		LD		(LB218),A
-LA3E5:	LD		A,(FirePressed)
+		POP	IY
+		LD	A,(IY+$07)
+		CP	$84
+		JR	NC,LA3E5
+		XOR	A
+		LD	(LA29F),A
+		LD	A,(L7712)
+		AND	A
+		JR	NZ,LA3E5
+		LD	A,$06
+		LD	(LB218),A
+	;; Check for Fire being pressed
+LA3E5:		LD	A,(FirePressed)
 		RRA
-		JR		NC,LA451
-		LD		A,(Character)
-		OR		$FD
-		INC		A
-		LD		HL,LA2BC
-		OR		(HL)
-		JR		NZ,LA44E ; Jumps if not Head (alone) or ...
-		LD		A,(LA28B)
-		OR		$F9
-		INC		A
-		JR		NZ,LA44E
-		LD		A,(LA2B8)
-		CP		$08
-		JR		NZ,LA44E
-		LD		HL,LA2D7
-		LD		DE,LA2AE
-		LD		BC,L0003
+		JR	NC,LA451
+		LD	A,(Character)
+		OR	$FD
+		INC	A
+		LD	HL,LA2BC
+		OR	(HL)
+		JR	NZ,LA44E ; Jumps if not Head (alone) or ...
+		LD	A,(LA28B)
+		OR	$F9
+		INC	A
+		JR	NZ,LA44E
+		LD	A,(LA2B8)
+		CP	$08
+		JR	NZ,LA44E
+		LD	HL,LA2D7
+		LD	DE,LA2AE
+		LD	BC,L0003
 		LDIR
-		LD		HL,LA2A9
+		LD	HL,LA2A9
 		PUSH	HL
-		POP		IY
-		LD		A,(L703D)
-		OR		$19
-		LD		(LA2B3),A
-		LD		(IY+$04),$00
-		LD		A,(LA2BB)
-		LD		(LA2B4),A
-		LD		(IY+$0C),$FF
-		LD		(IY+$0F),$20
+		POP	IY
+		LD	A,(L703D)
+		OR	$19
+		LD	(LA2B3),A
+		LD	(IY+$04),$00
+		LD	A,(LA2BB)
+		LD	(LA2B4),A
+		LD	(IY+$0C),$FF
+		LD	(IY+$0F),$20
 		CALL	LB03B
-		LD		A,$06
+		LD	A,$06
 		CALL	DecCount
-		LD		B,$48
+		LD	B,$48
 		CALL	PlaySound
-		LD		A,(Donuts)
-		AND		A
-		JR		NZ,LA451
-		LD		HL,LA28B
-		RES		2,(HL)
+		LD	A,(Donuts)
+		AND	A
+		JR	NZ,LA451
+		LD	HL,LA28B
+		RES	2,(HL)
 		CALL	L8E1D
-		JR		LA451
-LA44E:	CALL	NopeNoise
-LA451:	LD		HL,LB218
-		LD		A,(HL)
-		AND		$7F
-		RET		Z
-		LD		A,(LB219)
-		AND		A
-		JR		Z,LA461
-		LD		(HL),$00
+		JR	LA451
+LA44E:		CALL	NopeNoise
+LA451:		LD	HL,LB218
+		LD	A,(HL)
+		AND	$7F
+		RET	Z
+		LD	A,(LB219)
+		AND	A
+		JR	Z,LA461
+		LD	(HL),$00
 		RET
-LA461:	LD		A,(LA295)
-		AND		A
-		JR		Z,LA499
+LA461:		LD	A,(LA295)
+		AND	A
+		JR	Z,LA499
 		CALL	LA94B
 		PUSH	HL
-		POP		IY
+		POP	IY
 		CALL	LB0C6
-		LD		A,(Character)
-		CP		$03
-		JR		Z,LA499
-		LD		HL,LA2A6
-		CP		(HL)
-		JR		Z,LA482
-		XOR		$03
-		LD		(HL),A
-		JR		LA48D
-LA482:	LD		HL,LFB49
-		LD		DE,LA2A2
-		LD		BC,L0005
+		LD	A,(Character)
+		CP	$03
+		JR	Z,LA499
+		LD	HL,LA2A6
+		CP	(HL)
+		JR	Z,LA482
+		XOR	$03
+		LD	(HL),A
+		JR	LA48D
+LA482:		LD	HL,LFB49
+		LD	DE,LA2A2
+		LD	BC,L0005
 		LDIR
-LA48D:	LD		HL,L0000
-		LD		(LA2CD),HL
-		LD		(LA2DF),HL
+LA48D:		LD	HL,L0000
+		LD	(LA2CD),HL
+		LD	(LA2DF),HL
 		CALL	L72A0
-LA499:	LD		HL,L0000
-		LD		(LA2A7),HL
-		JP		L70BA
-LA4A2:	DEC		(HL)
-		LD		HL,(Character)
-		JP		LA543
-LA4A9:	DEC		(HL)
-		LD		HL,(Character)
-		JP		NZ,LA54C
-		LD		A,$07
-		LD		(LB218),A
-		JP		LA3C9
-LA4B8:	DEC		(HL)
-		JP		NZ,LA549
-		LD		HL,L0000
-		LD		(LA2A7),HL
-		LD		HL,Lives
-		LD		BC,(LB21A)
-		LD		B,$02
-		LD		D,$FF
-LA4CD:	RR		C
-		JR		NC,LA4DA
-		LD		A,(HL)
-		SUB		$01
+LA499:		LD	HL,L0000
+		LD	(LA2A7),HL
+		JP	L70BA
+LA4A2:		DEC	(HL)
+		LD	HL,(Character)
+		JP	LA543
+LA4A9:		DEC	(HL)
+		LD	HL,(Character)
+		JP	NZ,LA54C
+		LD	A,$07
+		LD	(LB218),A
+		JP	LA3C9
+LA4B8:		DEC	(HL)
+		JP	NZ,LA549
+		LD	HL,L0000
+		LD	(LA2A7),HL
+		LD	HL,Lives
+		LD	BC,(LB21A)
+		LD	B,$02
+		LD	D,$FF
+LA4CD:		RR	C
+		JR	NC,LA4DA
+		LD	A,(HL)
+		SUB	$01
 		DAA
-		LD		(HL),A
-		JR		NZ,LA4DA
-		LD		D,$00
-LA4DA:	INC		HL
+		LD	(HL),A
+		JR	NZ,LA4DA
+		LD	D,$00
+LA4DA:		INC	HL
 		DJNZ	LA4CD
-		DEC		HL
-		LD		A,(HL)
-		DEC		HL
-		OR		(HL)
-		JP		Z,FinishGame
-		LD		A,D
-		AND		A
-		JR		NZ,LA521
-		LD		HL,Lives
-		LD		A,(LA295)
-		AND		A
-		JR		Z,LA50F
-		LD		A,(LA2A6)
-		CP		$03
-		JR		NZ,LA504
-		LD		A,(HL)
-		AND		A
-		LD		A,$01
-		JR		NZ,LA4FF
-		INC		A
-LA4FF:	LD		(LA2A6),A
-		JR		LA521
-LA504:	RRA
-		JR		C,LA508
-		INC		HL
-LA508:	LD		A,(HL)
-		AND		A
-		JR		NZ,LA51E
-		LD		(LA295),A
-LA50F:	CALL	SwitchChar
-		LD		HL,L0000
-		LD		(LB219),HL
-LA518:	LD		HL,LFB28
-		SET		0,(HL)
+		DEC	HL
+		LD	A,(HL)
+		DEC	HL
+		OR	(HL)
+		JP	Z,FinishGame
+		LD	A,D
+		AND	A
+		JR	NZ,LA521
+		LD	HL,Lives
+		LD	A,(LA295)
+		AND	A
+		JR	Z,LA50F
+		LD	A,(LA2A6)
+		CP	$03
+		JR	NZ,LA504
+		LD	A,(HL)
+		AND	A
+		LD	A,$01
+		JR	NZ,LA4FF
+		INC	A
+LA4FF:		LD	(LA2A6),A
+		JR	LA521
+LA504:		RRA
+		JR	C,LA508
+		INC	HL
+LA508:		LD	A,(HL)
+		AND	A
+		JR	NZ,LA51E
+		LD	(LA295),A
+LA50F:		CALL	SwitchChar
+		LD	HL,L0000
+		LD	(LB219),HL
+LA518:		LD	HL,LFB28
+		SET	0,(HL)
 		RET
-LA51E:	CALL	LA518
-LA521:		LD		A,(LA2A6)
-		LD		(Character),A
+LA51E:		CALL	LA518
+LA521:		LD	A,(LA2A6)
+		LD	(Character),A
 		CALL	LA58B
 		CALL	LA94B
-		LD		DE,L0005
-		ADD		HL,DE
-		EX		DE,HL
-		LD		HL,LA2A3
-		LD		BC,L0003
+		LD	DE,L0005
+		ADD	HL,DE
+		EX	DE,HL
+		LD	HL,LA2A3
+		LD	BC,L0003
 		LDIR
-		LD		A,(LA2A2)
-		LD		(LB218),A
-		JP		L70E6
-LA543:	PUSH	HL
-		LD		HL,LA30A
-		JR		LA550
-LA549:	LD		HL,(LB21A)
-LA54C:	PUSH	HL
-		LD		HL,LA2FC
-LA550:	LD		IY,LA2C0
+		LD	A,(LA2A2)
+		LD	(LB218),A
+		JP	L70E6
+LA543:		PUSH	HL
+		LD	HL,LA30A
+		JR	LA550
+LA549:		LD	HL,(LB21A)
+LA54C:		PUSH	HL
+		LD	HL,LA2FC
+LA550:		LD	IY,LA2C0
 		CALL	L8CF0
-		POP		HL
+		POP	HL
 		PUSH	HL
-		BIT		1,L
-		JR		Z,LA572
+		BIT	1,L
+		JR	Z,LA572
 		PUSH	AF
-		LD		(LA2DA),A
-		RES		3,(IY+$16)
-		LD		HL,LA2D2
+		LD	(LA2DA),A
+		RES	3,(IY+$16)
+		LD	HL,LA2D2
 		CALL	LA05D
-		LD		HL,LA2D2
+		LD	HL,LA2D2
 		CALL	LA0A5
-		POP		AF
-LA572:	POP		HL
-		RR		L
-		RET		NC
-		XOR		$80
-		LD		(LA2C8),A
-		RES		3,(IY+$04)
-		LD		HL,LA2C0
+		POP	AF
+LA572:		POP	HL
+		RR	L
+		RET	NC
+		XOR	$80
+		LD	(LA2C8),A
+		RES	3,(IY+$04)
+		LD	HL,LA2C0
 		CALL	LA05D
-		LD		HL,LA2C0
-		JP		LA0A5
-LA58B:	AND		$01
+		LD	HL,LA2C0
+		JP	LA0A5
+LA58B:		AND	$01
 		RLCA
 		RLCA
-		LD		HL,SwopPressed
-		RES		2,(HL)
-		OR		(HL)
-		LD		(HL),A
+		LD	HL,SwopPressed
+		RES	2,(HL)
+		OR	(HL)
+		LD	(HL),A
 		RET
-LA597:	CALL	LA94B
+
+	;; Looks like more movement stuff
+LA597:		CALL	LA94B
 		PUSH	HL
 		POP		IY
 		LD		A,$3F
@@ -4543,6 +4552,9 @@ LA774:	LD		A,(LA2BB)
 		SET		4,(IY+$04)
 LA786:	RRA
 		RET
+
+
+	;; Another character-updating function
 LA788:	OR		$F0
 		CP		$FF
 		LD		(LA2A0),A
@@ -4617,6 +4629,9 @@ LA7FE:	LD		A,$81
 LA81A:	LD		A,$02
 		LD		(LA2A1),A
 		RET
+
+
+	
 LA820:	LD		A,(Character)
 		LD		B,A
 		DEC		A
@@ -4768,6 +4783,9 @@ LA94B:		LD		HL,Character
 		RET		NZ
 		LD		HL,LA2D2
 		RET
+
+
+	
 LA958:	XOR		A
 		LD		(LA2FC),A
 		LD		(LA296),A
@@ -4889,6 +4907,7 @@ LAA0C:	LD		A,$80
 LAA42:	LD		A,(LAF77)
 		LD		(LA2BC),A
 		RET
+
 	
 LAA49:		LD		A,(Character)
 		LD		HL,LA295
@@ -4905,8 +4924,12 @@ LAA49:		LD		A,(Character)
 		LD		A,(HL)
 		LD		BC,LD8B0
 		JP		Draw3x24
+
 LAA64:	DEFB $28,$28,$C0,$FD,$FD,$FB,$FE,$F7,$FD,$FD
 LAA6E:	DEFB 08,$04,$02,$01
+
+
+	
 LAA72:	DEFB $00
 LAA73:	DEFB $00
 LAA74:	CALL	LAA7E
