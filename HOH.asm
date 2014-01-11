@@ -63,7 +63,7 @@ MainLoop:	CALL	WaitFrame
 		CALL	MainLoop2
 		CALL	MainLoop3
 		CALL	CheckPause
-		CALL	MainLoop4
+		CALL	CheckSwop
 		LD	HL,LA2BE
 		LD	A,(HL)
 		SUB	$01
@@ -72,65 +72,71 @@ MainLoop:	CALL	WaitFrame
 		CALL	NC,PlaySound
 		JR	MainLoop
 
-	
-L708B:	LD		HL,(L703B)
-		LD		BC,$8D30 ; TODO
-		XOR		A
-		SBC		HL,BC
+	;; FIXME: ???
+L708B:		LD	HL,(L703B)
+		LD	BC,$8D30 ; TODO
+		XOR	A
+		SBC	HL,BC
 		RET
+
+	;; FIXME: ???
 MainLoop2:	CALL	L708B
-		RET		NZ
-		LD		(SwopPressed),A
-		DEC		A
-		LD		(CurrDir),A
-		LD		HL,L8F18
-		DEC		(HL)
-		LD		A,(HL)
-		INC		A
-		JP		Z,FinishGame
-		LD		B,$C1
-		CP		$30
+		RET	NZ
+		LD	(SwopPressed),A
+		DEC	A
+		LD	(CurrDir),A
+		LD	HL,L8F18
+		DEC	(HL)
+		LD	A,(HL)
+		INC	A
+		JP	Z,FinishGame
+		LD	B,$C1
+		CP	$30
 		PUSH	AF
 		CALL	Z,PlaySound
-		POP		AF
-		AND		$01
+		POP	AF
+		AND	$01
 		LD	A,STR_FREEDOM
 		CALL	Z,PrintChar
 		RET
-L70BA:	LD		HL,L703C
-		LD		A,(LB218)
-		DEC		A
-		CP		$06
-		JR		Z,L70EC
-		JR		NC,L70E6
-		CP		$04
-		JR		C,L70CF
-		ADD		A,A
-		XOR		$02
-		DEC		HL
-L70CF:	LD		C,$01
-		BIT		1,A
-		JR		NZ,L70D7
-		LD		C,$FF
-L70D7:	RRA
-		JR		C,L70E1
+
+	;; FIXME: ???
+L70BA:		LD	HL,L703C
+		LD	A,(LB218)
+		DEC	A
+		CP	$06
+		JR	Z,L70EC
+		JR	NC,L70E6
+		CP	$04
+		JR	C,L70CF
+		ADD	A,A
+		XOR	$02
+		DEC	HL
+L70CF:		LD	C,$01
+		BIT	1,A
+		JR	NZ,L70D7
+		LD	C,$FF
+L70D7:		RRA
+		JR	C,L70E1
 		RLD
-		ADD		A,C
+		ADD	A,C
 		RRD
-		JR		L70E6
-L70E1:	RRD
-		ADD		A,C
+		JR	L70E6
+L70E1:		RRD
+		ADD	A,C
 		RLD
-L70E6:	LD		SP,$FFF4
-		JP		MainB
-L70EC:	CALL	LAD26
-		JR		L70E6
-	
-WaitFrame:	LD		A,(FrameCounter)
-		AND		A
-		JR		NZ,WaitFrame
-		LD		A,$04
-		LD		(FrameCounter),A
+L70E6:		LD	SP,$FFF4
+		JP	MainB
+L70EC:		CALL	LAD26
+		JR	L70E6
+
+	;; Wait for the frame counter to reduce to zero
+WaitFrame:	LD	A,(FrameCounter)
+		AND	A
+		JR	NZ,WaitFrame
+	;; 12.5 FPS, then.
+		LD	A,$04
+		LD	(FrameCounter),A
 		RET
 
 	;; Checks for pausing key, and if it's pressed, pauses. 
@@ -237,25 +243,31 @@ KT:		BIT	1,(HL) 		; If bit 1 set, already processed already...
 		SET	0,(HL)
 		RET
 
-L719E:		LD		B,$C4
+	;; Played when we can't do something.
+NopeNoise:	LD		B,$C4
 		JP		PlaySound
-MainLoop4:	LD		A,(SwopPressed)
+
+	;; Checks if 'swop' has just been pressed, and if it has, do it.
+CheckSwop:	LD		A,(SwopPressed)
 		RRA
-		RET		NC
+		RET		NC 		; Return if not pressed...
+	;; FIXME: Don't know what these variables are that prevent us swopping
 		LD		A,(LA2BC)
 		LD		HL,LB219
 		OR		(HL)
 		LD		HL,(LA296)
 		OR		H
 		OR		L
-		JR		NZ,L719E
+		JR		NZ,NopeNoise 	; Tail call
+	;; Can't swop if out of lives for the other character
 		LD		HL,(Lives)
 		CP		H
-		JR		Z,L719E
+		JR		Z,NopeNoise 	; Tail call
 		CP		L
-		JR		Z,L719E
+		JR		Z,NopeNoise 	; Tail call
 	;; NB: Fall through
 
+	;; FIXME: Lots to reverse here
 SwitchChar:	CALL	SwitchHelper
 		LD	BC,(LA2BB)
 		JR	NC,SwC_1
@@ -4173,7 +4185,7 @@ LA3E5:	LD		A,(FirePressed)
 		RES		2,(HL)
 		CALL	L8E1D
 		JR		LA451
-LA44E:	CALL	L719E
+LA44E:	CALL	NopeNoise
 LA451:	LD		HL,LB218
 		LD		A,(HL)
 		AND		$7F
@@ -4672,7 +4684,7 @@ LA89A:	LD		A,(CarryPressed)
 		RET		NC
 		LD		A,(LA28B)
 		RRA
-LA8A3:	JP		NC,L719E
+LA8A3:	JP		NC,NopeNoise
 		LD		A,(Character)
 		AND		$01
 		JR		Z,LA8A3
@@ -4695,7 +4707,7 @@ LA8A3:	JP		NC,L719E
 		JP		L8D4B
 LA8D3:	LD		A,(LA2BC)
 		AND		A
-		JP		NZ,L719E
+		JP		NZ,NopeNoise
 		LD		C,(IY+$07)
 		LD		B,$03
 LA8DF:	CALL	LA94B
@@ -4732,7 +4744,7 @@ LA8DF:	CALL	LA94B
 		CALL	LA94B
 		JP		LA05D
 LA926:	LD		(IY+$07),C
-		JP		L719E
+		JP		NopeNoise
 LA92C:	LD		HL,LA2BE
 		JR		LA934
 LA931:	LD		HL,LA2BD
