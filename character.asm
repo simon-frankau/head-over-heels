@@ -551,7 +551,7 @@ EPIC_67:	PUSH	AF
 		CP	$FF
 		JR	Z,EPIC_68
 		CALL	CharThing14
-		CALL	LB21C
+		CALL	TableCall	
 		JR	NC,EPIC_69
 		LD	A,(IY+$0B)
 		OR	$F0
@@ -595,7 +595,7 @@ EPIC_71:	LD	A,$81
 		RET	Z
 		CALL	CharThing14
 		PUSH	HL
-		CALL	LB21C
+		CALL	TableCall
 		POP	HL
 		JP	NC,L8CD6
 		LD	A,$88
