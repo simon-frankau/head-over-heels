@@ -4659,34 +4659,37 @@ LB21C:	PUSH	AF
 		EXX
 		POP		AF
 		LD		(LB21B),A
-LB225:	CALL	LB22C
+LB225:	CALL	SomeTableCall
 		LD		A,(LB21B)
 		RET
-LB22C:	LD		DE,LB24B
+
+	;; Takes value in A, indexes into table, writes variable, makes call...
+SomeTableCall:	LD	DE,LB24B
 		PUSH	DE
-		LD		C,A
-		ADD		A,A
-		ADD		A,A
-		ADD		A,C
-		ADD		A,$77
-		LD		L,A
-		ADC		A,$B3
-		SUB		L
-		LD		H,A
-		LD		A,(HL)
-		LD		(LB217),A
-		INC		HL
-		LD		E,(HL)
-		INC		HL
-		LD		D,(HL)
-		INC		HL
-		LD		A,(HL)
-		INC		HL
-		LD		H,(HL)
-		LD		L,A
+		LD	C,A
+		ADD	A,A
+		ADD	A,A
+		ADD	A,C		; Multiply by 5
+		ADD	A,FnTbl & $FF
+		LD	L,A
+		ADC	A,FnTbl >> 8
+		SUB	L
+		LD	H,A		; Generate index into table
+		LD	A,(HL)
+		LD	(LB217),A 	; Load first value here
+		INC	HL
+		LD	E,(HL)
+		INC	HL
+		LD	D,(HL)		; Next two in DE
+		INC	HL
+		LD	A,(HL)
+		INC	HL
+		LD	H,(HL)
+		LD	L,A		; Next two in HL
 		PUSH	DE
-		EXX
-		RET
+		EXX			; Save regs, and...
+		RET			; tail call DE.
+	
 LB24B:	DEFB $D9,$C8,$E5,$DD,$E1,$CB,$51,$20,$15,$21,$7E,$AF,$7E,$23,$66,$6F
 LB25B:	DEFB $B4,$28,$24,$E5,$CD,$F4,$9D,$E1,$38,$3B,$20,$F0,$18,$19,$21,$80
 LB26B:	DEFB $AF,$7E,$23,$66,$6F,$B4,$28,$09,$E5,$CD,$F4,$9D,$E1,$38,$28,$20
@@ -4779,436 +4782,494 @@ LB369:	BIT		7,(IX+$09)
 		SET		6,(IX+$09)
 		LD		(IX+$0B),$FF
 		RET
-LB377:	DEFB $FD,$BE,$B4,$84,$B4,$FF,$9F,$B3,$00,$00,$FB,$15,$B5,$A2,$B4,$FF
-LB387:	DEFB $C0,$B3,$00,$00,$FE,$65,$B5,$28,$B4,$FF,$E4,$B3,$00,$00,$F7,$AD
-LB397:	DEFB $B5,$69,$B4,$FF,$07,$B4,$00,$00
-LB39F:	EXX
-		POP		HL
-		POP		DE
-		XOR		A
+
+FnTbl:		DEFB $FD
+		DEFW SomeTableFn0,SomeTableArg0
+		DEFB $FF
+		DEFW SomeTableFn1,L0000
+		DEFB $FB
+		DEFW SomeTableFn2,SomeTableArg2
+		DEFB $FF
+		DEFW SomeTableFn3,L0000
+		DEFB $FE
+		DEFW SomeTableFn4,SomeTableArg4
+		DEFB $FF
+		DEFW SomeTableFn5,L0000
+		DEFB $F7
+		DEFW SomeTableFn6,SomeTableArg6
+		DEFB $FF
+		DEFW SomeTableFn7,L0000
+
+SomeTableFn1:	EXX
+		POP	HL
+		POP	DE
+		XOR	A
 		CALL	LB225
-		JR		C,LB3B6
+		JR	C,STF1_1
 		EXX
-		DEC		D
-		DEC		E
+		DEC	D
+		DEC	E
 		EXX
-		LD		A,$02
+		LD	A,$02
 		CALL	LB225
-		LD		A,$01
-		RET		NC
-		XOR		A
+		LD	A,$01
+		RET	NC
+		XOR	A
 		RET
-LB3B6:	LD		A,$02
+STF1_1:		LD	A,$02
 		CALL	LB225
-		RET		C
-		AND		A
-		LD		A,$02
+		RET	C
+		AND	A
+		LD	A,$02
 		RET
-LB3C0:	EXX
-		POP		HL
-		POP		DE
-		LD		A,$04
+
+SomeTableFn3:	EXX
+		POP	HL
+		POP	DE
+		LD	A,$04
 		CALL	LB225
-		JR		C,LB3DA
+		JR	C,STF3_1
 		EXX
-		INC		D
-		INC		E
+		INC	D
+		INC	E
 		EXX
-		LD		A,$02
+		LD	A,$02
 		CALL	LB225
-		LD		A,$03
-		RET		NC
-		LD		A,$04
-		AND		A
+		LD	A,$03
+		RET	NC
+		LD	A,$04
+		AND	A
 		RET
-LB3DA:	LD		A,$02
+STF3_1:		LD	A,$02
 		CALL	LB225
-		RET		C
-		AND		A
-		LD		A,$02
+		RET	C
+		AND	A
+		LD	A,$02
 		RET
-LB3E4:	EXX
-		POP		HL
-		POP		DE
-		LD		A,$04
+
+SomeTableFn5:	EXX
+		POP	HL
+		POP	DE
+		LD	A,$04
 		CALL	LB225
-		JR		C,LB3FE
+		JR	C,STF5_1
 		EXX
-		INC		D
-		INC		E
+		INC	D
+		INC	E
 		EXX
-		LD		A,$06
+		LD	A,$06
 		CALL	LB225
-		LD		A,$05
-		RET		NC
-		LD		A,$04
-		AND		A
+		LD	A,$05
+		RET	NC
+		LD	A,$04
+		AND	A
 		RET
-LB3FE:	LD		A,$06
+STF5_1:		LD	A,$06
 		CALL	LB225
-		RET		C
-		LD		A,$06
+		RET	C
+		LD	A,$06
 		RET
-LB407:	EXX
-		POP		HL
-		POP		DE
-		XOR		A
+	
+SomeTableFn7:	EXX
+		POP	HL
+		POP	DE
+		XOR	A
 		CALL	LB225
-		JR		C,LB41E
+		JR	C,STF7_1
 		EXX
-		DEC		D
-		DEC		E
+		DEC	D
+		DEC	E
 		EXX
-		LD		A,$06
+		LD	A,$06
 		CALL	LB225
-		LD		A,$07
-		RET		NC
-		XOR		A
+		LD	A,$07
+		RET	NC
+		XOR	A
 		RET
-LB41E:	LD		A,$06
+STF7_1:		LD	A,$06
 		CALL	LB225
-		RET		C
-		AND		A
-		LD		A,$06
+		RET	C
+		AND	A
+		LD	A,$06
 		RET
-LB428:	INC		HL
-		INC		HL
-		CALL	LB650
-		LD		A,(HL)
-		SUB		C
+
+SomeTableArg4:	INC	HL
+		INC	HL
+		CALL	TblFnCommon20
+		LD	A,(HL)
+		SUB	C
 		EXX
-		CP		D
+		CP	D
 		EXX
-		JR		C,LB465
-		JR		NZ,LB453
-		INC		HL
-LB437:	LD		A,(HL)
-		SUB		B
+		JR	C,TblArgCommon4
+		JR	NZ,TblArgCommon3
+		INC	HL
+	;; NB: Fall through
+	
+TblArgCommon1:	LD	A,(HL)
+		SUB	B
 		EXX
-		CP		H
-		LD		A,L
+		CP	H
+		LD	A,L
 		EXX
-		JR		NC,LB465
-		SUB		B
-		CP		(HL)
-		JR		NC,LB465
-LB443:	INC		HL
+		JR	NC,TblArgCommon4
+		SUB	B
+		CP	(HL)
+		JR	NC,TblArgCommon4
+	;; NB: Fall through
+	
+TblArgCommon2:	INC	HL
 		EXX
-		LD		A,C
+		LD	A,C
 		EXX
-		CP		(HL)
-		JR		NC,LB465
-		LD		A,(HL)
-		SUB		E
+		CP	(HL)
+		JR	NC,TblArgCommon4
+		LD	A,(HL)
+		SUB	E
 		EXX
-		CP		B
+		CP	B
 		EXX
-		JR		NC,LB465
+		JR	NC,TblArgCommon4
 		SCF
 		RET
-LB453:	INC		HL
-		LD		A,(HL)
-		SUB		B
+	
+TblArgCommon3:	INC	HL
+		LD	A,(HL)
+		SUB	B
 		EXX
-		CP		H
+		CP	H
 		EXX
-		JR		C,LB465
-		INC		HL
-		LD		A,(HL)
-		SUB		E
+		JR	C,TblArgCommon4
+		INC	HL
+		LD	A,(HL)
+		SUB	E
 		EXX
-		CP		B
+		CP	B
 		EXX
-		JR		C,LB465
-		XOR		A
+		JR	C,TblArgCommon4
+		XOR	A
 		RET
-LB465:	LD		A,$FF
-		AND		A
+	
+TblArgCommon4:	LD	A,$FF
+		AND	A
 		RET
-LB469:	INC		HL
-		INC		HL
-		CALL	LB650
-		LD		A,(HL)
-		SUB		C
+
+SomeTableArg6:	INC	HL
+		INC	HL
+		CALL	TblFnCommon20
+		LD	A,(HL)
+		SUB	C
 		EXX
-		CP		D
-		LD		A,E
+		CP	D
+		LD	A,E
 		EXX
-		JR		NC,LB453
-		SUB		C
-		CP		(HL)
-		JR		NC,LB465
-		INC		HL
-		LD		A,(HL)
-		SUB		B
+		JR	NC,TblArgCommon3
+		SUB	C
+		CP	(HL)
+		JR	NC,TblArgCommon4
+		INC	HL
+		LD	A,(HL)
+		SUB	B
 		EXX
-		CP		H
+		CP	H
 		EXX
-		JR		Z,LB443
-		JR		LB465
-LB484:	CALL	LB650
+		JR	Z,TblArgCommon2
+		JR	TblArgCommon4
+
+SomeTableArg0:	CALL	TblFnCommon20
 		EXX
-		LD		A,E
+		LD	A,E
 		EXX
-		SUB		C
-		CP		(HL)
-		JR		C,LB465
-		INC		HL
-		JR		Z,LB437
-LB491:	EXX
-		LD		A,L
+		SUB	C
+		CP	(HL)
+		JR	C,TblArgCommon4
+		INC	HL
+		JR	Z,TblArgCommon1
+	;; NB: Fall through
+	
+TblArgCommon5:	EXX
+		LD	A,L
 		EXX
-		SUB		B
-		CP		(HL)
-		JR		C,LB465
-		INC		HL
-		LD		A,(HL)
-		ADD		A,E
+		SUB	B
+		CP	(HL)
+		JR	C,TblArgCommon4
+		INC	HL
+		LD	A,(HL)
+		ADD	A,E
 		EXX
-		CP		B
+		CP	B
 		EXX
-		JR		NC,LB465
-		XOR		A
+		JR	NC,TblArgCommon4
+		XOR	A
 		RET
-LB4A2:	CALL	LB650
+
+SomeTableArg2:	CALL	TblFnCommon20
 		EXX
-		LD		A,E
+		LD	A,E
 		EXX
-		SUB		C
-		CP		(HL)
-		INC		HL
-		JR		NC,LB491
-		DEC		HL
-		LD		A,(HL)
-		SUB		C
+		SUB	C
+		CP	(HL)
+		INC	HL
+		JR	NC,TblArgCommon5
+		DEC	HL
+		LD	A,(HL)
+		SUB	C
 		EXX
-		CP		D
-		LD		A,L
+		CP	D
+		LD	A,L
 		EXX
-		JR		NC,LB465
-		INC		HL
-		SUB		B
-		CP		(HL)
-		JP		Z,LB443
-		JR		LB465
-LB4BE:	CALL	LB63D
-		JR		Z,LB4F6
-		CALL	LB5F5
-		LD		A,$24
-		JR		C,LB4F9
-		BIT		0,(IX-$01)
-		JR		Z,LB4E4
-		LD		A,(L7747)
-		CALL	LB629
-		JR		C,LB4F6
-		CALL	LB619
-		JR		C,LB4FD
-		LD		A,(L7718)
-		SUB		$04
-		JR		LB4ED
-LB4E4:	BIT		0,(IX-$02)
-		JR		Z,LB4F6
-		LD		A,(L7718)
-LB4ED:	CP		E
-		RET		NZ
-		LD		A,$01
-LB4F1:	LD		(LB218),A
+		JR	NC,TblArgCommon4
+		INC	HL
+		SUB	B
+		CP	(HL)
+		JP	Z,TblArgCommon2
+		JR	TblArgCommon4
+	
+SomeTableFn0:	CALL	TblFnCommon19
+		JR	Z,TblFnCommon2
+		CALL	TblFnCommon11
+		LD	A,$24
+		JR	C,TblFnCommon2b
+		BIT	0,(IX-$01)
+		JR	Z,STF8_1
+		LD	A,(L7747)
+		CALL	TblFnCommon17
+		JR	C,TblFnCommon2
+		CALL	TblFnCommon15
+		JR	C,TblFnCommon3
+		LD	A,(L7718)
+		SUB	$04
+		JR	STF8_2
+STF8_1:		BIT	0,(IX-$02)
+		JR	Z,TblFnCommon2
+		LD	A,(L7718)
+STF8_2:		CP	E
+		RET	NZ
+		LD	A,$01
+	;; NB: Fall through
+	
+TblFnCommon1:	LD	(LB218),A
 		SCF
 		RET
-LB4F6:	LD		A,(L7718)
-LB4F9:	CP		E
-		RET		NZ
+
+TblFnCommon2:	LD	A,(L7718)
+TblFnCommon2b:	CP	E
+		RET	NZ
 		SCF
 		RET
-LB4FD:	CALL	LB621
-		JR		C,LB4F6
-		CALL	LB4F6
-LB505:	RET		NZ
-		LD		A,L
-		CP		$25
-		LD		A,$F7
-		JR		C,LB50F
-		LD		A,$FB
-LB50F:	LD		(LA2BF),A
-		XOR		A
+
+TblFnCommon3:	CALL	TblFnCommon16
+		JR	C,TblFnCommon2
+		CALL	TblFnCommon2
+	;; NB: Fall through
+	
+TblFnCommon4:	RET	NZ
+		LD	A,L
+		CP	$25
+		LD	A,$F7
+		JR	C,TblFnCommon5
+		LD	A,$FB
+	;; NB: Fall through
+	
+TblFnCommon5:	LD	(LA2BF),A
+		XOR	A
 		SCF
 		RET
-LB515:	CALL	LB63D
-		JR		Z,LB54A
-		CALL	LB5FF
-		LD		A,$24
-		JR		C,LB54D
-		BIT		1,(IX-$01)
-		JR		Z,LB53B
-		LD		A,(L7746)
-		CALL	LB629
-		JR		C,LB54A
-		CALL	LB609
-		JR		C,LB551
-		LD		A,(L7719)
-		SUB		$04
-		JR		LB544
-LB53B:	BIT		1,(IX-$02)
-		JR		Z,LB54A
-		LD		A,(L7719)
-LB544:	CP		L
-		RET		NZ
-		LD		A,$02
-		JR		LB4F1
-LB54A:	LD		A,(L7719)
-LB54D:	CP		L
-		RET		NZ
+
+SomeTableFn2:	CALL	TblFnCommon19
+		JR	Z,TblFnCommon6
+		CALL	TblFnCommon12
+		LD	A,$24
+		JR	C,TblFnCommon6b
+		BIT	1,(IX-$01)
+		JR	Z,STF2_1
+		LD	A,(L7746)
+		CALL	TblFnCommon17
+		JR	C,TblFnCommon6
+		CALL	TblFnCommon13
+		JR	C,TblFnCommon7
+		LD	A,(L7719)
+		SUB	$04
+		JR	STF2_2
+STF2_1:		BIT	1,(IX-$02)
+		JR	Z,TblFnCommon6
+		LD	A,(L7719)
+STF2_2:		CP	L
+		RET	NZ
+		LD	A,$02
+		JR	TblFnCommon1
+	
+TblFnCommon6:	LD	A,(L7719)
+TblFnCommon6b:	CP	L
+		RET	NZ
 		SCF
 		RET
-LB551:	CALL	LB611
-		JR		C,LB54A
-		CALL	LB54A
-LB559:	RET		NZ
-		LD		A,E
-		CP		$25
-		LD		A,$FE
-		JR		C,LB50F
-		LD		A,$FD
-		JR		LB50F
-LB565:	CALL	LB63D
-		JR		Z,LB59B
-		CALL	LB5F5
-		LD		A,$2C
-		JR		C,LB59E
-		BIT		2,(IX-$01)
-		JR		Z,LB58B
-		LD		A,(L7745)
-		CALL	LB629
-		JR		C,LB59B
-		CALL	LB619
-		JR		C,LB5A2
-		LD		A,(L771A)
-		ADD		A,$04
-		JR		LB594
-LB58B:	BIT		2,(IX-$02)
-		JR		Z,LB59B
-		LD		A,(L771A)
-LB594:	CP		D
-		RET		NZ
-		LD		A,$03
-		JP		LB4F1
-LB59B:	LD		A,(L771A)
-LB59E:	CP		D
-		RET		NZ
+
+TblFnCommon7:	CALL	TblFnCommon14
+		JR	C,TblFnCommon6
+		CALL	TblFnCommon6
+	;; NB: Fall through
+	
+TblFnCommon8:	RET	NZ
+		LD	A,E
+		CP	$25
+		LD	A,$FE
+		JR	C,TblFnCommon5
+		LD	A,$FD
+		JR	TblFnCommon5
+
+SomeTableFn4:	CALL	TblFnCommon19
+		JR	Z,STF4_3
+		CALL	TblFnCommon11
+		LD	A,$2C
+		JR	C,STF4_4
+		BIT	2,(IX-$01)
+		JR	Z,STF4_1
+		LD	A,(L7745)
+		CALL	TblFnCommon17
+		JR	C,STF4_3
+		CALL	TblFnCommon15
+		JR	C,STF4_5
+		LD	A,(L771A)
+		ADD	A,$04
+		JR	STF4_2
+STF4_1:		BIT	2,(IX-$02)
+		JR	Z,STF4_3
+		LD	A,(L771A)
+STF4_2:		CP	D
+		RET	NZ
+		LD	A,$03
+		JP	TblFnCommon1
+STF4_3:		LD	A,(L771A)
+STF4_4:		CP	D
+		RET	NZ
 		SCF
 		RET
-LB5A2:	CALL	LB621
-		JR		C,LB59B
-		CALL	LB59B
-		JP		LB505
-LB5AD:	CALL	LB63D
-		JR		Z,LB5E3
-		CALL	LB5FF
-		LD		A,$2C
-		JR		C,LB5E6
-		BIT		3,(IX-$01)
-		JR		Z,LB5D3
-		LD		A,(L7744)
-		CALL	LB629
-		JR		C,LB5E3
-		CALL	LB609
-		JR		C,LB5EA
-		LD		A,(L771B)
-		ADD		A,$04
-		JR		LB5DC
-LB5D3:	BIT		3,(IX-$02)
-		JR		Z,LB5E3
-		LD		A,(L771B)
-LB5DC:	CP		H
-		RET		NZ
-		LD		A,$04
-		JP		LB4F1
-LB5E3:	LD		A,(L771B)
-LB5E6:	CP		H
-		RET		NZ
+STF4_5:		CALL	TblFnCommon16
+		JR	C,STF4_3
+		CALL	STF4_3
+		JP	TblFnCommon4
+
+SomeTableFn6:	CALL	TblFnCommon19
+		JR	Z,TblFnCommon9
+		CALL	TblFnCommon12
+		LD	A,$2C
+		JR	C,TblFnCommon9b
+		BIT	3,(IX-$01)
+		JR	Z,STF6_1
+		LD	A,(L7744)
+		CALL	TblFnCommon17
+		JR	C,TblFnCommon9
+		CALL	TblFnCommon13
+		JR	C,TblFnCommon10
+		LD	A,(L771B)
+		ADD	A,$04
+		JR	STF6_2
+STF6_1:		BIT	3,(IX-$02)
+		JR	Z,TblFnCommon9
+		LD	A,(L771B)
+STF6_2:		CP	H
+		RET	NZ
+		LD	A,$04
+		JP	TblFnCommon1
+
+TblFnCommon9:	LD	A,(L771B)
+TblFnCommon9b:	CP	H
+		RET	NZ
 		SCF
 		RET
-LB5EA:	CALL	LB611
-		JR		C,LB5E3
-		CALL	LB5E3
-		JP		LB559
-LB5F5:	LD		A,(L771B)
-		CP		H
-		RET		C
-		LD		A,L
-		CP		A,(IX+$01)
+
+TblFnCommon10:	CALL	TblFnCommon14
+		JR	C,TblFnCommon9
+		CALL	TblFnCommon9
+		JP	TblFnCommon8
+
+	;; Unused?
+TblFnCommon11:	LD	A,(L771B)
+		CP	H
+		RET	C
+		LD	A,L
+		CP	A,(IX+$01)
 		RET
-LB5FF:	LD		A,(L771A)
-		CP		D
-		RET		C
-		LD		A,E
-		CP		A,(IX+$00)
+
+TblFnCommon12:	LD	A,(L771A)
+		CP	D
+		RET	C
+		LD	A,E
+		CP	A,(IX+$00)
 		RET
-LB609:	LD		A,$2C
-		CP		D
-		RET		C
-		LD		A,E
-		CP		$24
+
+TblFnCommon13:	LD	A,$2C
+		CP	D
+		RET	C
+		LD	A,E
+		CP	$24
 		RET
-LB611:	LD		A,$30
-		CP		D
-		RET		C
-		LD		A,E
-		CP		$20
+
+TblFnCommon14:	LD	A,$30
+		CP	D
+		RET	C
+		LD	A,E
+		CP	$20
 		RET
-LB619:	LD		A,$2C
-		CP		H
-		RET		C
-		LD		A,L
-		CP		$24
+
+TblFnCommon15:	LD	A,$2C
+		CP	H
+		RET	C
+		LD	A,L
+		CP	$24
 		RET
-LB621:	LD		A,$30
-		CP		H
-		RET		C
-		LD		A,L
-		CP		$20
+
+TblFnCommon16:	LD	A,$30
+		CP	H
+		RET	C
+		LD	A,L
+		CP	$20
 		RET
-LB629:	SUB		B
-		RET		C
+
+TblFnCommon17:	SUB	B
+		RET	C
 		PUSH	AF
-		LD		A,(Character)
-		CP		$03
-		JR		NZ,LB638
-		POP		AF
-		CP		$03
+		LD	A,(Character)
+		CP	$03
+		JR	NZ,TFC17_1
+		POP	AF
+		CP	$03
 		CCF
 		RET
-LB638:	POP		AF
-		CP		$09
+TFC17_1:	POP	AF
+		CP	$09
 		CCF
 		RET
-LB63D:	LD		IX,L7718
-		BIT		0,(IY+$09)
-		RET		Z
-		LD		A,(IY+$0A)
-		AND		$7F
-		SUB		$01
-		RET		C
-		XOR		A
+
+TblFnCommon19:	LD	IX,L7718
+		BIT	0,(IY+$09)
+		RET	Z
+		LD	A,(IY+$0A)
+		AND	$7F
+		SUB	$01
+		RET	C
+		XOR	A
 		RET
-LB650:	INC		HL
-		INC		HL
-		LD		A,(HL)
-		INC		HL
-		LD		E,$06
-		BIT		1,A
-		JR		NZ,LB662
+
+TblFnCommon20:	INC	HL
+		INC	HL
+		LD	A,(HL)
+		INC	HL
+		LD	E,$06
+		BIT	1,A
+		JR	NZ,TFC20_1
 		RRA
-		LD		A,$03
-		ADC		A,$00
-		LD		B,A
-		LD		C,A
+		LD	A,$03
+		ADC	A,$00
+		LD	B,A
+		LD	C,A
 		RET
-LB662:	RRA
-		JR		C,LB669
-		LD		BC,L0104
+TFC20_1:	RRA
+		JR	C,TFC20_2
+		LD	BC,L0104
 		RET
-LB669:		LD		BC,L0401
+TFC20_2:	LD	BC,L0401
 		RET
 	
 #include "print_char.asm"
