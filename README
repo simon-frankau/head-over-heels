@@ -40,6 +40,7 @@ get_sprite.asm	    Given a sprite index, return pointers to the data
 status.asm	    Counts for lives etc.
 mainloop.asm	    The main game loop and some associated functions
 character.asm	    FIXME!
+fn_tbl_stuff.asm    FIXME!
 
 Binary files
 ------------
