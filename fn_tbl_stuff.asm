@@ -6,7 +6,7 @@
 	;; FIXME!
 	;;
 	;; Only exported value is FnTbl
-	;;
+	;; Only call out is to DoTableCall... which calls right back!
 
 FnTbl:		DEFB $FD
 		DEFW SomeTableFn0,SomeTableArg0
@@ -29,20 +29,20 @@ SomeTableFn1:	EXX
 		POP	HL
 		POP	DE
 		XOR	A
-		CALL	LB225
+		CALL	DoTableCall
 		JR	C,STF1_1
 		EXX
 		DEC	D
 		DEC	E
 		EXX
 		LD	A,$02
-		CALL	LB225
+		CALL	DoTableCall
 		LD	A,$01
 		RET	NC
 		XOR	A
 		RET
 STF1_1:		LD	A,$02
-		CALL	LB225
+		CALL	DoTableCall
 		RET	C
 		AND	A
 		LD	A,$02
@@ -52,21 +52,21 @@ SomeTableFn3:	EXX
 		POP	HL
 		POP	DE
 		LD	A,$04
-		CALL	LB225
+		CALL	DoTableCall
 		JR	C,STF3_1
 		EXX
 		INC	D
 		INC	E
 		EXX
 		LD	A,$02
-		CALL	LB225
+		CALL	DoTableCall
 		LD	A,$03
 		RET	NC
 		LD	A,$04
 		AND	A
 		RET
 STF3_1:		LD	A,$02
-		CALL	LB225
+		CALL	DoTableCall
 		RET	C
 		AND	A
 		LD	A,$02
@@ -76,21 +76,21 @@ SomeTableFn5:	EXX
 		POP	HL
 		POP	DE
 		LD	A,$04
-		CALL	LB225
+		CALL	DoTableCall
 		JR	C,STF5_1
 		EXX
 		INC	D
 		INC	E
 		EXX
 		LD	A,$06
-		CALL	LB225
+		CALL	DoTableCall
 		LD	A,$05
 		RET	NC
 		LD	A,$04
 		AND	A
 		RET
 STF5_1:		LD	A,$06
-		CALL	LB225
+		CALL	DoTableCall
 		RET	C
 		LD	A,$06
 		RET
@@ -99,20 +99,20 @@ SomeTableFn7:	EXX
 		POP	HL
 		POP	DE
 		XOR	A
-		CALL	LB225
+		CALL	DoTableCall
 		JR	C,STF7_1
 		EXX
 		DEC	D
 		DEC	E
 		EXX
 		LD	A,$06
-		CALL	LB225
+		CALL	DoTableCall
 		LD	A,$07
 		RET	NC
 		XOR	A
 		RET
 STF7_1:		LD	A,$06
-		CALL	LB225
+		CALL	DoTableCall
 		RET	C
 		AND	A
 		LD	A,$06

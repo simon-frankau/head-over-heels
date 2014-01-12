@@ -2129,7 +2129,7 @@ L8F97:	LD		A,(L822D)
 		AND		A
 		RET
 L8FC0:	LD		HL,(L822B)
-		JP		LB21C
+		JP		TableCall
 L8FC6:	LD		A,(IY+$0C)
 		OR		$C0
 		INC		A
@@ -4654,13 +4654,16 @@ LB218:	DEFB $00
 LB219:	DEFB $00
 LB21A:	DEFB $00
 LB21B:	DEFB $00
-LB21C:	PUSH	AF
+	
+TableCall:	PUSH	AF
 		CALL	LB0F9
 		EXX
-		POP		AF
-		LD		(LB21B),A
-LB225:	CALL	SomeTableCall
-		LD		A,(LB21B)
+		POP	AF
+		LD	(LB21B),A
+	;; NB: Fall through
+
+DoTableCall:	CALL	SomeTableCall
+		LD	A,(LB21B)
 		RET
 
 	;; Takes value in A, indexes into table, writes variable, makes call...
