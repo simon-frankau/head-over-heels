@@ -45,7 +45,7 @@ BoostCountDbl:	LD	A,C
 
 	;; FIXME: Does some other thing before boosting the count.
 BoostCountPlus:	PUSH	AF
-		CALL	L9DF4
+		CALL	DoCopy	; FIXME: Calls (IX)
 		POP	AF
 	;; NB: Fall through
 

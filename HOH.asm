@@ -1028,7 +1028,7 @@ L7C29:	RRA
 		LD		L,A
 L7C30:	SUB		H
 		ADD		A,$80
-		LD		(L9C8B+1),A
+		LD		(FCTgt1+1),A
 		LD		C,A
 		LD		A,$FC
 		SUB		H
@@ -1037,11 +1037,11 @@ L7C30:	SUB		H
 		NEG
 		LD		E,A
 		ADD		A,C
-		LD		(L9C9F+1),A
+		LD		(FCTgt3+1),A
 		LD		A,C
 		NEG
 		ADD		A,E
-		LD		(L9C97+1),A
+		LD		(FCTgt2+1),A
 		CALL	FloorFn
 		POP		AF
 		RRA
@@ -2624,7 +2624,7 @@ Attrib5:	DEFB $46
 	
 #include "blit_mask.asm"
 	
-L9BBE:		LD	HL,(SpriteXExtent)
+DrawFloor:	LD	HL,(SpriteXExtent)
 		LD	A,H
 		RRA
 		RRA
@@ -2642,38 +2642,39 @@ L9BBE:		LD	HL,(SpriteXExtent)
 		SUB	$02
 		LD	DE,SpriteBuff
 		RR	C
-		JR	NC,L9BF0
-		LD	IY,L9DF8
-		LD	IX,L9EA9
+		JR	NC,DF_1
+		LD	IY,ClearOne
+		LD	IX,OneColBlitR
 		LD	HL,BlitFloorR
-		CALL	L9C16
+		CALL	FloorCall
 		CP	$FF
 		RET	Z
 		SUB	$01
-		JR	L9C01
-L9BF0:		LD	IY,L9E07
-		LD	IX,L9EBB
+		JR	DF_2
+DF_1:		LD	IY,ClearTwo
+		LD	IX,TwoColBlit
 		LD	HL,BlitFloor
-		CALL	L9C16
+		CALL	FloorCall
 		INC	E
 		SUB	$02
-L9C01:		JR	NC,L9BF0
+DF_2:		JR	NC,DF_1
 		INC	A
 		RET	NZ
-		LD	IY,L9DF8
-		LD	IX,L9EAD
+		LD	IY,ClearOne
+		LD	IX,OneColBlitL
 		LD	HL,BlitFloorL
-		LD	(L9CD1+1),HL
+		LD	(BlitFloorFnPtr+1),HL
 		EXX
-		JR	L9C28 		; Tail call.
+		JR	FloorCall2 		; Tail call.
 
-	
-L9C16:		LD	(L9CD1+1),HL
+	;; Performs register-saving and incrementing HL/E. Not needed
+	;; for the last call from DrawFloor.
+FloorCall:	LD	(BlitFloorFnPtr+1),HL
 		PUSH	DE
 		PUSH	AF
 		EXX
 		PUSH	HL
-		CALL	L9C28
+		CALL	FloorCall2
 		POP	HL
 		INC	L
 		INC	L
@@ -2683,147 +2684,157 @@ L9C16:		LD	(L9CD1+1),HL
 		INC	E
 		RET
 
-	
-L9C28:		LD		DE,(SpriteYExtent)
-		LD		A,E
-		SUB		D
-		LD		E,A
-		LD		A,(HL)
-		AND		A
-		JR		Z,L9C7F
-		LD		A,D
-		SUB		(HL)
-		LD		D,A
-		JR		NC,L9C82
-		INC		HL
-		LD		C,$38
-		BIT		2,(HL)
-		JR		Z,L9C41
-		LD		C,$4A
-L9C41:	ADD		A,C
-		JR		NC,L9C4F
-		ADD		A,A
+	;; Call inputs:
+	;; * Reads from SpriteYExtent
+	;; * Takes in:
+	;;   HL - Floor drawing function
+	;;   IX - Copying function
+	;;   IY - Clearing function
+	;; 
+FloorCall2:	LD	DE,(SpriteYExtent)
+		LD	A,E
+		SUB	D
+		LD	E,A
+		LD	A,(HL)
+		AND	A
+		JR	Z,FC_5
+		LD	A,D
+		SUB	(HL)
+		LD	D,A
+		JR	NC,FC_6
+		INC	HL
+		LD	C,$38
+		BIT	2,(HL)
+		JR	Z,FC_1
+		LD	C,$4A
+FC_1:		ADD	A,C
+		JR	NC,FC_2
+		ADD	A,A
 		CALL	L9D77
 		EXX
-		LD		A,D
+		LD	A,D
 		NEG
-		JP		L9C6B
-L9C4F:	NEG
-		CP		E
-		JR		NC,L9C7F
-		LD		B,A
+		JP	FC_3
+FC_2:		NEG
+		CP	E
+		JR	NC,FC_5
+		LD	B,A
 		NEG
-		ADD		A,E
-		LD		E,A
-		LD		A,B
-		CALL	L9DF6
-		LD		A,(HL)
+		ADD	A,E
+		LD	E,A
+		LD	A,B
+		CALL	DoClear
+		LD	A,(HL)
 		EXX
 		CALL	L9DBF
 		EXX
-		LD		A,$38
-		BIT		2,(HL)
-		JR		Z,L9C6B
-		LD		A,$4A
-L9C6B:	CP		E
-		JR		NC,L9C7C
-		LD		B,A
+		LD	A,$38
+		BIT	2,(HL)
+		JR	Z,FC_3
+		LD	A,$4A
+FC_3:		CP	E
+		JR	NC,FC_4
+		LD	B,A
 		NEG
-		ADD		A,E
-		EX		AF,AF'
-		LD		A,B
-		CALL	L9DF4
-		EX		AF,AF'
-		LD		D,$00
-		JR		L9C84
-L9C7C:	LD		A,E
-		JP		(IX)
-L9C7F:	LD		A,E
-		JP		(IY)
-L9C82:	LD		A,E
-		INC		HL
-L9C84:	LD		B,A
-		DEC		HL
-		LD		A,L
-		ADD		A,A
-		ADD		A,A
-		ADD		A,$04
-L9C8B:	CP		$00	; NB: Target of self-modifying code.
-		JR		C,L9C9B
-		LD		E,$00
-		JR		NZ,L9C95
-		LD		E,$05
-L9C95:	SUB		$04
-L9C97:	ADD		A,$00 	; NB: Target of self-modifying code.
-		JR		L9CA3
-L9C9B:	ADD		A,$04
+		ADD	A,E
+		EX	AF,AF'
+		LD	A,B
+		CALL	DoCopy
+		EX	AF,AF'
+		LD	D,$00
+		JR	FC_7
+FC_4:		LD	A,E
+		JP	(IX)		; Copy A rows from HL' to DE'.
+FC_5:		LD	A,E
+		JP	(IY)		; Clear A rows at DE'.
+FC_6:		LD	A,E
+		INC	HL
+FC_7:		LD	B,A
+		DEC	HL
+		LD	A,L
+		ADD	A,A
+		ADD	A,A
+		ADD	A,$04
+FCTgt1:		CP	$00		; NB: Target of self-modifying code.
+		JR	C,FC_9
+		LD	E,$00
+		JR	NZ,FC_8
+		LD	E,$05
+FC_8:		SUB	$04
+FCTgt2:		ADD	A,$00 		; NB: Target of self-modifying code.
+		JR	FC_10
+FC_9:		ADD	A,$04
 		NEG
-L9C9F:	ADD		A,$00 	;NB: Target of self-modifying code.
-		LD		E,$08
-L9CA3:	NEG
-		ADD		A,$0B
-		LD		C,A
-		LD		A,E
-		LD		(L9CF5+1),A
-		LD		A,(HL)
-		ADD		A,D
-		INC		HL
-		SUB		C
-		JR		NC,L9CCA
-		ADD		A,$0B
-		JR		NC,L9CCD
-		LD		E,A
-		SUB		$0B
-		ADD		A,B
-		JR		C,L9CBF
-		LD		A,B
-		JR		L9CEC
-L9CBF:	PUSH	AF
-		SUB		B
+FCTgt3:		ADD	A,$00 		; NB: Target of self-modifying code.
+		LD	E,$08
+FC_10:		NEG
+		ADD	A,$0B
+		LD	C,A
+		LD	A,E
+		LD	(FCTgt4+1),A
+		LD	A,(HL)
+		ADD	A,D
+		INC	HL
+		SUB	C
+		JR	NC,FC_13
+		ADD	A,$0B
+		JR	NC,FC_14
+		LD	E,A
+		SUB	$0B
+		ADD	A,B
+		JR	C,FC_11
+		LD	A,B
+		JR	FloorCall3
+FC_11:		PUSH	AF
+		SUB	B
 		NEG
-L9CC3:	CALL	L9CEC
-		POP		AF
-		RET		Z
-		JP		(IY)
-L9CCA:	LD		A,B
-		JP		(IY)
-L9CCD:	ADD		A,B
-		JR		C,L9CD4
-		LD		A,B
-L9CD1:	JP		L0000
-L9CD4:	PUSH	AF
-		SUB		B
+FC_12:		CALL	FloorCall3
+		POP	AF
+		RET	Z
+		JP	(IY)		; Clear A rows at DE'
+FC_13:		LD	A,B
+		JP	(IY)		; Clear A rows at DE'
+FC_14:		ADD	A,B
+		JR	C,FloorCall5
+		LD	A,B
+	;; NB: Fall through
+
+BlitFloorFnPtr:	JP	L0000		; NB: Target of self-modifying code
+
+FloorCall5:	PUSH	AF
+		SUB	B
 		NEG
-		CALL	L9CD1
-		POP		AF
-		RET		Z
-		SUB		$0B
-		LD		E,$00
-		JR		NC,L9CE7
-		ADD		A,$0B
-		JR		L9CEC
-L9CE7:	PUSH	AF
-		LD		A,$0B
-		JR		L9CC3
-L9CEC:	PUSH	DE
+		CALL	BlitFloorFnPtr
+		POP	AF
+		RET	Z
+		SUB	$0B
+		LD	E,$00
+		JR	NC,FC_16
+		ADD	A,$0B
+		JR	FloorCall3
+FC_16:		PUSH	AF
+		LD	A,$0B
+		JR	FC_12
+	;; NB: Fall through
+	
+FloorCall3:	PUSH	DE
 		EXX
-		POP		HL
-		LD		H,$00
-		ADD		HL,HL
-		LD		BC,L9D03
-L9CF5:	JR		L9CFF	; NB: Target of self-modifying code.
-L9CF7:	LD		BC,L9D19
-		JR		L9CFF
-L9CFC:	LD		BC,L9D2F
-L9CFF:	ADD		HL,BC
+		POP	HL
+		LD	H,$00
+		ADD	HL,HL
+		LD	BC,L9D03
+FCTgt4:		JR	FC_18		; NB: Target of self-modifying code.
+FC_17:		LD	BC,L9D19
+		JR	FC_18
+		LD	BC,L9D2F 	; FIXME: Maybe gets rewritten?
+FC_18:		ADD	HL,BC
 		EXX
-		JP		(IX)
+		JP	(IX)		; NB: Tail call to copy data
 
 
 	
-L9D03:	DEFB $40
-L9D04:	DEFB $00,$70,$00,$74,$00,$77,$00,$37,$40,$07,$70,$03
-	DEFB $74,$00,$77,$00,$37,$00,$07,$00,$03
+L9D03:	DEFB $40,$00,$70,$00,$74,$00,$77,$00,$37,$40,$07
+	DEFB $70,$03,$74,$00,$77,$00,$37,$00,$07,$00,$03
 L9D19:	DEFB $00,$01,$00,$0d,$00,$3d,$00,$7d,$01,$7c,$0d
 	DEFB $70,$3d,$40,$7d,$00,$7c,$00,$70,$00,$40,$00
 L9D2F:	DEFB $40,$01,$70,$0d,$74,$3d,$77,$7d,$37,$7c,$07
@@ -2852,7 +2863,7 @@ FF_2:		LD		DE,L9D19 	; Call once...
 		CALL		FloorFnInner
 		POP		HL
 		INC		HL
-		LD		DE,L9D04 	; then again with saved address.
+		LD		DE,L9D03+1 	; then again with saved address.
 	;; NB: Fall through
 
 	;; Copy 4 bytes, skipping every second byte.
@@ -2922,13 +2933,13 @@ L9DBF:		BIT	2,A
 		JP	FlipPanel 	; Tail call
 
 	
-L9DD1:	LD		C,A
+L9DD1:		LD		C,A
 		LD		HL,(L84C5)
 		AND		$03
 		LD		B,A
 		INC		B
 		LD		A,$01
-L9DDB:	RRCA
+L9DDB:		RRCA
 		DJNZ	L9DDB
 		LD		B,A
 		AND		(HL)
@@ -2940,7 +2951,7 @@ L9DDB:	RRCA
 		LD		(HL),A
 		SCF
 		RET
-L9DEA:	RL		C
+L9DEA:		RL		C
 		CCF
 		RET		NC
 		LD		A,B
@@ -2949,33 +2960,37 @@ L9DEA:	RL		C
 		LD		(HL),A
 		SCF
 		RET
-L9DF4:	JP		(IX)
-L9DF6:	JP		(IY)
-	
-L9DF8:	EXX			; Self-modifying code, or actually just data!
-		LD		B,A
-		EX		DE,HL
-		LD		E,$00
-L9DFD:	LD		(HL),E
-		LD		A,L
-		ADD		A,$06
-		LD		L,A
-		DJNZ	L9DFD
-		EX		DE,HL
+
+DoCopy:		JP	(IX)	; Call the copying function
+DoClear:	JP	(IY)	; Call the clearing function
+
+	;; Zero a single column of the 6-byte-wide buffer at DE'.
+ClearOne:	EXX
+		LD	B,A
+		EX	DE,HL
+		LD	E,$00
+CO_1:		LD	(HL),E
+		LD	A,L
+		ADD	A,$06
+		LD	L,A
+		DJNZ	CO_1
+		EX	DE,HL
 		EXX
 		RET
-L9E07:	EXX
-		LD		B,A
-		EX		DE,HL
-		LD		E,$00
-L9E0C:	LD		(HL),E
-		INC		L
-		LD		(HL),E
-		LD		A,L
-		ADD		A,$05
-		LD		L,A
-		DJNZ	L9E0C
-		EX		DE,HL
+
+	;; Zero two columns of the 6-byte-wide buffer at DE'.
+ClearTwo:	EXX
+		LD	B,A
+		EX	DE,HL
+		LD	E,$00
+CT_1:		LD	(HL),E
+		INC	L
+		LD	(HL),E
+		LD	A,L
+		ADD	A,$05
+		LD	L,A
+		DJNZ	CT_1
+		EX	DE,HL
 		EXX
 		RET
 
@@ -3020,12 +3035,6 @@ GFA_1:		LD	BC,IMG_2x24 - MAGIC_OFFSET + 7 * $30
 		POP	AF
 		RET
 
-	;; Given the 'Thingie's are the only things to call
-	;; GetFloorAddr, I must conclude they are involved in actually
-	;; drawing the floor...
-
-	;; Takes something in D, and HL.
-	
 	;; Fill a 6-byte-wide buffer at DE' with both columns of a background tile.
 	;; A  contains number of rows to generate.
 	;; D  contains initial offset in rows.
@@ -3125,34 +3134,43 @@ BFL_2:		EXX
 		DJNZ	BFL_2
 		RET
 
-L9EA9:	EXX
-		INC		HL
-		JR		L9EAE
-L9EAD:	EXX
-L9EAE:	LD		B,A
-L9EAF:	LD		A,(HL)
-		LD		(DE),A
-		INC		HL
-		INC		HL
-		LD		A,E
-		ADD		A,$06
-		LD		E,A
-		DJNZ	L9EAF
+	;; Blit from HL' to DE', right byte of a 2-byte-wide sprite in a 6-byte wide buffer.
+	;; Number of rows in A.
+OneColBlitR:	EXX
+		INC	HL
+		JR	OCB_1
+	
+	;; Blit from HL' to DE', left byte of a 2-byte-wide sprite in a 6-byte wide buffer.
+	;; Number of rows in A.
+OneColBlitL:	EXX
+OCB_1:		LD	B,A
+OCB_2:		LD	A,(HL)
+		LD	(DE),A
+		INC	HL
+		INC	HL
+		LD	A,E
+		ADD	A,$06
+		LD	E,A
+		DJNZ	OCB_2
 		EXX
 		RET
-L9EBB:	EXX
-		LD		B,A
-L9EBD:	LD		A,(HL)
-		LD		(DE),A
-		INC		HL
-		INC		E
-		LD		A,(HL)
-		LD		(DE),A
-		INC		HL
-		LD		A,E
-		ADD		A,$05
-		LD		E,A
-		DJNZ	L9EBD
+
+
+	;; Blit from HL' to DE', a 2-byte-wide sprite in a 6-byte wide buffer.
+	;; Number of rows in A.
+TwoColBlit:	EXX
+		LD	B,A
+TCB_1:		LD	A,(HL)
+		LD	(DE),A
+		INC	HL
+		INC	E
+		LD	A,(HL)
+		LD	(DE),A
+		INC	HL
+		LD	A,E
+		ADD	A,$05
+		LD	E,A
+		DJNZ	TCB_1
 		EXX
 		RET
 
@@ -3271,7 +3289,7 @@ LA0AF:		LD	A,D
 		JR	C,LA09D
 
 LA0B6:		LD	(SpriteYExtent),DE
-		CALL	L9BBE
+		CALL	DrawFloor
 		LD	A,(L7716)
 		AND	$0C
 		JR	Z,LA109
