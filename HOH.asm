@@ -1042,7 +1042,7 @@ L7C30:	SUB		H
 		NEG
 		ADD		A,E
 		LD		(L9C97+1),A
-		CALL	L9D45
+		CALL	FloorFn
 		POP		AF
 		RRA
 		PUSH	AF
@@ -2606,7 +2606,8 @@ ML3_3:		LD	A,H			; loop until null pointer.
 		JR	NZ,ML3_1
 		RET
 
-L93E2:	DEFW $0000
+	;; Room origin, in double-pixel coordinates, for attrib-drawing
+RoomOrigin:	DEFW $0000
 	
 Attrib0:	DEFB $00
 Attrib3:	DEFB $43
@@ -2644,7 +2645,7 @@ L9BBE:		LD	HL,(SpriteXExtent)
 		JR	NC,L9BF0
 		LD	IY,L9DF8
 		LD	IX,L9EA9
-		LD	HL,Thingie3
+		LD	HL,BlitFloorR
 		CALL	L9C16
 		CP	$FF
 		RET	Z
@@ -2652,7 +2653,7 @@ L9BBE:		LD	HL,(SpriteXExtent)
 		JR	L9C01
 L9BF0:		LD	IY,L9E07
 		LD	IX,L9EBB
-		LD	HL,Thingie1
+		LD	HL,BlitFloor
 		CALL	L9C16
 		INC	E
 		SUB	$02
@@ -2661,7 +2662,7 @@ L9C01:		JR	NC,L9BF0
 		RET	NZ
 		LD	IY,L9DF8
 		LD	IX,L9EAD
-		LD	HL,Thingie2
+		LD	HL,BlitFloorL
 		LD	(L9CD1+1),HL
 		EXX
 		JR	L9C28 		; Tail call.
@@ -2827,35 +2828,42 @@ L9D19:	DEFB $00,$01,$00,$0d,$00,$3d,$00,$7d,$01,$7c,$0d
 	DEFB $70,$3d,$40,$7d,$00,$7c,$00,$70,$00,$40,$00
 L9D2F:	DEFB $40,$01,$70,$0d,$74,$3d,$77,$7d,$37,$7c,$07
 	DEFB $70,$03,$40,$00,$00,$00,$00,$00,$00,$00,$00
-	
-L9D45:		LD		HL,(FloorAddr)
-		LD		(L93E2),BC
-		LD		BC,L000A
-		ADD		HL,BC
-		LD		C,$10
+
+	;; FIXME: Some function to do with floor stuff
+	;; Floor tiles are 2x24
+	;; I think it may be stitching together a corner-case sprite?
+FloorFn:	LD		HL,(FloorAddr)
+		LD		(RoomOrigin),BC
+		LD		BC,2*5
+		ADD		HL,BC 		; Move 5 rows into the tile
+		LD		C,2*8
 		LD		A,(L7717)
 		RRA
-		PUSH	HL
-		JR		NC,L9D5B
+		PUSH		HL 		; Push this address.
+		JR		NC,FF_1		; If bottom bit of L7717 is set...
 		ADD		HL,BC
-		EX		(SP),HL
-L9D5B:	ADD		HL,BC
+		EX		(SP),HL 	; Move 8 rows further on the stack-saved pointer
+FF_1:		ADD		HL,BC		; In any case, move 8 rows on HL...
 		RRA
-		JR		NC,L9D62
+		JR		NC,FF_2 	; Unless the next bit of L7717 was set
 		AND		A
 		SBC		HL,BC
-L9D62:	LD		DE,L9D19
-		CALL	L9D6D
+FF_2:		LD		DE,L9D19 	; Call once...
+		CALL		FloorFnInner
 		POP		HL
 		INC		HL
-		LD		DE,L9D04
-L9D6D:	LD		A,$04
-L9D6F:	LDI
+		LD		DE,L9D04 	; then again with saved address.
+	;; NB: Fall through
+
+	;; Copy 4 bytes, skipping every second byte.
+FloorFnInner:	LD		A,$04
+FF_3:		LDI
 		INC		HL
 		INC		DE
 		DEC		A
-		JR		NZ,L9D6F
+		JR		NZ,FF_3
 		RET
+
 L9D77:	PUSH	AF
 		LD		A,(HL)
 		EXX
@@ -3015,34 +3023,43 @@ GFA_1:		LD	BC,IMG_2x24 - MAGIC_OFFSET + 7 * $30
 	;; Given the 'Thingie's are the only things to call
 	;; GetFloorAddr, I must conclude they are involved in actually
 	;; drawing the floor...
+
+	;; Takes something in D, and HL.
 	
-	;; FIXME: Very similar to Thingie2!
-Thingie1:	LD	B,A
+	;; Fill a 6-byte-wide buffer at DE' with both columns of a background tile.
+	;; A  contains number of rows to generate.
+	;; D  contains initial offset in rows.
+	;; HL and HL' contain pointers to flags.
+BlitFloor:	LD	B,A
 		LD	A,D
+	;; Move down 8 rows if top bit of (HL) is set.
 		BIT	7,(HL)
 		EXX
-		LD	C,$00
-		JR	Z,Thingie1b
-		LD	C,$10
-Thingie1b:	CALL	GetFloorAddr
+		LD	C,0
+		JR	Z,BF_1
+		LD	C,2*8
+	;; Get the address (using HL' for flags)
+BF_1:		CALL	GetFloorAddr
+	;; Construct offset in HL from original D. Double it as tile is 2 wide.
 		AND	$0F
 		ADD	A,A
 		LD	H,$00
 		LD	L,A
 		EXX
-Thingie1c:	EXX
+	;; At this point we have source in BC', destination in DE',
+	;; offset of source in HL', and number of rows to copy in B.
+BF_2:		EXX
 		PUSH	HL
+	;; Copy both bytes of the current row into the 6-byte-wide buffer.
 		ADD	HL,BC
 		LD	A,(HL)
 		LD	(DE),A
-	;; Start of diff with Thingie2
 		INC	HL
 		INC	E
 		LD	A,(HL)
 		LD	(DE),A
 		LD	A,E
 		ADD	A,$05
-	;; End of diff with Thingie2
 		LD	E,A
 		POP	HL
 		LD	A,L
@@ -3050,49 +3067,62 @@ Thingie1c:	EXX
 		AND	$1F
 		LD	L,A
 		EXX
-		DJNZ	Thingie1c
+		DJNZ	BF_2
 		RET
 
-	;; Like Thingie2, but we set the bottom bit on C.
-Thingie3:	LD	B,A
+	;; Fill a 6-byte-wide buffer at DE' with the right column of background tile.
+	;; A  contains number of rows to generate.
+	;; D  contains initial offset in rows.
+	;; HL and HL' contain pointers to flags.
+BlitFloorR:	LD	B,A
 		LD	A,D
+	;; Move down 8 rows if top bit of (HL) is set.
+	;; Do the second column of the image (the extra +1)
 		BIT	7,(HL)
 		EXX
-		LD	C,$01
-		JR	Z,Thingie2b
-		LD	C,$11
-		JR	Thingie2b
+		LD	C,1
+		JR	Z,BFL_1
+		LD	C,2*8+1
+		JR	BFL_1
 
-Thingie2:	LD	B,A
+	;; Fill a 6-byte-wide buffer at DE' with the left column of background tile.
+	;; A  contains number of rows to generate.
+	;; D  contains initial offset in rows.
+	;; HL and HL' contain pointers to flags.
+BlitFloorL:	LD	B,A
 		LD	A,D
+	;; Move down 8 rows if top bit of (HL) is set.	
 		BIT	7,(HL)
 		EXX
 		LD	C,$00
-		JR	Z,Thingie2b
+		JR	Z,BFL_1
 		LD	C,$10
-Thingie2b:	CALL	GetFloorAddr
+	;; Get the address (using HL' for flags)
+BFL_1:		CALL	GetFloorAddr
+	;; Construct offset in HL from original D. Double it as tile is 2 wide.
 		AND	$0F
 		ADD	A,A
 		LD	H,$00
 		LD	L,A
 		EXX
-Thingie2c:	EXX
+	;; At this point we have source in BC', destination in DE',
+	;; offset of source in HL', and number of rows to copy in B.
+BFL_2:		EXX
 		PUSH	HL
+	;; Copy 1 byte into 6-byte-wide buffer
 		ADD	HL,BC
 		LD	A,(HL)
 		LD	(DE),A
-	;; Start of diff with Thingie1
 		LD	A,E
 		ADD	A,$06
-	;; End of diff with Thingie1
 		LD	E,A
 		POP	HL
 		LD	A,L
 		ADD	A,$02
 		AND	$1F
-		LD	L,A
+		LD	L,A	; Add 1 row to source offset pointer, mod 32
 		EXX
-		DJNZ	Thingie2c
+		DJNZ	BFL_2
 		RET
 
 L9EA9:	EXX

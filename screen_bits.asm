@@ -185,7 +185,7 @@ ToAttrAddr:	LD	A,D
 		RET
 
 	;; Draw the diagonal edge-of-screen attribute lines.
-ApplyAttribs:	LD	BC,(L93E2)
+ApplyAttribs:	LD	BC,(RoomOrigin)
 		LD	A,C
 		SUB	$40
 		ADD	A,A
