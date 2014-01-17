@@ -21,8 +21,9 @@ MAGIC_OFFSET:	EQU 360 	; The offset high data is moved down by...
 	
 SpriteBuff:	EQU $B800
 
-SomeBuff:	EQU $F944
-SomeBuffLen:	EQU $94
+	;; The buffer into which we draw the columns doors stand on
+ColBuf:		EQU $F944
+ColBufLen:	EQU $94
 
 BigSpriteBuf:	EQU $F9D8
 
@@ -220,54 +221,62 @@ CC2A:		ADD	A,A
 
 #include "controls.asm"
 
-SomeBuffFaffCounter:	DEFB $00
+	;; In multiples of 6, apparently half the pixel height.
+ColHeight:	DEFB $00
 
-RestoreSomeBuffFaff:	PUSH	DE
+	;; Re-fills the column sprite buffer.
+FillColBuf:	PUSH	DE
 		PUSH	BC
 		PUSH	HL
-		LD	A,(SomeBuffFaffCounter)
-		CALL	SomeBuffFaff
+		LD	A,(ColHeight)
+		CALL	DrawColBuf
 		POP	HL
 		POP	BC
 		POP	DE
 		RET
 
-SetSomeBuffFaff:	LD	(SomeBuffFaffCounter),A
-	;; Appears to build something up in SomeBuffer, based on a
-	;; prologue, middle section and end. Final pointer at DE.
-SomeBuffFaff:	PUSH	AF
-		LD	HL,SomeBuff
-		LD	BC,SomeBuffLen
+	;; Pass the column height in A, redraws the column, returns result in DE.
+SetColHeight:	LD	(ColHeight),A
+	;; NB: Fall through!
+	
+DrawColBuf:	PUSH	AF
+	;; Clear out buffer
+		LD	HL,ColBuf
+		LD	BC,ColBufLen
 		CALL	FillZero
+	;; Drawing buffer, reset flip flag.
 		XOR	A
-		LD	(SomeBuffFlag2),A
+		LD	(IsColBufFlipped),A
+	;; And set the 'filled' lag.
 		DEC	A
-		LD	(SomeBuffFlag),A
+		LD	(IsColBufFilled),A
 		POP	AF
+	;; Zero height? Draw nothing
 		AND	A
 		RET	Z
-		LD	DE,SomeBuff + SomeBuffLen - 1
+	;; Otherwise, draw in reverse from end of buffer...
+		LD	DE,ColBuf + ColBufLen - 1
 		PUSH	AF
-		CALL	SBF_4
-SBF_1:		POP	AF
+		CALL	DrawColBottom
+DrawColLoop:	POP	AF
 		SUB	$06
-		JR	Z,SBF_2
+		JR	Z,DrawColTop
 		PUSH	AF
-		CALL	SBF_3
-		JR	SBF_1
+		CALL	DrawColMid
+		JR	DrawColLoop
 
-SBF_2:		LD	HL,LF91B
-		LD	BC,L0024
-		JR	SBF_5
+DrawColTop:	LD	HL,IMG_ColTop + $23 - MAGIC_OFFSET
+		LD	BC,$24
+		JR	DrawColLDDR
 
-SBF_3:		LD	HL,LF933
+DrawColMid:	LD	HL,IMG_ColMid + $17 - MAGIC_OFFSET
 		LD	BC,L0018
-		JR	SBF_5
+		JR	DrawColLDDR
 
-SBF_4:		LD	HL,LF943
+DrawColBottom:	LD	HL,IMG_ColBottom + $0F - MAGIC_OFFSET
 		LD	BC,L0010
 
-SBF_5:		LDDR
+DrawColLDDR:	LDDR
 		RET
 
 L76DE:	DEFW L76E0
@@ -440,7 +449,7 @@ L77F8:		LD	A,(L774C)
 		PUSH	AF
 		CALL	L81DC
 		POP	AF
-		CALL	SetSomeBuffFaff
+		CALL	SetColHeight
 		POP	HL
 		LD	(L7716),HL
 		XOR	A
@@ -1012,6 +1021,13 @@ L7C10:		CALL	L7752
 		XOR	A
 L7C14:		LD	(LA295),A
 		JP	L7C1A
+
+
+	;;    ^
+	;;   / \
+	;;  /   \
+	;; H     L
+	
 L7C1A:		LD	HL,(L7718)
 		LD	A,(L7717)
 		PUSH	AF
@@ -1021,28 +1037,33 @@ L7C1A:		LD	HL,(L7718)
 		DEC	H
 		DEC	H
 		DEC	H
-L7C29:	RRA
+L7C29:		RRA
 		LD		A,L
 		JR		NC,L7C30
 		SUB		$04
 		LD		L,A
-L7C30:	SUB		H
+L7C30:		SUB		H
+	;; X coordinate of the play area bottom corner is in A.
+	;; 
+	;; We write out the corner position, and the appropriate
+	;; overall vertical adjustments.
 		ADD		A,$80
-		LD		(FCTgt1+1),A
+		LD		(CornerPos+1),A
 		LD		C,A
 		LD		A,$FC
 		SUB		H
 		SUB		L
-		LD		B,A
+		LD		B,A			; B = $FC - H - L
 		NEG
-		LD		E,A
-		ADD		A,C
-		LD		(FCTgt3+1),A
+		LD		E,A			; E = H + L - $FC
+		ADD		A,C 			; 
+		LD		(LeftAdj+1),A		; E + CornerPos
 		LD		A,C
 		NEG
 		ADD		A,E
-		LD		(FCTgt2+1),A
-		CALL	FloorFn
+		LD		(RightAdj+1),A 		; E - CornerPos
+	;; FIXME: Next bit.
+		CALL		FloorFn
 		POP		AF
 		RRA
 		PUSH	AF
@@ -1338,7 +1359,7 @@ L84A0:	DEFB $0A,$01,$5D,$01,$01,$98,$4F,$6C,$98,$CD,$6C,$82,$08,$68,$36,$00
 L84B0:	DEFB $20,$37,$00,$20,$1E,$00,$00,$18,$00,$00,$4C,$24,$00,$4C,$A5,$2C
 L84C0:	DEFB $84,$21,$60
 PanelBase:	DEFW $0000
-L84C5:	DEFB $00,$00
+PanelFlipsPtr:	DEFW $0000	; Pointer to byte full of whether panels need to flip
 L84C7:	DEFB $00
 L84C8:	DEFB $00
 L84C9:	DEFB $00
@@ -1410,7 +1431,7 @@ L8521:		RRA
 		ADC	A,$C0
 		SUB	L
 		LD	H,A
-		LD	(L84C5),HL
+		LD	(PanelFlipsPtr),HL
 	;; Update DataPtr etc. for FetchData.
 		LD	A,B
 		ADD	A,A
@@ -2687,27 +2708,28 @@ FloorCall:	LD	(BlitFloorFnPtr+1),HL
 	;; Call inputs:
 	;; * Reads from SpriteYExtent
 	;; * Takes in:
-	;;   HL - Floor drawing function
-	;;   IX - Copying function
-	;;   IY - Clearing function
-	;; 
+	;;   HL' - Floor drawing function
+	;;   IX  - Copying function
+	;;   IY  - Clearing function
+	;;   HL  - Pointer to some structure:
+	;;           Y baseline (0 = clear)
 FloorCall2:	LD	DE,(SpriteYExtent)
 		LD	A,E
 		SUB	D
-		LD	E,A
+		LD	E,A		; E now contains height
 		LD	A,(HL)
 		AND	A
-		JR	Z,FC_5
+		JR	Z,FC_Clear 	; Baseline of zero? Clear full height, then
 		LD	A,D
 		SUB	(HL)
-		LD	D,A
-		JR	NC,FC_6
+		LD	D,A		; D now offset by Y baseline
+		JR	NC,FC_Onscreen 	; Updated D is onscreen? Then jump...
 		INC	HL
 		LD	C,$38
 		BIT	2,(HL)
-		JR	Z,FC_1
+		JR	Z,FC_Flag
 		LD	C,$4A
-FC_1:		ADD	A,C
+FC_Flag:	ADD	A,C		; Add $38 or $4A to the start line, depending on flag.
 		JR	NC,FC_2
 		ADD	A,A
 		CALL	L9D77
@@ -2717,7 +2739,7 @@ FC_1:		ADD	A,C
 		JP	FC_3
 FC_2:		NEG
 		CP	E
-		JR	NC,FC_5
+		JR	NC,FC_Clear
 		LD	B,A
 		NEG
 		ADD	A,E
@@ -2726,14 +2748,14 @@ FC_2:		NEG
 		CALL	DoClear
 		LD	A,(HL)
 		EXX
-		CALL	L9DBF
+		CALL	GetWall
 		EXX
 		LD	A,$38
 		BIT	2,(HL)
 		JR	Z,FC_3
 		LD	A,$4A
 FC_3:		CP	E
-		JR	NC,FC_4
+		JR	NC,FC_Copy
 		LD	B,A
 		NEG
 		ADD	A,E
@@ -2743,56 +2765,63 @@ FC_3:		CP	E
 		EX	AF,AF'
 		LD	D,$00
 		JR	FC_7
-FC_4:		LD	A,E
+FC_Copy:	LD	A,E
 		JP	(IX)		; Copy A rows from HL' to DE'.
-FC_5:		LD	A,E
+FC_Clear:	LD	A,E
 		JP	(IY)		; Clear A rows at DE'.
-FC_6:		LD	A,E
+FC_Onscreen:	LD	A,E
 		INC	HL
+	;; At this point, HL has been incremented by 1, A contains height.
+	;; D contains baseline.
 FC_7:		LD	B,A
 		DEC	HL
 		LD	A,L
 		ADD	A,A
 		ADD	A,A
 		ADD	A,$04
-FCTgt1:		CP	$00		; NB: Target of self-modifying code.
-		JR	C,FC_9
-		LD	E,$00
-		JR	NZ,FC_8
-		LD	E,$05
-FC_8:		SUB	$04
-FCTgt2:		ADD	A,$00 		; NB: Target of self-modifying code.
-		JR	FC_10
-FC_9:		ADD	A,$04
+	;; Compare A with the position of the corner, to determine the
+	;; play area edge graphic to use, by overwriting the WhichEdge
+	;; operand. A itself is adjusted around the corner position.
+CornerPos:	CP	$00		; NB: Target of self-modifying code.
+		JR	C,FC_Left
+		LD	E,$00		; Right edge graphic case
+		JR	NZ,FC_Right
+		LD	E,$05		; Corner edge graphic case
+FC_Right:	SUB	$04
+RightAdj:	ADD	A,$00 		; NB: Target of self-modifying code.
+		JR	FC_CrnrJmp
+FC_Left:	ADD	A,$04
 		NEG
-FCTgt3:		ADD	A,$00 		; NB: Target of self-modifying code.
-		LD	E,$08
-FC_10:		NEG
+LeftAdj:	ADD	A,$00 		; NB: Target of self-modifying code.
+		LD	E,$08		; Left edge graphic case
+	;; Store height in C, write out edge graphic
+FC_CrnrJmp:	NEG
 		ADD	A,$0B
 		LD	C,A
 		LD	A,E
-		LD	(FCTgt4+1),A
-		LD	A,(HL)
+		LD	(WhichEdge+1),A
+	;; FIXME: Next section?
+		LD	A,(HL)		; Load Y baseline
 		ADD	A,D
 		INC	HL
-		SUB	C
-		JR	NC,FC_13
+		SUB	C		; Calculate D - C
+		JR	NC,FC_Clear2	; <= 0 -> Clear B rows
 		ADD	A,$0B
-		JR	NC,FC_14
+		JR	NC,FC_14 	; <= 11 -> Call ting
 		LD	E,A
 		SUB	$0B
 		ADD	A,B
 		JR	C,FC_11
 		LD	A,B
-		JR	FloorCall3
+		JR	DrawBottomEdge
 FC_11:		PUSH	AF
 		SUB	B
 		NEG
-FC_12:		CALL	FloorCall3
+FC_12:		CALL	DrawBottomEdge
 		POP	AF
 		RET	Z
 		JP	(IY)		; Clear A rows at DE'
-FC_13:		LD	A,B
+FC_Clear2:	LD	A,B
 		JP	(IY)		; Clear A rows at DE'
 FC_14:		ADD	A,B
 		JR	C,FloorCall5
@@ -2811,34 +2840,35 @@ FloorCall5:	PUSH	AF
 		LD	E,$00
 		JR	NC,FC_16
 		ADD	A,$0B
-		JR	FloorCall3
+		JR	DrawBottomEdge
 FC_16:		PUSH	AF
 		LD	A,$0B
 		JR	FC_12
 	;; NB: Fall through
-	
-FloorCall3:	PUSH	DE
+
+	;; Takes starting row number in E, number of rows in A, destination in DE'
+DrawBottomEdge:	PUSH	DE
 		EXX
 		POP	HL
 		LD	H,$00
 		ADD	HL,HL
-		LD	BC,L9D03
-FCTgt4:		JR	FC_18		; NB: Target of self-modifying code.
-FC_17:		LD	BC,L9D19
+		LD	BC,LeftEdge
+WhichEdge:	JR	FC_18		; NB: Target of self-modifying code.
+FC_17:		LD	BC,RightEdge
 		JR	FC_18
-		LD	BC,L9D2F 	; FIXME: Maybe gets rewritten?
+		LD	BC,CornerEdge 	; FIXME: Maybe gets rewritten?
 FC_18:		ADD	HL,BC
 		EXX
+	;; Copies from HL' to DE', number of rows in A.
 		JP	(IX)		; NB: Tail call to copy data
 
-
-	
-L9D03:	DEFB $40,$00,$70,$00,$74,$00,$77,$00,$37,$40,$07
-	DEFB $70,$03,$74,$00,$77,$00,$37,$00,$07,$00,$03
-L9D19:	DEFB $00,$01,$00,$0d,$00,$3d,$00,$7d,$01,$7c,$0d
-	DEFB $70,$3d,$40,$7d,$00,$7c,$00,$70,$00,$40,$00
-L9D2F:	DEFB $40,$01,$70,$0d,$74,$3d,$77,$7d,$37,$7c,$07
-	DEFB $70,$03,$40,$00,$00,$00,$00,$00,$00,$00,$00
+	;; FIXME: Export as images?
+LeftEdge:	DEFB $40,$00,$70,$00,$74,$00,$77,$00,$37,$40,$07
+		DEFB $70,$03,$74,$00,$77,$00,$37,$00,$07,$00,$03
+RightEdge:	DEFB $00,$01,$00,$0d,$00,$3d,$00,$7d,$01,$7c,$0d
+		DEFB $70,$3d,$40,$7d,$00,$7c,$00,$70,$00,$40,$00
+CornerEdge:	DEFB $40,$01,$70,$0d,$74,$3d,$77,$7d,$37,$7c,$07
+		DEFB $70,$03,$40,$00,$00,$00,$00,$00,$00,$00,$00
 
 	;; FIXME: Some function to do with floor stuff
 	;; Floor tiles are 2x24
@@ -2859,11 +2889,11 @@ FF_1:		ADD		HL,BC		; In any case, move 8 rows on HL...
 		JR		NC,FF_2 	; Unless the next bit of L7717 was set
 		AND		A
 		SBC		HL,BC
-FF_2:		LD		DE,L9D19 	; Call once...
+FF_2:		LD		DE,RightEdge 	; Call once...
 		CALL		FloorFnInner
 		POP		HL
 		INC		HL
-		LD		DE,L9D03+1 	; then again with saved address.
+		LD		DE,LeftEdge+1 	; then again with saved address.
 	;; NB: Fall through
 
 	;; Copy 4 bytes, skipping every second byte.
@@ -2878,7 +2908,7 @@ FF_3:		LDI
 L9D77:	PUSH	AF
 		LD		A,(HL)
 		EXX
-		CALL	L9DBF
+		CALL	GetWall
 		POP		AF
 		ADD		A,L
 		LD		L,A
@@ -2886,74 +2916,94 @@ L9D77:	PUSH	AF
 		INC		H
 		RET
 	
-SomeBuffFlag:	DEFB $00
-	
-GetSomeBuff:	LD	A,(SomeBuffFlag)
+IsColBufFilled:	DEFB $00
+
+	;; Returns ColBuf in HL.
+	;; If IsColBufFilled is non-zero, it zeroes the buffer, and the flag.
+GetEmptyColBuf:	LD	A,(IsColBufFilled)
 		AND	A
-		LD	HL,SomeBuff
+		LD	HL,ColBuf
 		RET	Z
 		PUSH	HL
 		PUSH	BC
 		PUSH	DE
-		LD	BC,SomeBuffLen
+		LD	BC,ColBufLen
 		CALL	FillZero
 		POP	DE
 		POP	BC
 		POP	HL
 		XOR	A
-		LD	(SomeBuffFlag),A
+		LD	(IsColBufFilled),A
 		RET
 
-L9D9D:		BIT	0,A
-		JR	NZ,GetSomeBuff		; Tail call
+	;; Called by GetWall for high-index sprites.
+GetHighWall:	BIT	0,A			; Low bit zero? Return cleared buffer.
+		JR	NZ,GetEmptyColBuf	; Tail call
 		LD	L,A
-		LD	A,(SomeBuffFlag)
+	;; Otherwise, we're drawing a column
+		LD	A,(IsColBufFilled)
 		AND	A
-		CALL	Z,RestoreSomeBuffFaff
-		LD	A,(SomeBuffFlag2)
+		CALL	Z,FillColBuf
+		LD	A,(IsColBufFlipped)
 		XOR	L
 		RLA
-		LD	HL,SomeBuff
-		RET	NC
-		LD	A,(SomeBuffFlag2)
+	;; Carry set if we need to flip and update flag to match request...
+		LD	HL,ColBuf
+		RET	NC			; Return ColBuf if no flip required...
+		LD	A,(IsColBufFlipped)	; Otherwise, flip flag and buffer.
 		XOR	$80
-		LD	(SomeBuffFlag2),A
+		LD	(IsColBufFlipped),A
 		LD	B,$4A
 		JP	FlipSprite 		; Tail call
 
-L9DBF:		BIT	2,A
-		JR	NZ,L9D9D
+	
+	;; Get a wall section thing.
+	;; Index in A. Top bit represents whether flip is required.
+	;; Destination returned in HL.
+GetWall:	BIT	2,A		; 4-7 handled by GetHighWall.
+		JR	NZ,GetHighWall
 		PUSH	AF
-		CALL	L9DD1
+		CALL	NeedsFlip2 	; Check if flip is required
 		EX	AF,AF'
 		POP	AF
-		CALL	GetPanelAddr
+		CALL	GetPanelAddr 	; Get the address
 		EX	AF,AF'
-		RET	NC
+		RET	NC		; Flip the data only if required.
 		JP	FlipPanel 	; Tail call
 
-	
-L9DD1:		LD		C,A
-		LD		HL,(L84C5)
+
+	;; Takes a sprite index in A. Looks up low three bits in the bitmap.
+	;; If the top bit was set, we flip the bit if necessary to match,
+	;; and return carry if a bit flip was needed.
+	;;
+	;; Rather similar to 'NeedsFlip'.
+NeedsFlip2:	LD		C,A
+		LD		HL,(PanelFlipsPtr)
 		AND		$03
+	;; A = 1 << A
 		LD		B,A
 		INC		B
 		LD		A,$01
-L9DDB:		RRCA
-		DJNZ	L9DDB
+NF2_1:		RRCA
+		DJNZ		NF2_1
+	;; Check if that bit of (HL) is set
 		LD		B,A
 		AND		(HL)
-		JR		NZ,L9DEA
+		JR		NZ,NF2_2
+	;; It isn't. Was top bit if param set?
 		RL		C
-		RET		NC
+		RET		NC 	; No - return with carry reset
+	;; It was. So, set bit and return with carry flag set.
 		LD		A,B
 		OR		(HL)
 		LD		(HL),A
 		SCF
 		RET
-L9DEA:		RL		C
+	;; Top bit was set. Is bit set?
+NF2_2:		RL		C
 		CCF
-		RET		NC
+		RET		NC 	; Yes - return with carry reset
+	;; No. So reset bit and return with carry flag set.
 		LD		A,B
 		CPL
 		AND		(HL)
@@ -3195,7 +3245,8 @@ FS_1:		INC	HL
 		POP	DE
 		RET
 
-SomeBuffFlag2:	DEFB $00
+	;; Top bit is set if the column image buffer is flipped
+IsColBufFlipped:	DEFB $00
 
 	;; Return the panel address in HL, given panel index in A.
 GetPanelAddr:	AND	$03	; Limit to 0-3

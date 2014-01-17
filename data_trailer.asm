@@ -212,11 +212,20 @@ IMG_2x24:
 IMG_CHARS:
 #insert "img_chars.bin"
 
-XFA60:	DEFB $00,$03,$00,$03,$00,$3C,$00,$CF,$01,$F3,$0E,$7C,$3F,$9F,$FF
-XFA6F:	DEFB $3C,$FC,$F3,$F3,$CF,$CF,$3E,$3C,$F8,$F3,$E4,$CF,$9C,$3E,$78,$79
-XFA7F:	DEFB $F8,$67,$F0,$07,$C8,$78,$3C,$1F,$F0,$27,$C8,$38,$38,$5F,$F4,$4C
-XFA8F:	DEFB $64,$73,$9C,$1E,$F0,$23,$88,$3C,$78,$1F,$F0,$27,$C8,$78,$3C,$7F
-XFA9F:	DEFB $FC,$3F,$F8,$0F,$E0,$00,$00,$00,$00,$00,$00,$00,$00
+	;; FIXME: Make into binaries
+IMG_ColTop:
+	DEFB $00,$03,$00,$03,$00,$3C,$00,$CF,$01,$F3,$0E,$7C,$3F,$9F,$FF
+	DEFB $3C,$FC,$F3,$F3,$CF,$CF,$3E,$3C,$F8,$F3,$E4,$CF,$9C,$3E,$78,$79
+	DEFB $F8,$67,$F0,$07,$C8
+
+IMG_ColMid:	
+	DEFB $78,$3C,$1F,$F0,$27,$C8,$38,$38,$5F,$F4,$4C
+	DEFB $64,$73,$9C,$1E,$F0,$23,$88,$3C,$78,$1F,$F0,$27,$C8
+
+IMG_ColBottom:
+	DEFB $78,$3C,$7F
+	DEFB $FC,$3F,$F8,$0F,$E0,$00,$00,$00,$00,$00,$00,$00
+	DEFB $00
 	;; End of area that gets moved down.
 	
 XFAAC:	DEFB $00,$00,$00
