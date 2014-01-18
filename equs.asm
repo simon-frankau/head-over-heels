@@ -87,7 +87,6 @@ L8A40:	EQU $8A40		; Numeric constant?
 LA800:	EQU $A800		; Numeric constant?
 
 	;; Data-ish stuff
-LBA00:	EQU $BA00
 LBA3E:	EQU $BA3E
 LBF20:	EQU $BF20
 LC000:	EQU $C000

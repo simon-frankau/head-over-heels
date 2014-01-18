@@ -396,7 +396,7 @@ L7752:		LD		IY,L7718
 		LD		HL,L7748
 		LD		BC,L0004
 		LDIR
-		LD		HL,LBA00
+		LD		HL,BkgndData
 		LD		BC,L0040
 		CALL	FillZero
 		CALL	LA260
@@ -1088,7 +1088,7 @@ L7C61:	INC		HL
 		LD		(HL),A
 		RET
 
-L7C6B:	LD		HL,LBA00
+L7C6B:	LD		HL,BkgndData
 L7C6E:	LD		A,(HL)
 		AND		A
 		JR		NZ,L7C61
@@ -2722,7 +2722,7 @@ LA0AF:		LD	A,D
 		JR	C,LA09D
 
 LA0B6:		LD	(SpriteYExtent),DE
-		CALL	DrawFloor
+		CALL	DrawBkgnd
 		LD	A,(L7716)
 		AND	$0C
 		JR	Z,LA109

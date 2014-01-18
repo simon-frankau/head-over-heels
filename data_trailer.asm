@@ -53,7 +53,13 @@ XB9BF:	DEFB $00,$7E,$28,$2B,$3E,$01,$FD,$CB,$0C,$7E,$28,$02,$3E,$FF,$FD,$86
 XB9CF:	DEFB $0F,$FD,$77,$0F,$47,$FD,$7E,$0C,$B8,$20,$07,$ED,$44,$FD,$77,$0C
 XB9DF:	DEFB $ED,$44,$FD,$5E,$0E,$16,$00,$07,$38,$04,$ED,$52,$18,$01,$19,$FD
 XB9EF:	DEFB $7E,$00,$E6,$50,$FE,$40,$20,$29,$FD,$5E,$11,$FD,$56,$12,$19,$54
-XB9FF:	DEFB $5D,$FD,$4E,$06,$FD,$46,$07,$AF,$ED,$42,$17,$FD,$AE,$00,$E6,$01
+XB9FF:	DEFB $5D
+
+	;; This buffer gets filled with info that DrawFloor reads.
+	;; 16 words describing the 16 double-columns
+	;;
+	;; NB: Page-aligned
+BkgndData:	 DEFB $FD,$4E,$06,$FD,$46,$07,$AF,$ED,$42,$17,$FD,$AE,$00,$E6,$01
 XBA0F:	DEFB $EB,$20,$0E,$FD,$CB,$00,$E6,$AF,$FD,$77,$0F,$FD,$6E,$06,$FD,$66
 XBA1F:	DEFB $07,$FD,$75,$08,$FD,$74,$09,$FD,$CB,$00,$5E,$C8,$FD,$21,$1B,$C5
 XBA2F:	DEFB $FD,$35,$04,$C0,$CD,$CB,$C1,$A7,$20,$04,$FD,$B6,$03,$C0,$7E,$E6

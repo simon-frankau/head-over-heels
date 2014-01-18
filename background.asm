@@ -7,45 +7,60 @@
 	;;
 
 	;; Exported functions:
-	;;  * DrawFloor
+	;;  * DrawBkgnd
 	;;  * FloorFn
 	;;  * DoCopy
 	;;  * SetFloorAddr
-	
-DrawFloor:	LD	HL,(SpriteXExtent)
+
+	;; Given extents stored in SpriteXExtent and SpriteYExtent,
+	;; draw the appropriate piece of screen background into
+	;; SpriteBuff (to be drawn over and blitted to display later)
+DrawBkgnd:	LD	HL,(SpriteXExtent)
+	;; H contains start, L end, in double-pixels
 		LD	A,H
 		RRA
 		RRA
-		LD	C,A
-		AND	$3E
+	;; A now contains start byte number
+		LD	C,A	; Start byte number stashed in C for later.
+		AND	$3E	; Clear lowest bit to get 2x double column index...
+	;; Set HL' to column info
 		EXX
 		LD	L,A
-		LD	H,$BA
+		LD	H,BkgndData >> 8
 		EXX
+	;; Calculate width to draw, in bytes
 		LD	A,L
 		SUB	H
 		RRA
 		RRA
 		AND	$07
 		SUB	$02
+	;; Oh, and destination buffer
 		LD	DE,SpriteBuff
+	;; Below here, E contains the dest column number, and HL' the
+	;; source data (two bytes per column pair). A contains number
+	;; of cols to draw.
+	;; 
+	;; If index is initially odd, draw RHS of a column pair.
 		RR	C
-		JR	NC,DF_1
+		JR	NC,DB_1
 		LD	IY,ClearOne
 		LD	IX,OneColBlitR
 		LD	HL,BlitFloorR
-		CALL	FloorCall
+		CALL	BkgndCall
 		CP	$FF
 		RET	Z
 		SUB	$01
-		JR	DF_2
-DF_1:		LD	IY,ClearTwo
+		JR	DB_2
+	;; Draw two columns at a time.
+DB_1:		LD	IY,ClearTwo
 		LD	IX,TwoColBlit
 		LD	HL,BlitFloor
-		CALL	FloorCall
+		CALL	BkgndCall
 		INC	E
 		SUB	$02
-DF_2:		JR	NC,DF_1
+DB_2:		JR	NC,DB_1
+	;; One left-over column.
 		INC	A
 		RET	NZ
 		LD	IY,ClearOne
@@ -53,16 +68,16 @@ DF_2:		JR	NC,DF_1
 		LD	HL,BlitFloorL
 		LD	(BlitFloorFnPtr+1),HL
 		EXX
-		JR	FloorCall2 		; Tail call.
+		JR	BkgndCall2 		; Tail call.
 
-	;; Performs register-saving and incrementing HL/E. Not needed
-	;; for the last call from DrawFloor.
-FloorCall:	LD	(BlitFloorFnPtr+1),HL
+	;; Performs register-saving and incrementing HL'/E. Not needed
+	;; for the last call from DrawBkgnd.
+BkgndCall:	LD	(BlitFloorFnPtr+1),HL
 		PUSH	DE
 		PUSH	AF
 		EXX
 		PUSH	HL
-		CALL	FloorCall2
+		CALL	BkgndCall2
 		POP	HL
 		INC	L
 		INC	L
@@ -80,7 +95,7 @@ FloorCall:	LD	(BlitFloorFnPtr+1),HL
 	;;   IY  - Clearing function
 	;;   HL  - Pointer to some structure:
 	;;           Y baseline (0 = clear)
-FloorCall2:	LD	DE,(SpriteYExtent)
+BkgndCall2:	LD	DE,(SpriteYExtent)
 		LD	A,E
 		SUB	D
 		LD	E,A		; E now contains height
@@ -191,13 +206,13 @@ FC_12:		CALL	DrawBottomEdge
 FC_Clear2:	LD	A,B
 		JP	(IY)		; Clear A rows at DE'
 FC_14:		ADD	A,B
-		JR	C,FloorCall5
+		JR	C,BkgndCall5
 		LD	A,B
 	;; NB: Fall through
 
 BlitFloorFnPtr:	JP	L0000		; NB: Target of self-modifying code
 
-FloorCall5:	PUSH	AF
+BkgndCall5:	PUSH	AF
 		SUB	B
 		NEG
 		CALL	BlitFloorFnPtr
