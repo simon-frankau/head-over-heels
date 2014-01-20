@@ -94,50 +94,61 @@ BkgndCall:	LD	(BlitFloorFnPtr+1),HL
 	;;   IX  - Copying function
 	;;   IY  - Clearing function
 	;;   HL  - Pointer to some structure:
-	;;           Y baseline (0 = clear)
+	;;           Byte 0: Y start (0 = clear)
+	;;           Byte 1: Id for wall panel sprite
+	;;                   (0-3 - world-specific, 4 - blank, 5 - columns, | $80 to flip)
 BkgndCall2:	LD	DE,(SpriteYExtent)
 		LD	A,E
 		SUB	D
 		LD	E,A		; E now contains height
 		LD	A,(HL)
 		AND	A
-		JR	Z,FC_Clear 	; Baseline of zero? Clear full height, then
+		JR	Z,BC_Clear 	; Baseline of zero? Clear full height, then
 		LD	A,D
 		SUB	(HL)
-		LD	D,A		; D now offset by Y baseline
-		JR	NC,FC_Onscreen 	; Updated D is onscreen? Then jump...
+		LD	D,A		; D (window Y start) now relative to start posn onscreen
+		JR	NC,BC_Started 	; Started below the top edge? Then jump.
+	;; In this case, we handle the viewing window starting above the start of the floor.
 		INC	HL
 		LD	C,$38
 		BIT	2,(HL)
-		JR	Z,FC_Flag
+		JR	Z,BC_Flag
 		LD	C,$4A
-FC_Flag:	ADD	A,C		; Add $38 or $4A to the start line, depending on flag.
-		JR	NC,FC_2
+BC_Flag:	ADD	A,C		; Add $38 or $4A to the start line, depending on flag.
+	;; Window Y start now relative to the top of the current wall panel.
+		JR	NC,BC_TopSpace 	; Still some space left above in window? Jump
+	;; FIXME
 		ADD	A,A
 		CALL	L9D77
 		EXX
 		LD	A,D
 		NEG
-		JP	FC_3
-FC_2:		NEG
+		JP	BC_Wall
+	;; We start before the top of the wall panel, so we'll start off by clearing above.
+BC_TopSpace:	NEG
 		CP	E
-		JR	NC,FC_Clear
+		JR	NC,BC_Clear 	; If we're /only/ drawing space, do the tail call.
+	;; Clear the appropriate amount of space.
 		LD	B,A
 		NEG
 		ADD	A,E
 		LD	E,A
 		LD	A,B
 		CALL	DoClear
+	;; Get the pointer to the wall panel bitmap to copy in...
 		LD	A,(HL)
 		EXX
 		CALL	GetWall
 		EXX
+	;; and the height to use
 		LD	A,$38
 		BIT	2,(HL)
-		JR	Z,FC_3
+		JR	Z,BC_Wall
 		LD	A,$4A
-FC_3:		CP	E
-		JR	NC,FC_Copy
+	;; Now draw the wall
+BC_Wall:	CP	E
+		JR	NC,BC_Copy 	; Window ends in the wall panel? Tail call
+	;; Otherwise, copy the full wall panel, and then draw the floor etc.
 		LD	B,A
 		NEG
 		ADD	A,E
@@ -146,104 +157,125 @@ FC_3:		CP	E
 		CALL	DoCopy
 		EX	AF,AF'
 		LD	D,$00
-		JR	FC_7
-FC_Copy:	LD	A,E
+		JR	BC_FloorEtc 	; Tail call
+BC_Copy:	LD	A,E
 		JP	(IX)		; Copy A rows from HL' to DE'.
-FC_Clear:	LD	A,E
+BC_Clear:	LD	A,E
 		JP	(IY)		; Clear A rows at DE'.
-FC_Onscreen:	LD	A,E
+
+	;; Point we jump to if we're initially below the top edge of the floor.
+BC_Started:	LD	A,E
 		INC	HL
+	;; NB: Fall through
+
+	;; Code to draw the floor, bottom edge, and any space below
+	;; 
 	;; At this point, HL has been incremented by 1, A contains height.
 	;; D contains baseline.
-FC_7:		LD	B,A
-		DEC	HL
-		LD	A,L
+	;;
+	;; First, calculate the position of the bottom edge.
+BC_FloorEtc:	LD	B,A		; Store height in B
+		DEC	HL		; And go back to original pointer location
+		LD	A,L		; L contained column number & ~1
 		ADD	A,A
-		ADD	A,A
-		ADD	A,$04
+		ADD	A,A		; We move 4 pixels down for each byte across, so
+		ADD	A,$04		; multiply by 4 and add 4.
 	;; Compare A with the position of the corner, to determine the
 	;; play area edge graphic to use, by overwriting the WhichEdge
 	;; operand. A itself is adjusted around the corner position.
 CornerPos:	CP	$00		; NB: Target of self-modifying code.
-		JR	C,FC_Left
-		LD	E,$00		; Right edge graphic case
-		JR	NZ,FC_Right
-		LD	E,$05		; Corner edge graphic case
-FC_Right:	SUB	$04
+		JR	C,BC_Left
+		LD	E,DBE_R - DBE_R	; Right edge graphic case
+		JR	NZ,BC_Right
+		LD	E,DBE_C - DBE_R	; Corner edge graphic case
+BC_Right:	SUB	$04
 RightAdj:	ADD	A,$00 		; NB: Target of self-modifying code.
-		JR	FC_CrnrJmp
-FC_Left:	ADD	A,$04
+		JR	BC_CrnrJmp
+BC_Left:	ADD	A,$04
 		NEG
 LeftAdj:	ADD	A,$00 		; NB: Target of self-modifying code.
-		LD	E,$08		; Left edge graphic case
-	;; Store height in C, write out edge graphic
-FC_CrnrJmp:	NEG
-		ADD	A,$0B
+		LD	E,DBE_L - DBE_R	; Left edge graphic case
+	;; Store coordinate of bottom edge in C, write out edge graphic
+BC_CrnrJmp:	NEG
+		ADD	A,EDGE_HEIGHT
 		LD	C,A
 		LD	A,E
 		LD	(WhichEdge+1),A
-	;; FIXME: Next section?
+	;; Find out how much remains to be drawn
 		LD	A,(HL)		; Load Y baseline
-		ADD	A,D
+		ADD	A,D		; Add to offset start to get original start again.
 		INC	HL
-		SUB	C		; Calculate D - C
-		JR	NC,FC_Clear2	; <= 0 -> Clear B rows
-		ADD	A,$0B
-		JR	NC,FC_14 	; <= 11 -> Call ting
-		LD	E,A
-		SUB	$0B
+		SUB	C		; Calculate A (onscreen start) - C (screen end of image)
+		JR	NC,BC_Clear2	; <= 0 -> Reached end, so clear buffer
+		ADD	A,EDGE_HEIGHT
+		JR	NC,BC_Floor 	; > 11 -> Some floor and edge
+	;; 0 < Amount to draw <= 11
+		LD	E,A		; Now we see if we'll reach the end of the bottom edge
+		SUB	EDGE_HEIGHT
 		ADD	A,B
-		JR	C,FC_11
-		LD	A,B
-		JR	DrawBottomEdge
-FC_11:		PUSH	AF
+		JR	C,BC_AllBottom	; Does the drawing window extend to the edge and beyond?
+		LD	A,B		; No, so only draw B lines of edge
+		JR	DrawBottomEdge	; Tail call
+	;; Case where we're drawing 
+BC_AllBottom:	PUSH	AF
 		SUB	B
-		NEG
-FC_12:		CALL	DrawBottomEdge
+		NEG			; Draw the bottom edge, then any remaining lines cleared
+	;; Expects number of rows of edge in A, starting row in E,
+	;; draws bottom edge and remaining blanks in DE'. Number of
+	;; blank rows pushed on stack. 
+BC_Bottom:	CALL	DrawBottomEdge
 		POP	AF
 		RET	Z
 		JP	(IY)		; Clear A rows at DE'
-FC_Clear2:	LD	A,B
+BC_Clear2:	LD	A,B
 		JP	(IY)		; Clear A rows at DE'
-FC_14:		ADD	A,B
-		JR	C,BkgndCall5
-		LD	A,B
+	;; Draw some floor. A contains -height before reaching edge,
+	;; B contains drawing window height.
+BC_Floor:	ADD	A,B
+		JR	C,BC_FloorNEdge ; Need to draw some floor and also edge.
+		LD	A,B		; Just draw a window-height of floor.
 	;; NB: Fall through
-
 BlitFloorFnPtr:	JP	L0000		; NB: Target of self-modifying code
-
-BkgndCall5:	PUSH	AF
+	;; Draw the floor and then edge etc.
+BC_FloorNEdge:	PUSH	AF
 		SUB	B
 		NEG
 		CALL	BlitFloorFnPtr
 		POP	AF
 		RET	Z
-		SUB	$0B
+	;; Having drawn the floor, do the same draw edge/draw edge and blank space
+	;; test we did above for the no-floor case
+		SUB	EDGE_HEIGHT
 		LD	E,$00
-		JR	NC,FC_16
-		ADD	A,$0B
+		JR	NC,BC_EdgeNSpace
+	;; Just-draw-the-edge case
+		ADD	A,EDGE_HEIGHT
 		JR	DrawBottomEdge
-FC_16:		PUSH	AF
-		LD	A,$0B
-		JR	FC_12
-	;; NB: Fall through
+	;; Draw-the-edge-and-then-space case
+BC_EdgeNSpace:	PUSH	AF
+		LD	A,EDGE_HEIGHT
+		JR	BC_Bottom
 
 	;; Takes starting row number in E, number of rows in A, destination in DE'
+	;; Returns an updated DE' pointer.
 DrawBottomEdge:	PUSH	DE
 		EXX
 		POP	HL
 		LD	H,$00
 		ADD	HL,HL
 		LD	BC,LeftEdge
-WhichEdge:	JR	FC_18		; NB: Target of self-modifying code.
-FC_17:		LD	BC,RightEdge
-		JR	FC_18
-		LD	BC,CornerEdge 	; FIXME: Maybe gets rewritten?
-FC_18:		ADD	HL,BC
+WhichEdge:	JR	DBE_L		; NB: Target of self-modifying code.
+DBE_R:		LD	BC,RightEdge
+		JR	DBE_L
+DBE_C:		LD	BC,CornerEdge
+DBE_L:		ADD	HL,BC
 		EXX
 	;; Copies from HL' to DE', number of rows in A.
 		JP	(IX)		; NB: Tail call to copy data
 
+	;; Each edge image is 11 pixels high
+EDGE_HEIGHT:	EQU 11
+	
 	;; FIXME: Export as images?
 LeftEdge:	DEFB $40,$00,$70,$00,$74,$00,$77,$00,$37,$40,$07
 		DEFB $70,$03,$74,$00,$77,$00,$37,$00,$07,$00,$03
@@ -287,15 +319,16 @@ FF_3:		LDI
 		JR		NZ,FF_3
 		RET
 
-L9D77:	PUSH	AF
-		LD		A,(HL)
+	;; 
+L9D77:		PUSH	AF
+		LD	A,(HL)
 		EXX
 		CALL	GetWall
-		POP		AF
-		ADD		A,L
-		LD		L,A
-		RET		NC
-		INC		H
+		POP	AF
+		ADD	A,L
+		LD	L,A
+		RET	NC
+		INC	H
 		RET
 	
 IsColBufFilled:	DEFB $00
@@ -318,8 +351,9 @@ GetEmptyColBuf:	LD	A,(IsColBufFilled)
 		LD	(IsColBufFilled),A
 		RET
 
-	;; Called by GetWall for high-index sprites.
-GetHighWall:	BIT	0,A			; Low bit zero? Return cleared buffer.
+	;; Called by GetWall for high-index sprites, to draw the space under a door
+	;; A=4 -> blank space, A=5 -> columns
+GetUnderDoor:	BIT	0,A			; Low bit zero? Return cleared buffer.
 		JR	NZ,GetEmptyColBuf	; Tail call
 		LD	L,A
 	;; Otherwise, we're drawing a column
@@ -335,15 +369,14 @@ GetHighWall:	BIT	0,A			; Low bit zero? Return cleared buffer.
 		LD	A,(IsColBufFlipped)	; Otherwise, flip flag and buffer.
 		XOR	$80
 		LD	(IsColBufFlipped),A
-		LD	B,$4A
+		LD	B,$4A			; 74 rows high max
 		JP	FlipSprite 		; Tail call
-
 	
 	;; Get a wall section thing.
 	;; Index in A. Top bit represents whether flip is required.
 	;; Destination returned in HL.
-GetWall:	BIT	2,A		; 4-7 handled by GetHighWall.
-		JR	NZ,GetHighWall
+GetWall:	BIT	2,A		; 4 and 5 handled by GetUnderDoor.
+		JR	NZ,GetUnderDoor
 		PUSH	AF
 		CALL	NeedsFlip2 	; Check if flip is required
 		EX	AF,AF'
@@ -396,7 +429,7 @@ NF2_2:		RL		C
 DoCopy:		JP	(IX)	; Call the copying function
 DoClear:	JP	(IY)	; Call the clearing function
 
-	;; Zero a single column of the 6-byte-wide buffer at DE'.
+	;; Zero a single column of the 6-byte-wide buffer at DE' (A rows).
 ClearOne:	EXX
 		LD	B,A
 		EX	DE,HL
@@ -410,7 +443,7 @@ CO_1:		LD	(HL),E
 		EXX
 		RET
 
-	;; Zero two columns of the 6-byte-wide buffer at DE'.
+	;; Zero two columns of the 6-byte-wide buffer at DE' (A rows).
 ClearTwo:	EXX
 		LD	B,A
 		EX	DE,HL
@@ -444,6 +477,7 @@ SetFloorAddr:	LD	C,A
 	;; Address of the sprite used to draw the floor.
 FloorAddr:	DEFW IMG_2x24 - MAGIC_OFFSET + 2 * $30
 
+	;; FIXME: HL stuff
 	;; HL points to some thing we read the bottom two bits of.
 	;; If they're set, we return the blank tile.
 	;; Otherwise we return the current tile address pointer, plus C, in BC.
@@ -467,10 +501,10 @@ GFA_1:		LD	BC,IMG_2x24 - MAGIC_OFFSET + 7 * $30
 		POP	AF
 		RET
 
-	;; Fill a 6-byte-wide buffer at DE' with both columns of a background tile.
+	;; Fill a 6-byte-wide buffer at DE' with both columns of a floor tile.
 	;; A  contains number of rows to generate.
 	;; D  contains initial offset in rows.
-	;; HL and HL' contain pointers to flags.
+	;; HL and HL' contain pointers to flags. FIXME
 BlitFloor:	LD	B,A
 		LD	A,D
 	;; Move down 8 rows if top bit of (HL) is set.
@@ -535,9 +569,9 @@ BlitFloorL:	LD	B,A
 	;; Move down 8 rows if top bit of (HL) is set.	
 		BIT	7,(HL)
 		EXX
-		LD	C,$00
+		LD	C,0
 		JR	Z,BFL_1
-		LD	C,$10
+		LD	C,2*8
 	;; Get the address (using HL' for flags)
 BFL_1:		CALL	GetFloorAddr
 	;; Construct offset in HL from original D. Double it as tile is 2 wide.
@@ -607,7 +641,7 @@ TCB_1:		LD	A,(HL)
 		RET
 
 	;; Flip a 56-byte-high wall panel
-FlipPanel:	LD		B,$38
+FlipPanel:	LD	B,$38
 	;; Reverse a two-byte-wide image. Height in B, pointer to data in HL.
 FlipSprite:	PUSH	DE
 		LD	D,RevTable >> 8
@@ -630,7 +664,7 @@ FS_1:		INC	HL
 	;; Top bit is set if the column image buffer is flipped
 IsColBufFlipped:	DEFB $00
 
-	;; Return the panel address in HL, given panel index in A.
+	;; Return the wall panel address in HL, given panel index in A.
 GetPanelAddr:	AND	$03	; Limit to 0-3
 		ADD	A,A
 		ADD	A,A

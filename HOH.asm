@@ -1565,7 +1565,7 @@ L8603:	LD		A,(IY-$02)
 		RRA
 		AND		$3E
 		LD		L,A
-		LD		H,$BA
+		LD		H,BkgndData >> 8
 		LD		A,$07
 		SUB		E
 		SUB		D
