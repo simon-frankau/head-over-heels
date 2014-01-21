@@ -87,6 +87,9 @@ BkgndCall:	LD	(BlitFloorFnPtr+1),HL
 		INC	E
 		RET
 
+SHORT_WALL:	EQU $38		; The basic panels are 56 pixels high
+TALL_WALL:	EQU $4A		; 74 pixels max height for columns (indices 4 and 5)
+	
 	;; Call inputs:
 	;; * Reads from SpriteYExtent
 	;; * Takes in:
@@ -110,16 +113,16 @@ BkgndCall2:	LD	DE,(SpriteYExtent)
 		JR	NC,BC_Started 	; Started below the top edge? Then jump.
 	;; In this case, we handle the viewing window starting above the start of the floor.
 		INC	HL
-		LD	C,$38
-		BIT	2,(HL)
+		LD	C,SHORT_WALL
+		BIT	2,(HL)		; Wall height differs for ids 0-3 and 4-5.
 		JR	Z,BC_Flag
-		LD	C,$4A
-BC_Flag:	ADD	A,C		; Add $38 or $4A to the start line, depending on flag.
+		LD	C,TALL_WALL
+BC_Flag:	ADD	A,C		; Add the wall height on.
 	;; Window Y start now relative to the top of the current wall panel.
 		JR	NC,BC_TopSpace 	; Still some space left above in window? Jump
-	;; FIXME
+	;; Start drawing some fraction through the wall panel
 		ADD	A,A
-		CALL	L9D77
+		CALL	GetOffsetWall
 		EXX
 		LD	A,D
 		NEG
@@ -141,10 +144,10 @@ BC_TopSpace:	NEG
 		CALL	GetWall
 		EXX
 	;; and the height to use
-		LD	A,$38
+		LD	A,SHORT_WALL
 		BIT	2,(HL)
 		JR	Z,BC_Wall
-		LD	A,$4A
+		LD	A,TALL_WALL
 	;; Now draw the wall
 BC_Wall:	CP	E
 		JR	NC,BC_Copy 	; Window ends in the wall panel? Tail call
@@ -319,8 +322,8 @@ FF_3:		LDI
 		JR		NZ,FF_3
 		RET
 
-	;; 
-L9D77:		PUSH	AF
+	;; Wrap up call to GetWall, and add in the starting offset from A.
+GetOffsetWall:	PUSH	AF
 		LD	A,(HL)
 		EXX
 		CALL	GetWall
@@ -369,7 +372,7 @@ GetUnderDoor:	BIT	0,A			; Low bit zero? Return cleared buffer.
 		LD	A,(IsColBufFlipped)	; Otherwise, flip flag and buffer.
 		XOR	$80
 		LD	(IsColBufFlipped),A
-		LD	B,$4A			; 74 rows high max
+		LD	B,TALL_WALL		; Tall wall section
 		JP	FlipSprite 		; Tail call
 	
 	;; Get a wall section thing.
@@ -477,15 +480,14 @@ SetFloorAddr:	LD	C,A
 	;; Address of the sprite used to draw the floor.
 FloorAddr:	DEFW IMG_2x24 - MAGIC_OFFSET + 2 * $30
 
-	;; FIXME: HL stuff
-	;; HL points to some thing we read the bottom two bits of.
-	;; If they're set, we return the blank tile.
+	;; HL' points to the wall sprite id. If it's 'columns', we
+	;; return a blank floor tile (FIXME: Why?).
 	;; Otherwise we return the current tile address pointer, plus C, in BC.
 GetFloorAddr:	PUSH	AF
 		EXX
 		LD	A,(HL)
-		OR	$FA	
-		INC	A	; If bottom two bits are set...
+		OR	~5
+		INC	A	; If the wall sprite id is 5 (columns)...
 		EXX
 		JR	Z,GFA_1	; jump.
 		LD	A,C
@@ -497,6 +499,7 @@ GetFloorAddr:	PUSH	AF
 		LD	B,A
 		POP	AF
 		RET
+	;; Return the blank tile
 GFA_1:		LD	BC,IMG_2x24 - MAGIC_OFFSET + 7 * $30
 		POP	AF
 		RET
@@ -504,16 +507,17 @@ GFA_1:		LD	BC,IMG_2x24 - MAGIC_OFFSET + 7 * $30
 	;; Fill a 6-byte-wide buffer at DE' with both columns of a floor tile.
 	;; A  contains number of rows to generate.
 	;; D  contains initial offset in rows.
-	;; HL and HL' contain pointers to flags. FIXME
+	;; HL points to wall sprite id.
 BlitFloor:	LD	B,A
 		LD	A,D
-	;; Move down 8 rows if top bit of (HL) is set.
+	;; Move down 8 rows if top bit of (HL) is set,
+	;; i.e. if we're on the flipped side.
 		BIT	7,(HL)
 		EXX
 		LD	C,0
 		JR	Z,BF_1
 		LD	C,2*8
-	;; Get the address (using HL' for flags)
+	;; Get the address (using HL' for wall sprite id)
 BF_1:		CALL	GetFloorAddr
 	;; Construct offset in HL from original D. Double it as tile is 2 wide.
 		AND	$0F
@@ -548,7 +552,7 @@ BF_2:		EXX
 	;; Fill a 6-byte-wide buffer at DE' with the right column of background tile.
 	;; A  contains number of rows to generate.
 	;; D  contains initial offset in rows.
-	;; HL and HL' contain pointers to flags.
+	;; HL contains pointer to wall sprite id.
 BlitFloorR:	LD	B,A
 		LD	A,D
 	;; Move down 8 rows if top bit of (HL) is set.
@@ -563,7 +567,7 @@ BlitFloorR:	LD	B,A
 	;; Fill a 6-byte-wide buffer at DE' with the left column of background tile.
 	;; A  contains number of rows to generate.
 	;; D  contains initial offset in rows.
-	;; HL and HL' contain pointers to flags.
+	;; HL contains pointer to wall sprite id.
 BlitFloorL:	LD	B,A
 		LD	A,D
 	;; Move down 8 rows if top bit of (HL) is set.	
@@ -572,7 +576,7 @@ BlitFloorL:	LD	B,A
 		LD	C,0
 		JR	Z,BFL_1
 		LD	C,2*8
-	;; Get the address (using HL' for flags)
+	;; Get the address (using HL' for wall sprite id)
 BFL_1:		CALL	GetFloorAddr
 	;; Construct offset in HL from original D. Double it as tile is 2 wide.
 		AND	$0F
@@ -621,7 +625,6 @@ OCB_2:		LD	A,(HL)
 		EXX
 		RET
 
-
 	;; Blit from HL' to DE', a 2-byte-wide sprite in a 6-byte wide buffer.
 	;; Number of rows in A.
 TwoColBlit:	EXX
@@ -640,8 +643,8 @@ TCB_1:		LD	A,(HL)
 		EXX
 		RET
 
-	;; Flip a 56-byte-high wall panel
-FlipPanel:	LD	B,$38
+	;; Flip a normal wall panel
+FlipPanel:	LD	B,SHORT_WALL
 	;; Reverse a two-byte-wide image. Height in B, pointer to data in HL.
 FlipSprite:	PUSH	DE
 		LD	D,RevTable >> 8
