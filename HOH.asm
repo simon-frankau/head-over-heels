@@ -374,30 +374,36 @@ L774B:	DEFB $00
 L774C:	DEFB $C0
 L774D:		LD		A,$FF
 		LD		(L7713),A
-L7752:		LD		IY,L7718
-		LD		HL,L40C0
-		LD		(SpriteXExtent),HL
-		LD		HL,L00FF
-		LD		(SpriteYExtent),HL
-		LD		HL,LC0C0
-		LD		(L7748),HL
-		LD		(L774A),HL
-		LD		HL,L0000
-		LD		BC,(L703B)
+	;; NB: Fall through
+
+	;; Guess that this is redraw screen, based on setting sprite extend to flul screen...
+DrawScreen:	LD	IY,L7718 		; FIXME: ???
+	;; Initialise the sprite extents to cover the full screen.
+		LD	HL,L40C0
+		LD	(SpriteXExtent),HL
+		LD	HL,L00FF
+		LD	(SpriteYExtent),HL
+	;;  FIXME: ???
+		LD	HL,LC0C0
+		LD	(L7748),HL
+		LD	(L774A),HL
+		LD	HL,L0000
+		LD	BC,(L703B)
 		CALL	L780E
-		XOR		A
-		LD		(L7713),A
-		LD		(L774C),A
-		LD		HL,(LAF78)
-		LD		(LAF92),HL
-		LD		A,(L7710)
-		LD		(BigSpriteTest),A
-		LD		DE,L7744
-		LD		HL,L7748
-		LD		BC,L0004
+		XOR	A
+		LD	(L7713),A
+		LD	(L774C),A
+		LD	HL,(LAF78)
+		LD	(LAF92),HL
+		LD	A,(L7710)
+		LD	(BigSpriteTest),A
+		LD	DE,L7744
+		LD	HL,L7748
+		LD	BC,L0004
 		LDIR
-		LD		HL,BkgndData
-		LD		BC,L0040
+	;; Clear the backdrop info...
+		LD	HL,BkgndData
+		LD	BC,L0040
 		CALL	FillZero
 		CALL	LA260
 		CALL	L7A2E
@@ -990,7 +996,7 @@ L7BBF:		CALL	Reinitialise
 		JR	NZ,L7BDC
 		LD	HL,LFB28
 		SET	0,(HL)
-		CALL	L7752
+		CALL	DrawScreen
 		LD	A,$01
 		JR	L7C14
 L7BDC:		CALL	L728C
@@ -1017,7 +1023,7 @@ L7C00:		LD	A,B
 		LD	(L7B8F),A
 L7C0C:		LD	A,$01
 		JR	L7C14
-L7C10:		CALL	L7752
+L7C10:		CALL	DrawScreen
 		XOR	A
 L7C14:		LD	(LA295),A
 		JP	L7C1A
