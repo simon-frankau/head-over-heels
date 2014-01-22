@@ -29,12 +29,12 @@ Main:		LD	SP,$FFF4
 		JR	MainStart
 MainContinue:	CALL	AltPlaySound
 		CALL	InitContinue
-MainStart:	CALL	L8DC2
+MainStart:	CALL	C8DC2
 		LD	A,$40
 		LD	(L8F18),A
 MainB:		XOR	A
 		LD	(L703D),A
-		CALL	L7B91
+		CALL	C7B91
 	;; The main game-playing loop
 MainLoop:	CALL	WaitFrame
 		CALL	CheckCtrls
@@ -51,14 +51,14 @@ MainLoop:	CALL	WaitFrame
 		JR	MainLoop
 
 	;; FIXME: ???
-L708B:		LD	HL,(L703B)
+C708B:		LD	HL,(L703B)
 		LD	BC,$8D30 ; TODO
 		XOR	A
 		SBC	HL,BC
 		RET
 
 	;; FIXME: ???
-MainLoop2:	CALL	L708B
+MainLoop2:	CALL	C708B
 		RET	NZ
 		LD	(SwopPressed),A
 		DEC	A
@@ -105,7 +105,7 @@ L70E1:		RRD
 		RLD
 L70E6:		LD	SP,$FFF4
 		JP	MainB
-L70EC:		CALL	LAD26
+L70EC:		CALL	CAD26
 		JR	L70E6
 
 	;; Wait for the frame counter to reduce to zero
@@ -135,11 +135,11 @@ CP_1:		CALL	GetInputEntSh
 	;; Continue
 	;; FIXME: Interesting one to understand...
 		CALL	WaitInputClear
-		CALL	L7BB3
+		CALL	C7BB3
 		LD	HL,L4C50
 CP_2:		PUSH	HL
 		LD	DE,L6088
-		CALL	LA0A8
+		CALL	CA0A8
 		POP	HL
 		LD	A,L
 		LD	H,A
@@ -314,7 +314,7 @@ SwC_8:		LD	A,(HL)
 		LD	(LA2BB),A
 		LD	A,(LA295)
 		AND	A
-		JP	NZ,L8E1D
+		JP	NZ,C8E1D
 		JR	L72B1
 
 SwitchGet:	PUSH	AF
@@ -345,7 +345,7 @@ SCF_2:		RES	1,(IY+$1B)
 		SET	1,(IY+$1B)
 		RET
 
-L728C:		LD	HL,(L703B)
+C728C:		LD	HL,(L703B)
 		LD	DE,(LFB28)
 		AND	A
 		SBC	HL,DE

@@ -16,22 +16,22 @@
 	;; * CharThing17
 
 	;; Unknown functions that are called:
-	;; L72A0
-	;; L8CD6
-	;; L8CF0
-	;; L8D7F
-	;; L8E1D
-	;; LA05D
-	;; LA0A5
+	;; C72A0
+	;; C8CD6
+	;; C8CF0
+	;; C8D7F
+	;; C8E1D
+	;; CA05D
+	;; CA0A5
 	;; LA316
-	;; LAA74
-	;; LAC12
-	;; LAC41
-	;; LAF96
-	;; LB010
-	;; LB03B
-	;; LB0BE
-	;; LB0C6
+	;; CAA74
+	;; CAC12
+	;; CAC41
+	;; CAF96
+	;; CB010
+	;; CB03B
+	;; CB0BE
+	;; CB0C6
 	;; LB21C
 	
 	
@@ -136,7 +136,7 @@ EPIC_6:		LD	A,(FirePressed)
 		LD	(LA2B4),A
 		LD	(IY+$0C),$FF
 		LD	(IY+$0F),$20
-		CALL	LB03B
+		CALL	CB03B
 		LD	A,$06
 		CALL	DecCount
 		LD	B,$48
@@ -146,7 +146,7 @@ EPIC_6:		LD	A,(FirePressed)
 		JR	NZ,EPIC_8
 		LD	HL,LA28B
 		RES	2,(HL)
-		CALL	L8E1D
+		CALL	C8E1D
 		JR	EPIC_8
 EPIC_7:		CALL	NopeNoise
 EPIC_8:		LD	HL,LB218
@@ -164,7 +164,7 @@ EPIC_9:		LD	A,(LA295)
 		CALL	CharThing14
 		PUSH	HL
 		POP	IY
-		CALL	LB0C6
+		CALL	CB0C6
 		LD	A,(Character)
 		CP	$03
 		JR	Z,EPIC_12
@@ -181,7 +181,7 @@ EPIC_10:	LD	HL,LFB49
 EPIC_11:	LD	HL,L0000
 		LD	(LA2CD),HL
 		LD	(LA2DF),HL
-		CALL	L72A0
+		CALL	C72A0
 EPIC_12:	LD	HL,L0000
 		LD	(LA2A7),HL
 		JP	L70BA
@@ -276,7 +276,7 @@ CharThing19:	PUSH	HL
 	;; NB: Fall through
 
 CharThing21:	LD	IY,LA2C0
-		CALL	L8CF0
+		CALL	C8CF0
 		POP	HL
 		PUSH	HL
 		BIT	1,L
@@ -285,9 +285,9 @@ CharThing21:	LD	IY,LA2C0
 		LD	(LA2DA),A
 		RES	3,(IY+$16)
 		LD	HL,LA2D2
-		CALL	LA05D
+		CALL	CA05D
 		LD	HL,LA2D2
-		CALL	LA0A5
+		CALL	CA0A5
 		POP	AF
 EPIC_29:	POP	HL
 		RR	L
@@ -296,9 +296,9 @@ EPIC_29:	POP	HL
 		LD	(LA2C8),A
 		RES	3,(IY+$04)
 		LD	HL,LA2C0
-		CALL	LA05D
+		CALL	CA05D
 		LD	HL,LA2C0
-		JP	LA0A5			; NB: Tail call
+		JP	CA0A5			; NB: Tail call
 	
 CharThing3:	AND	$01
 		RLCA
@@ -316,9 +316,9 @@ CharThing4:	CALL	CharThing14
 		LD	A,$3F
 		LD	(LA2BD),A
 		LD	A,(LA2BC)
-		CALL	LAF96
+		CALL	CAF96
 		CALL	CharThing14
-		CALL	LA05D
+		CALL	CA05D
 		LD	HL,LA29F
 		LD	A,(HL)
 		AND	A
@@ -330,7 +330,7 @@ CharThing4:	CALL	CharThing14
 		JR	EPIC_37
 EPIC_31:	DEC	(HL)
 		CALL	CharThing14
-		CALL	LAC41
+		CALL	CAC41
 		JR	C,EPIC_32
 		DEC	(IY+$07)
 		LD	A,$84
@@ -363,7 +363,7 @@ EPIC_37:	SET	4,(IY+$0B)
 		LD	A,(LB218)
 		AND	A
 		JR	NZ,EPIC_38
-		CALL	LAA74
+		CALL	CAA74
 		JP	NC,CharThing23 		; NB: Tail call
 		JP	NZ,CharThing22		; NB: Tail call
 EPIC_38:	LD	A,(LB218)
@@ -378,7 +378,7 @@ EPIC_39:	LD	A,$86
 		SET	4,(IY+$0C)
 		JR	NZ,EPIC_41
 		CALL	CharThing14
-		CALL	LAC41
+		CALL	CAC41
 		JR	NC,EPIC_40
 		JR	NZ,EPIC_40
 		LD	A,$88
@@ -424,13 +424,13 @@ EPIC_47:	PUSH	DE
 		LD	A,(Character)
 		RRA
 		JR	NC,EPIC_48
-		CALL	L8CF0
+		CALL	C8CF0
 		LD	(LA2C8),A
 EPIC_48:	POP	HL
 		LD	A,(Character)
 		AND	$02
 		JR	Z,EPIC_49
-		CALL	L8CF0
+		CALL	C8CF0
 		LD	(LA2DA),A
 EPIC_49:	SET	5,(IY+$0B)
 		JR	CharThing26
@@ -451,12 +451,12 @@ EPIC_52:	LD	A,(Character)
 CharThing26:	LD	A,(LA2BF)
 		LD	(IY+$0C),A
 		CALL	CharThing14
-		CALL	LB0BE
+		CALL	CB0BE
 		CALL	CharThing16
 		XOR	A
-		CALL	LAF96
+		CALL	CAF96
 		CALL	CharThing14
-		CALL	LA0A5
+		CALL	CA0A5
 		JP	CharThing13 		; NB: Tail call
 	
 CharThing5:	LD	HL,LA315
@@ -564,7 +564,7 @@ EPIC_68:	POP	AF
 		LD	(IY+$0B),A
 		RET
 EPIC_69:	CALL	CharThing14
-		CALL	L8CD6
+		CALL	C8CD6
 		POP	BC
 		LD	HL,LA2A1
 		LD	A,(HL)
@@ -597,7 +597,7 @@ EPIC_71:	LD	A,$81
 		PUSH	HL
 		CALL	TableCall
 		POP	HL
-		JP	NC,L8CD6
+		JP	NC,C8CD6
 		LD	A,$88
 		JP	CharThing12 	; NB: Tail call
 	
@@ -687,7 +687,7 @@ EPIC_81:	JP	NC,NopeNoise
 		AND	A
 		JR	NZ,EPIC_82
 		CALL	CharThing14
-		CALL	LAC12
+		CALL	CAC12
 		JR	NC,EPIC_81
 		LD	A,(IX+$08)
 		PUSH	HL
@@ -705,7 +705,7 @@ EPIC_82:	LD	A,(LA2BC)
 		LD	B,$03
 EPIC_83:	CALL	CharThing14
 		PUSH	BC
-		CALL	LAC41
+		CALL	CAC41
 		POP	BC
 		JR	C,EPIC_84
 		DEC	(IY+$07)
@@ -727,15 +727,15 @@ EPIC_83:	CALL	CharThing14
 		LDD
 		LDD
 		POP	HL
-		CALL	L8D7F
+		CALL	C8D7F
 		LD	HL,L0000
 		LD	(LA2A7),HL
 		LD	BC,LD8B0
 		CALL	Clear3x24
 		CALL	CharThing14
-		CALL	LAA74
+		CALL	CAA74
 		CALL	CharThing14
-		JP	LA05D
+		JP	CA05D
 EPIC_84:	LD	(IY+$07),C
 		JP	NopeNoise
 
@@ -878,13 +878,13 @@ EPIC_97:	LD	A,$80
 		LD	(IY+$0B),$FF
 		LD	(IY+$0C),$FF
 		POP	HL
-		CALL	LB010
+		CALL	CB010
 		CALL	CharThing16
 		XOR	A
 		LD	(LB219),A
 		LD	(LB21A),A
 		LD	(L7B8F),A
-		JP	LAF96
+		JP	CAF96
 	
 CharThing16:	LD	A,(LAF77)
 		LD	(LA2BC),A

@@ -22,7 +22,7 @@ GoMainMenu:	LD	A,STR_GO_TITLE_SCREEN
 		LD	(IX+MENU_CUR_ITEM),$00
 		CALL	DrawHnH
 		CALL	DrawMenu
-GMM_1:		CALL	L8D18			; FIXME: ?
+GMM_1:		CALL	C8D18			; FIXME: ?
 		CALL	MenuStep
 		JR	C,GMM_1
 		LD	A,(IX+MENU_CUR_ITEM)
@@ -157,7 +157,7 @@ GameOverScreen:	CALL	AltPlaySound
 		LD	A,STR_TITLE_SCREEN_EXT
 		CALL	PrintChar
 		CALL	DrawHnH
-		CALL	L8C50		; FIXME: ?
+		CALL	C8C50		; FIXME: ?
 		PUSH	HL
 		LD	A,(L866B) 	; FIXME: ?
 		OR	$E0
@@ -176,7 +176,7 @@ GOS_1:		RLCA
 GOS_2:		CALL	PrintChar
 		LD	A,STR_EXPLORED
 		CALL	PrintChar
-		CALL	L8C1F
+		CALL	C8C1F
 		CALL	Print4DigitsL
 		LD	A,STR_ROOMS_SCORE
 		CALL	PrintChar
@@ -184,7 +184,7 @@ GOS_2:		CALL	PrintChar
 		CALL	Print4DigitsL
 		LD	A,STR_LIBERATED
 		CALL	PrintChar
-		CALL	L8C1A
+		CALL	C8C1A
 		LD	A,E
 		CALL	Print2DigitsL
 		LD	A,STR_PLANETS

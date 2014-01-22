@@ -16,13 +16,13 @@ L8D9E:		LD	A,(L866B)
 		LD	DE,L040F
 		LD	HL,MainMenuSpriteList
 		CALL	DrawFromList
-		CALL	L8DDF
-L8DB9:		CALL	L8DC2
-		CALL	L7395
-		JP	L7BB3
+		CALL	C8DDF
+L8DB9:		CALL	C8DC2
+		CALL	C7395
+		JP	C7BB3
 
 	;; FIXME: Crowns screen?
-L8DC2:		LD	A,STR_EMPIRE_BLURB
+C8DC2:		LD	A,STR_EMPIRE_BLURB
 		CALL	PrintChar
 		CALL	AltPlaySound
 		LD	HL,PlanetsSpriteList
@@ -32,13 +32,13 @@ L8DC2:		LD	A,STR_EMPIRE_BLURB
 		LD	DE,(L866B)
 		LD	D,$05
 		CALL	DrawFromList
-L8DDF:		CALL	WaitInputClear
-		CALL	L8DED
+C8DDF:		CALL	WaitInputClear
+		CALL	C8DED
 		CALL	ScreenWipe
 		LD	B,$C1
 		JP	PlaySound
 
-L8DED:		LD	HL,LA800
+C8DED:		LD	HL,LA800
 L8DF0:		PUSH	HL
 		CALL	AltPlaySound
 		CALL	GetInputEntSh
@@ -63,7 +63,7 @@ CrownsSpriteList:	DEFB SPR_CROWN,$54,$60
 			DEFB SPR_CROWN,$7C,$98
 
 	;; FIXME: Draw the screen border stuff?
-L8E1D:		CALL	CharThing17
+C8E1D:		CALL	CharThing17
 		LD	HL,PeripherySpriteList
 		LD	DE,(LA28B)
 		LD	D,$03
@@ -95,7 +95,7 @@ L8E41:		POP	DE
 		JR	NZ,DrawFromList
 		RET
 L8E47:		LD	D,$01
-		CALL	L8E5F
+		CALL	C8E5F
 		JR	L8E41
 
 	;; All the icons around the edge of the screen
@@ -110,7 +110,7 @@ L8E5D:		LD	D,$03
 	
 	;; Sprite code in A. Something in D moved to A, BC saved.
 	;; We load HL with 180C, DE with image, A with thing, call DrawSprite
-L8E5F:		LD	(SpriteCode),A
+C8E5F:		LD	(SpriteCode),A
 		LD	A,B
 		SUB	$48
 		LD	B,A
