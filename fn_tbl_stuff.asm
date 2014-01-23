@@ -8,6 +8,18 @@
 	;; Only exported value is FnTbl
 	;; Only call out is to DoTableCall... which calls right back!
 
+	;; Variables used in this file:
+	;; L7718
+	;; L7719
+	;; L771A
+	;; L771B
+	;; L7744
+	;; L7745
+	;; L7746
+	;; L7747
+	;; LA2BF
+	;; LB218
+	
 FnTbl:		DEFB $FD
 		DEFW SomeTableFn0,SomeTableArg0
 		DEFB $FF
@@ -452,6 +464,8 @@ TblFnCommon16:	LD	A,$30
 		CP	$20
 		RET
 
+	;; Checks to see if A is between B and B + 3 / 9
+	;; (depending on if you're both head and heels currently)
 TblFnCommon17:	SUB	B
 		RET	C
 		PUSH	AF

@@ -11,7 +11,7 @@
 	;; * CharThing
 	;; * CharThing3
 	;; * CharThing11
-	;; * CharThing14
+	;; * GetCharStuff
 	;; * CharThing15
 	;; * CharThing17
 
@@ -25,7 +25,7 @@
 	;; CA0A5
 	;; LA316
 	;; CAA74
-	;; CAC12
+	;; GetStoodUpon
 	;; CAC41
 	;; CAF96
 	;; CB010
@@ -91,43 +91,46 @@ EPIC_2:		LD	A,$FF
 EPIC_3:		LD	(LB218),A
 EPIC_4:		CALL	CharThing4
 	;; NB: Big loop back up to here.
-EPIC_5:		CALL	CharThing14
+EPIC_5:		CALL	GetCharStuff
 		PUSH	HL
 		POP	IY
 		LD	A,(IY+$07)
 		CP	$84
-		JR	NC,EPIC_6
+		JR	NC,DoFire
 		XOR	A
 		LD	(LA29F),A
 		LD	A,(L7712)
 		AND	A
-		JR	NZ,EPIC_6
+		JR	NZ,DoFire
 		LD	A,$06
 		LD	(LB218),A
+	;;  NB: Fall through
+
 	;; Check for Fire being pressed
-EPIC_6:		LD	A,(FirePressed)
+DoFire:		LD	A,(FirePressed)
 		RRA
-		JR	NC,EPIC_8
+		JR	NC,NotFire
 		LD	A,(Character)
-		OR	$FD
+		OR	~2
 		INC	A
 		LD	HL,LA2BC
 		OR	(HL)
-		JR	NZ,EPIC_7 ; Jumps if not Head (alone) or ...
-		LD	A,(LA28B)
-		OR	$F9
+		JR	NZ,NopeFire 	; Skips if not Head (alone) or FIXME
+		LD	A,(Inventory)
+		OR	~6
 		INC	A
-		JR	NZ,EPIC_7
+		JR	NZ,NopeFire 	; Skips if don't have donuts and a hooter
 		LD	A,(LA2B8)
 		CP	$08
-		JR	NZ,EPIC_7
+		JR	NZ,NopeFire 	; Skips if not FIXME
 		LD	HL,LA2D7
 		LD	DE,LA2AE
 		LD	BC,L0003
-		LDIR
+		LDIR			; Sets some structure...
 		LD	HL,LA2A9
 		PUSH	HL
-		POP	IY
+		POP	IY		; Sets IY to LA2A9
+	;; FIXME: Bunch of mystery...
 		LD	A,(L703D)
 		OR	$19
 		LD	(LA2B3),A
@@ -143,13 +146,14 @@ EPIC_6:		LD	A,(FirePressed)
 		CALL	PlaySound
 		LD	A,(Donuts)
 		AND	A
-		JR	NZ,EPIC_8
-		LD	HL,LA28B
-		RES	2,(HL)
+		JR	NZ,NotFire
+		LD	HL,Inventory
+		RES	2,(HL)			; Run out of donuts
 		CALL	C8E1D
-		JR	EPIC_8
-EPIC_7:		CALL	NopeNoise
-EPIC_8:		LD	HL,LB218
+		JR	NotFire
+NopeFire:	CALL	NopeNoise
+	;; Next section?
+NotFire:	LD	HL,LB218
 		LD	A,(HL)
 		AND	$7F
 		RET	Z
@@ -161,7 +165,7 @@ EPIC_8:		LD	HL,LB218
 EPIC_9:		LD	A,(LA295)
 		AND	A
 		JR	Z,EPIC_12
-		CALL	CharThing14
+		CALL	GetCharStuff
 		PUSH	HL
 		POP	IY
 		CALL	CB0C6
@@ -183,7 +187,7 @@ EPIC_11:	LD	HL,L0000
 		LD	(LA2DF),HL
 		CALL	C72A0
 EPIC_12:	LD	HL,L0000
-		LD	(LA2A7),HL
+		LD	(Carrying),HL
 		JP	L70BA
 EPIC_13:	DEC	(HL)
 		LD	HL,(Character)
@@ -199,7 +203,7 @@ EPIC_14:	DEC	(HL)
 CharThing2:	DEC	(HL)
 		JP	NZ,CharThing20 		; NB: Tail call
 		LD	HL,L0000
-		LD	(LA2A7),HL
+		LD	(Carrying),HL
 		LD	HL,Lives
 		LD	BC,(LB21A)
 		LD	B,$02
@@ -253,7 +257,7 @@ EPIC_23:	CALL	EPIC_22
 EPIC_24:	LD	A,(LA2A6)
 		LD	(Character),A
 		CALL	CharThing3
-		CALL	CharThing14
+		CALL	GetCharStuff
 		LD	DE,L0005
 		ADD	HL,DE
 		EX	DE,HL
@@ -275,7 +279,7 @@ CharThing19:	PUSH	HL
 		LD	HL,LA2FC
 	;; NB: Fall through
 
-CharThing21:	LD	IY,LA2C0
+CharThing21:	LD	IY,HeelsStuff
 		CALL	C8CF0
 		POP	HL
 		PUSH	HL
@@ -284,9 +288,9 @@ CharThing21:	LD	IY,LA2C0
 		PUSH	AF
 		LD	(LA2DA),A
 		RES	3,(IY+$16)
-		LD	HL,LA2D2
+		LD	HL,HeadStuff
 		CALL	CA05D
-		LD	HL,LA2D2
+		LD	HL,HeadStuff
 		CALL	CA0A5
 		POP	AF
 EPIC_29:	POP	HL
@@ -295,9 +299,9 @@ EPIC_29:	POP	HL
 		XOR	$80
 		LD	(LA2C8),A
 		RES	3,(IY+$04)
-		LD	HL,LA2C0
+		LD	HL,HeelsStuff
 		CALL	CA05D
-		LD	HL,LA2C0
+		LD	HL,HeelsStuff
 		JP	CA0A5			; NB: Tail call
 	
 CharThing3:	AND	$01
@@ -310,14 +314,14 @@ CharThing3:	AND	$01
 		RET
 
 	;; Looks like more movement stuff
-CharThing4:	CALL	CharThing14
+CharThing4:	CALL	GetCharStuff
 		PUSH	HL
 		POP	IY
 		LD	A,$3F
 		LD	(LA2BD),A
 		LD	A,(LA2BC)
 		CALL	CAF96
-		CALL	CharThing14
+		CALL	GetCharStuff
 		CALL	CA05D
 		LD	HL,LA29F
 		LD	A,(HL)
@@ -329,7 +333,7 @@ CharThing4:	CALL	CharThing14
 		LD	(HL),$00
 		JR	EPIC_37
 EPIC_31:	DEC	(HL)
-		CALL	CharThing14
+		CALL	GetCharStuff
 		CALL	CAC41
 		JR	C,EPIC_32
 		DEC	(IY+$07)
@@ -359,7 +363,7 @@ EPIC_36:	LD	A,(CurrDir)
 		JR	EPIC_35
 EPIC_37:	SET	4,(IY+$0B)
 		SET	5,(IY+$0C)
-		CALL	CharThing14
+		CALL	GetCharStuff
 		LD	A,(LB218)
 		AND	A
 		JR	NZ,EPIC_38
@@ -377,7 +381,7 @@ EPIC_39:	LD	A,$86
 		BIT	4,(IY+$0C)
 		SET	4,(IY+$0C)
 		JR	NZ,EPIC_41
-		CALL	CharThing14
+		CALL	GetCharStuff
 		CALL	CAC41
 		JR	NC,EPIC_40
 		JR	NZ,EPIC_40
@@ -388,7 +392,7 @@ EPIC_40:	DEC	(IY+$07)
 		RES	4,(IY+$0B)
 EPIC_41:	XOR	A
 		LD	(LA29E),A
-		CALL	CharThing10
+		CALL	DoCarry
 		CALL	CharThing9
 EPIC_42:	LD	A,(CurrDir)
 		RRA
@@ -450,12 +454,12 @@ EPIC_52:	LD	A,(Character)
 	
 CharThing26:	LD	A,(LA2BF)
 		LD	(IY+$0C),A
-		CALL	CharThing14
+		CALL	GetCharStuff
 		CALL	CB0BE
 		CALL	CharThing16
 		XOR	A
 		CALL	CAF96
-		CALL	CharThing14
+		CALL	GetCharStuff
 		CALL	CA0A5
 		JP	CharThing13 		; NB: Tail call
 	
@@ -475,7 +479,7 @@ CharThing22:	LD	HL,LA29E
 		AND	A
 		LD	(HL),$FF
 		JR	Z,CharThing24 		; NB: Tail call
-		CALL	CharThing10
+		CALL	DoCarry
 		CALL	CharThing9
 		XOR	A
 		JR	CharThing24 		; NB: Tail call
@@ -550,7 +554,7 @@ EPIC_67:	PUSH	AF
 		CALL	LookupDir
 		CP	$FF
 		JR	Z,EPIC_68
-		CALL	CharThing14
+		CALL	GetCharStuff
 		CALL	TableCall	
 		JR	NC,EPIC_69
 		LD	A,(IY+$0B)
@@ -563,7 +567,7 @@ EPIC_68:	POP	AF
 		OR	$0F
 		LD	(IY+$0B),A
 		RET
-EPIC_69:	CALL	CharThing14
+EPIC_69:	CALL	GetCharStuff
 		CALL	C8CD6
 		POP	BC
 		LD	HL,LA2A1
@@ -593,7 +597,7 @@ EPIC_71:	LD	A,$81
 		CALL	LookupDir
 		CP	$FF
 		RET	Z
-		CALL	CharThing14
+		CALL	GetCharStuff
 		PUSH	HL
 		CALL	TableCall
 		POP	HL
@@ -671,73 +675,76 @@ EPIC_80:	LD	HL,L080C
 		JP	PlaySound
 
 
+	;; Position where the contents being carried are drawn.
+CARRY_POSN:	EQU	216 << 8 | 176
 	
-CharThing10:	LD	A,(CarryPressed)
+DoCarry:	LD	A,(CarryPressed)
 		RRA
 		RET	NC
-		LD	A,(LA28B)
+		LD	A,(Inventory) 		; Check if we have the purse
 		RRA
-EPIC_81:	JP	NC,NopeNoise
+PurseNope:	JP	NC,NopeNoise 		; Tail call
 		LD	A,(Character)
 		AND	$01
-		JR	Z,EPIC_81
-		LD	A,$87
+		JR	Z,PurseNope 		; Check if heels is present
+		LD	A,$87			; FIXME: ???
 		CALL	CharThing12
-		LD	A,(LA2A8)
+		LD	A,(Carrying+1)
 		AND	A
-		JR	NZ,EPIC_82
-		CALL	CharThing14
-		CALL	CAC12
-		JR	NC,EPIC_81
-		LD	A,(IX+$08)
+		JR	NZ,DropCarried 		; If holding something, drop it
+		CALL	GetCharStuff
+		CALL	GetStoodUpon
+		JR	NC,PurseNope		; NC if nothing there
+		LD	A,(IX+$08)		; Load sprite of thing carried
 		PUSH	HL
-		LD	(LA2A7),HL
-		LD	BC,LD8B0
+		LD	(Carrying),HL 		; Save carried thing
+		LD	BC,CARRY_POSN
 		PUSH	AF
-		CALL	Draw3x24
+		CALL	Draw3x24 		; Draw the item now carried
 		POP	AF
 		POP	HL
-		JP	L8D4B
-EPIC_82:	LD	A,(LA2BC)
+		JP	RemoveObject		; Tail call
+DropCarried:	LD	A,(LA2BC)
 		AND	A
-		JP	NZ,NopeNoise
+		JP	NZ,NopeNoise 		; FIXME: Can't drop if ???
 		LD	C,(IY+$07)
 		LD	B,$03
-EPIC_83:	CALL	CharThing14
+CarryLoop:	CALL	GetCharStuff
 		PUSH	BC
 		CALL	CAC41
 		POP	BC
-		JR	C,EPIC_84
+		JR	C,NoDrop
 		DEC	(IY+$07)
 		DEC	(IY+$07)
-		DJNZ	EPIC_83
-		LD	HL,(LA2A7)
+		DJNZ	CarryLoop
+	;; FIXME: That was some other test...
+		LD	HL,(Carrying)
 		PUSH	HL
 		LD	DE,L0007
 		ADD	HL,DE
 		PUSH	HL
-		CALL	CharThing14
+		CALL	GetCharStuff
 		LD	DE,L0006
 		ADD	HL,DE
-		EX	DE,HL
-		POP	HL
-		LD	(HL),C
+		EX	DE,HL			; CharStuff + 6 in DL
+		POP	HL			; Object + 7 in HL
+		LD	(HL),C			; Overwrite id thing with C...
 		EX	DE,HL
 		DEC	DE
 		LDD
 		LDD
 		POP	HL
-		CALL	C8D7F
+		CALL	InsertObject
 		LD	HL,L0000
-		LD	(LA2A7),HL
-		LD	BC,LD8B0
-		CALL	Clear3x24
-		CALL	CharThing14
+		LD	(Carrying),HL
+		LD	BC,CARRY_POSN
+		CALL	Clear3x24 		; Clear out the what's-carried display
+		CALL	GetCharStuff
 		CALL	CAA74
-		CALL	CharThing14
+		CALL	GetCharStuff
 		JP	CA05D
-EPIC_84:	LD	(IY+$07),C
-		JP	NopeNoise
+NoDrop:		LD	(IY+$07),C 		; Restore old value
+		JP	NopeNoise		; Tail call
 
 CharThing11:	LD	HL,LA2BE 	; FIXME: Unused?
 		JR	EPIC_85
@@ -758,11 +765,11 @@ CharThing13:	LD	A,(LA2BD)
 		RET	NZ
 		JP	PlaySound
 	
-CharThing14:	LD	HL,Character
+GetCharStuff:	LD	HL,Character
 		BIT	0,(HL)
-		LD	HL,LA2C0
+		LD	HL,HeelsStuff
 		RET	NZ
-		LD	HL,LA2D2
+		LD	HL,HeadStuff
 		RET
 
 
@@ -776,7 +783,7 @@ CharThing15:	XOR	A 	; FIXME: Unused?
 		CALL	SetCharThing
 		LD	A,(Character)
 		LD	(LA2A6),A
-		CALL	CharThing14
+		CALL	GetCharStuff
 		PUSH	HL
 		PUSH	HL
 		PUSH	HL
@@ -800,7 +807,7 @@ CharThing15:	XOR	A 	; FIXME: Unused?
 		AND	(HL)
 		JR	NZ,EPIC_86
 		LD	(IY+$07),C
-EPIC_86:	CALL	CharThing14
+EPIC_86:	CALL	GetCharStuff
 		LD	DE,L0005
 		ADD	HL,DE
 		EX	DE,HL
@@ -897,14 +904,14 @@ CharThing17:	LD	A,(Character) 	; FIXME: Unused?
 		OR	(HL)
 		RRA
 		RET	NC
-		LD	HL,(LA2A7)
+		LD	HL,(Carrying)
 		INC	H
 		DEC	H
 		RET	Z
 		LD	DE,L0008
 		ADD	HL,DE
 		LD	A,(HL)
-		LD	BC,LD8B0
+		LD	BC,CARRY_POSN
 		JP	Draw3x24
 
 LAA64:	DEFB $28,$28,$C0,$FD,$FD,$FB,$FE,$F7,$FD,$FD

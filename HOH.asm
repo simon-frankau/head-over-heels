@@ -79,7 +79,7 @@ L72F0:		RET		NZ 		; Self-modifying code
 		AND		D
 		RET
 L72F3:	PUSH	DE
-		CALL	CharThing14
+		CALL	GetCharStuff
 		EX		DE,HL
 		LD		BC,L0012
 		PUSH	BC
@@ -96,9 +96,9 @@ L7305:		LD		HL,(LAF92) 	; NB: Referenced as data.
 	
 C7314:		LD		HL,Character
 		BIT		0,(HL) 		; Heels?
-		LD		HL,LA2C0	; No Heels case
+		LD		HL,HeelsStuff	; No Heels case
 		RET		Z
-		LD		HL,LA2D2 	; Have Heels case
+		LD		HL,HeadStuff 	; Have Heels case
 		RET
 
 C7321:	POP		IX
@@ -1003,10 +1003,10 @@ L7BDC:		CALL	C728C
 		JR	NZ,L7C10
 		CALL	C72A3
 		CALL	C774D
-		LD	HL,LA2C0
+		LD	HL,HeelsStuff
 		CALL	CB104
 		EXX
-		LD	HL,LA2D2
+		LD	HL,HeadStuff
 		CALL	CB104
 		CALL	CACD6
 		JR	NC,L7C0C
@@ -1072,35 +1072,39 @@ L7C30:		SUB		H
 		CALL		FloorFn
 		POP		AF
 		RRA
-		PUSH	AF
-		CALL	NC,L7C6B
+		PUSH		AF
+		CALL		NC,NukeColL
 		POP		AF
 		RRA
 		RET		C
-		LD		HL,LBA3E
-L7C59:	LD		A,(HL)
-		AND		A
-		JR		NZ,L7C61
-		DEC		HL
-		DEC		HL
-		JR		L7C59
-L7C61:	INC		HL
-		LD		A,(HL)
-		OR		$FA
-		INC		A
-		RET		NZ
-		LD		(HL),A
-		DEC		HL
-		LD		(HL),A
+	;; Scan from the right for the first drawn column
+		LD	HL,BkgndData + 31*2
+ScanR:		LD	A,(HL)
+		AND	A
+		JR	NZ,NukeCol
+		DEC	HL
+		DEC	HL
+		JR	ScanR
+
+	;; If the current screen column sprite isn't a door column, delete it.
+NukeCol:	INC	HL
+		LD	A,(HL)
+		OR	~5
+		INC	A
+		RET	NZ
+		LD	(HL),A
+		DEC	HL
+		LD	(HL),A
 		RET
 
-L7C6B:	LD		HL,BkgndData
-L7C6E:	LD		A,(HL)
-		AND		A
-		JR		NZ,L7C61
-		INC		HL
-		INC		HL
-		JR		L7C6E
+	;; Scan from the left for the first drawn column
+NukeColL:	LD	HL,BkgndData
+ScanL:		LD	A,(HL)
+		AND	A
+		JR	NZ,NukeCol
+		INC	HL
+		INC	HL
+		JR	ScanL
 
 	;; A funky shuffle routine: Load a pointer from the top of stack.
 	;; (i.e. our return address contains data to skip over)
@@ -1747,8 +1751,9 @@ L880A:	LD		H,$88
 		ADC		A,B
 		LD		A,D
 	;; NB: Fall through
-	
-L8827:		LD	HL,LA28B
+
+	;; Pick up an inventory item. Item number in A.
+PickUp:		LD	HL,Inventory
 		CALL	SetBit
 		CALL	C8E1D
 		LD	B,$C2
@@ -1779,7 +1784,9 @@ L8BDE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 L8BEE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 L8BFE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 L8C0E:	DEFB $00
-C8C0F:	LD		HL,LA28B
+
+	;; FIXME: Run out of donuts
+C8C0F:		LD		HL,Inventory
 		RES		2,(HL)
 L8C14:	EXX
 		LD		BC,L0001
@@ -1978,24 +1985,26 @@ L8D43:		LD		HL,(L8D47)
 L8D47:	DEFB $4A,$6F
 L8D49:	DEFB $6E,$21
 
-L8D4B:		PUSH	HL
+	;; Pointer to object in HL
+RemoveObject:	PUSH	HL
 		PUSH	HL
 		PUSH	IY
 		PUSH	HL
-		POP		IY
+		POP	IY
 		CALL	CB0C6
-		POP		IY
-		POP		HL
+		POP	IY
+		POP	HL
 		CALL	C8D6F
-		POP		IX
-		SET		7,(IX+$04)
-		LD		A,(L703D)
-		LD		C,(IX+$0A)
-		XOR		C
-		AND		$80
-		XOR		C
-		LD		(IX+$0A),A
+		POP	IX
+		SET	7,(IX+$04)
+		LD	A,(L703D)
+		LD	C,(IX+$0A)
+		XOR	C
+		AND	$80
+		XOR	C
+		LD	(IX+$0A),A
 		RET
+
 C8D6F:	PUSH	IY
 		INC		HL
 		INC		HL
@@ -2006,19 +2015,20 @@ C8D6F:	PUSH	IY
 		CALL	CA0A8
 		POP		IY
 		RET
-C8D7F:	PUSH	HL
+	
+InsertObject:	PUSH	HL
 		PUSH	HL
 		PUSH	IY
 		PUSH	HL
-		POP		IY
+		POP	IY
 		CALL	CB03B
-		POP		IY
-		POP		HL
+		POP	IY
+		POP	HL
 		CALL	C8D6F
-		POP		IX
-		RES		7,(IX+$04)
-		LD		(IX+$0B),$FF
-		LD		(IX+$0C),$FF
+		POP	IX
+		RES	7,(IX+$04)
+		LD	(IX+$0B),$FF
+		LD	(IX+$0C),$FF
 		RET
 	
 #include "sprite_stuff.asm"
@@ -2148,7 +2158,7 @@ L8FD2:	LD		A,(IY+$11)
 		RET
 L8FDD:	DEC		(IY+$11)
 		CALL	C9314
-		LD		HL,LAF80
+		LD		HL,ObjectList
 L8FE6:	LD		A,(HL)
 		INC		HL
 		LD		H,(HL)
@@ -2225,7 +2235,7 @@ L905D:		LD	A,$05
 		AND	$07
 		JP	NZ,C92B7
 		LD	HL,(L822B)
-		JP	L8D4B
+		JP	RemoveObject
 
 L9088:	LD		B,(IY+$08)
 		BIT		5,(IY+$0C)
@@ -2441,7 +2451,7 @@ L925D:	CALL	C9269
 		JR		L9258
 L9264:	CALL	C9269
 		JR		L9258
-C9269:	CALL	CharThing14
+C9269:	CALL	GetCharStuff
 		LD		DE,L0005
 		ADD		HL,DE
 		LD		A,(HL)
@@ -2607,7 +2617,7 @@ MainLoop3:	LD	A,(L703D)
 		XOR	$80
 		LD	(L703D),A 		; Toggle top bit of L703D
 		CALL	CharThing
-		LD	HL,(LAF80) 		; Init pointer...
+		LD	HL,(ObjectList) 		; Init pointer...
 		JR	ML3_3			; and jump to test part
 ML3_1:		PUSH	HL
 		LD	A,(HL)
@@ -2664,7 +2674,8 @@ LA059:	DEFB $00
 LA05A:	DEFB $00
 LA05B:	DEFB $00
 SpriteFlags:	DEFB $00
-CA05D:	INC		HL
+
+CA05D:		INC		HL
 		INC		HL
 		CALL	CA1D8
 		LD		(LA058),BC
@@ -3038,7 +3049,7 @@ FillValue:	LD	(HL),E
 
 StatusReinit:	DEFB $09	; Number of bytes to reinit with
 	
-		DEFB $00	; FIXME
+		DEFB $00	; Inventory reset
 		DEFB $00	; Speed reset
 		DEFB $00	; Springs reset
 		DEFB $00	; Heels invuln reset
@@ -3048,7 +3059,7 @@ StatusReinit:	DEFB $09	; Number of bytes to reinit with
 		DEFB $00	; Donuts reset
 		DEFB $00	; FIXME
 	
-LA28B:		DEFB $00
+Inventory:	DEFB $00	; Bit 0 purse, bit 1 hooter, bit 2 donuts FIXME
 Speed:		DEFB $00	; Speed
 		DEFB $00	; Springs
 Invuln:		DEFB $00	; Heels invuln
@@ -3078,8 +3089,7 @@ LA2A1:	DEFB $02
 LA2A2:	DEFB $00
 LA2A3:	DEFB $00,$00,$00
 LA2A6:	DEFB $03
-LA2A7:	DEFB $00
-LA2A8:	DEFB $00
+Carrying:	DEFW $0000
 LA2A9:	DEFB $00,$00,$00,$00,$20
 LA2AE:	DEFB $28,$0B,$C0
 LA2B1:	DEFB $24,$08
@@ -3091,13 +3101,13 @@ LA2BC:	DEFB $00
 LA2BD:	DEFB $00
 LA2BE:	DEFB $00
 LA2BF:	DEFB $FF
-LA2C0:	DEFB $00
+HeelsStuff:	DEFB $00
 LA2C1:	DEFB $00,$00,$00,$08
 LA2C5:	DEFB $28,$0B,$C0
 LA2C8:	DEFB $18,$21,$00,$FF,$FF
 LA2CD:	DEFB $00,$00,$00,$00
 LA2D1:	DEFB $00
-LA2D2:	DEFB $00,$00,$00,$00,$08
+HeadStuff:	DEFB $00,$00,$00,$00,$08
 LA2D7:	DEFB $28,$0B,$C0
 LA2DA:	DEFB $1F,$25,$00,$FF,$FF
 LA2DF:	DEFB $00,$00
@@ -3150,7 +3160,8 @@ LA355:	DEFB $03,$00,$1B,$80,$38,$00,$21,$00,$08,$00,$04,$00
 	
 LAA72:	DEFB $00
 LAA73:	DEFB $00
-CAA74:	CALL	CAA7E
+
+CAA74:		CALL	CAA7E
 		LD		A,(IY+$07)
 		SUB		C
 		JP		LAB0B
@@ -3194,7 +3205,7 @@ FloorThing2:	SCF
 		CP	$07 		; No floor?
 		JR	NZ,RetZeroC
 	;; Code to handle no floor...
-		CALL	CharThing14
+		CALL	GetCharStuff
 		PUSH	IY
 		POP	DE
 		AND	A
@@ -3271,7 +3282,7 @@ LAB55:		OR		$E0
 LAB5F:	XOR		A
 		SCF
 		JP		LB2BF
-LAB64:	LD		HL,LAF80
+LAB64:	LD		HL,ObjectList
 LAB67:	LD		A,(HL)
 		INC		HL
 		LD		H,(HL)
@@ -3356,43 +3367,56 @@ LAC08:	JR		NZ,LAC0E
 LAC0E:	XOR		A
 		SUB		$01
 		RET
-CAC12:	CALL	CB0F9
-		LD		A,B
-		ADD		A,$06
-		LD		B,A
-		INC		A
-		LD		C,A
+
+	;; Called by the purse routine to find something to pick up.
+	;; Carry flag set if something is found, and thing returned in HL.
+	;;
+	;; ObjectList appears to be head of a linked list:
+	;; Offset 0: Next item (null == end)
+	;; Offset 4: Some flag - bit 6 causes skipping
+	;; Offset 7: Some id
+	;; Offset 8: Its sprite
+	;;
+	;; Loop through all items, finding ones which match on B or C
+	;; Then call CACD3 to see if ok candidate. Return if it is.
+GetStoodUpon:	CALL	CB0F9
+		LD	A,B
+		ADD	A,$06
+		LD	B,A
+		INC	A
+		LD	C,A
 		EXX
-		LD		HL,LAF80
-LAC1F:	LD		A,(HL)
-		INC		HL
-		LD		H,(HL)
-		LD		L,A
-		OR		H
-		RET		Z
+		LD	HL,ObjectList
+GSU_1:		LD	A,(HL)
+		INC	HL
+		LD	H,(HL)
+		LD	L,A
+		OR	H
+		RET	Z
 		PUSH	HL
-		POP		IX
-		BIT		6,(IX+$04)
-		JR		Z,LAC1F
-		LD		A,(IX+$07)
+		POP	IX
+		BIT	6,(IX+$04)
+		JR	Z,GSU_1
+		LD	A,(IX+$07)
 		EXX
-		CP		B
-		JR		Z,LAC36
-		CP		C
-LAC36:	EXX
-		JR		NZ,LAC1F
+		CP	B
+		JR	Z,GSU_2
+		CP	C
+GSU_2:		EXX
+		JR	NZ,GSU_1
 		PUSH	HL
 		CALL	CACD3
-		POP		HL
-		JR		NC,LAC1F
+		POP	HL
+		JR	NC,GSU_1
 		RET
+
 CAC41:	CALL	CB0F9
 		LD		B,C
 		DEC		B
 		EXX
 		XOR		A
 		LD		(LAA72),A
-		LD		HL,LAF80
+		LD		HL,ObjectList
 LAC4E:	LD		A,(HL)
 		INC		HL
 		LD		H,(HL)
@@ -3445,7 +3469,7 @@ LAC97:	LD		A,(LA2BC)
 		CALL	CACD3
 		JR		NC,LACCC
 		JR		LAC6D
-CACAF:	CALL	CharThing14
+CACAF:	CALL	GetCharStuff
 		PUSH	HL
 		POP		IX
 		RET
@@ -3465,24 +3489,26 @@ LACCF:	AND		A
 		RET		Z
 		SCF
 		RET
-CACD3:	CALL	CACE6
-CACD6:	LD		A,E
+	
+CACD3:		CALL	CACE6
+CACD6:		LD	A,E
 		EXX
-		CP		D
-		LD		A,E
+		CP	D
+		LD	A,E
 		EXX
-		RET		NC
-		CP		D
-		RET		NC
-		LD		A,L
+		RET	NC
+		CP	D
+		RET	NC
+		LD	A,L
 		EXX
-		CP		H
-		LD		A,L
+		CP	H
+		LD	A,L
 		EXX
-		RET		NC
-		CP		H
+		RET	NC
+		CP	H
 		RET
-CACE6:	LD		A,(IX+$04)
+
+CACE6:		LD		A,(IX+$04)
 		BIT		1,A
 		JR		NZ,LAD03
 		RRA
@@ -3646,7 +3672,7 @@ LAF5B:	DEFB $1B		; Reinitialisation size
 	DEFB $00
 	DEFW LBA40
 	DEFW LAF7E
-	DEFW LAF80
+	DEFW ObjectList
 	DEFW $0000
 	DEFW $0000
 	DEFW $0000,$0000
@@ -3657,9 +3683,9 @@ LAF5B:	DEFB $1B		; Reinitialisation size
 LAF77:	DEFB $00
 LAF78:	DEFW LBA40
 LAF7A:	DEFW LAF7E
-LAF7C:	DEFW LAF80
+LAF7C:	DEFW ObjectList
 LAF7E:	DEFW $0000
-LAF80:	DEFW $0000
+ObjectList:	DEFW $0000
 LAF82:	DEFW $0000,$0000
 LAF86:	DEFW $0000,$0000
 LAF8A:	DEFW $0000,$0000
@@ -3885,16 +3911,18 @@ LB0F4:	POP		DE
 		DEC		HL
 		LD		(HL),E
 		RET
-CB0F9:	CALL	CB104
+	
+CB0F9:		CALL	CB104
 		AND		$08
 		RET		Z
 		LD		A,C
 		SUB		$06
 		LD		C,A
 		RET
-CB104:	INC		HL
+
+CB104:		INC		HL
 		INC		HL
-CB106:	INC		HL
+CB106:		INC		HL
 		INC		HL
 		LD		A,(HL)
 		INC		HL
@@ -3923,7 +3951,7 @@ CB106:	INC		HL
 		LD		H,A
 		SUB		C
 		LD		L,A
-LB129:	LD		A,B
+LB129:		LD		A,B
 		SUB		$06
 		LD		C,A
 		EX		AF,AF'

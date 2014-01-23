@@ -9,8 +9,8 @@ BoostDonuts:	LD	A,(Character)
 		RET	Z		; Must be Head
 		LD	A,CNT_DONUTS
 		CALL	BoostCountPlus
-		LD	A,$02		; FIXME: ?
-		JR	L8827
+		LD	A,$02		; Pick up donuts
+		JR	PickUp
 	
 BoostSpeed:	LD	A,(Character)
 		AND	$02		; Must be Head
@@ -131,7 +131,7 @@ DoContinue:	LD	HL,Continues
 		CALL	GetContinueData
 		LD	A,(HL)
 		AND	$03
-		LD	(LA28B),A
+		LD	(Inventory),A
 		LD	A,(HL)
 		RRA
 		RRA
