@@ -1008,7 +1008,7 @@ L7BDC:		CALL	C728C
 		EXX
 		LD	HL,HeadStuff
 		CALL	CB104
-		CALL	CACD6
+		CALL	CheckOverlap
 		JR	NC,L7C0C
 		LD	A,(Character)
 		RRA
@@ -1255,28 +1255,32 @@ C828B:	LD		(IY+$0F),$00
 		POP		HL
 		RET
 	
-L82A1:		LD		(L822B),DE
+L82A1:		LD	(L822B),DE
 		PUSH	DE
-		POP		IY
-		DEC		A
-		ADD		A,A
-		ADD		A,$BC
-		LD		L,A
-		ADC		A,$83
-		SUB		L
-		LD		H,A
-		LD		A,(HL)
-		INC		HL
-		LD		H,(HL)
-		LD		L,A
-		XOR		A
-		LD		(L8ED8),A
-		LD		A,(IY+$0B)
-		LD		(L822D),A
-		LD		(IY+$0B),$FF
-		BIT		6,(IY+$09)
-		RET		NZ
-		JP		(HL)
+		POP	IY
+		DEC	A
+	;; Get word from L83BC[A] into HL.
+		ADD	A,A
+		ADD	A, L83BC & $FF
+		LD	L,A
+		ADC	A,L83BC >> 8
+		SUB	L
+		LD	H,A
+		LD	A,(HL)
+		INC	HL
+		LD	H,(HL)
+		LD	L,A
+	;; Do some stuff...
+		XOR	A
+		LD	(L8ED8),A
+		LD	A,(IY+$0B)
+		LD	(L822D),A
+		LD	(IY+$0B),$FF
+		BIT	6,(IY+$09)
+		RET	NZ
+	;; And function table jump
+		JP	(HL)
+
 C82C9:		BIT		5,(IY+$09)
 		JR		Z,C82E8
 		CALL	C82E8
@@ -1349,12 +1353,18 @@ L8370:	DEFB $25,$26,$00,$10,$00,$11,$00,$24,$25,$25,$24,$00,$2D,$2D,$2E,$2E
 L8380:	DEFB $00,$57,$D7,$00,$2B,$2B,$2C,$2B,$2C,$00,$32,$32,$33,$33,$00,$34
 L8390:	DEFB $34,$35,$35,$00,$26,$25,$26,$A6,$A5,$A6,$00,$36,$00,$37,$00,$38
 L83A0:	DEFB $39,$B9,$B8,$00,$3A,$BA,$00,$3B,$00,$3C,$00,$3E,$00,$3F,$00,$40
-L83B0:	DEFB $00,$41,$00,$42,$00,$43,$00,$44,$45,$C5,$C4,$00,$CC,$90,$36,$90
-L83C0:	DEFB $3A,$90,$3E,$90,$42,$90,$E3,$90,$E8,$90,$ED,$90,$01,$91,$76,$8F
-L83D0:	DEFB $F2,$90,$F7,$90,$FC,$90,$C6,$8F,$06,$91,$72,$91,$70,$90,$21,$90
-L83E0:	DEFB $2B,$90,$56,$90,$DD,$90,$D7,$90,$1E,$90,$53,$90,$66,$8F,$BF,$90
-L83F0:	DEFB $08,$8F,$88,$90,$EB,$8E,$DB,$8E,$4C,$90,$4E,$8F,$26,$92,$82,$90
-L8400:	DEFB $2F,$8F,$19,$8F,$0B,$91
+L83B0:	DEFB $00,$41,$00,$42,$00,$43,$00,$44,$45,$C5,$C4,$00
+	
+L83BC:	DEFW $90CC,$9036,$903A,$903E
+	DEFW $9042,$90E3,$90E8,$90ED
+	DEFW $9101,$8F76,$90F2,$90F7
+	DEFW $90FC,$8FC6,$9106,$9172
+	DEFW $9070,$9021,$902B,$9056
+	DEFW $90DD,$90D7,$901E,$9053
+	DEFW $8F66,$90BF,$8F08,$9088
+	DEFW $8EEB,$8EDB,$904C,$8F4E
+	DEFW $9226,$9082,$8F2F,$8F19
+	DEFW $910B
 L8406:	DEFB $88,$1B,$01,$2B,$1C,$40,$31,$00,$02,$4A
 L8410:	DEFB $01,$40,$9E,$17,$00,$5D,$00,$01,$56,$02,$11,$56,$03,$11,$56,$04
 L8420:	DEFB $01,$56,$05,$01,$46,$01,$40,$4B,$01,$40,$90,$8F,$6C,$4C,$0A,$00
@@ -2156,27 +2166,30 @@ L8FD2:	LD		A,(IY+$11)
 		JR		Z,L8FDD
 		LD		(IY+$0C),$FF
 		RET
-L8FDD:	DEC		(IY+$11)
+	
+L8FDD:		DEC	(IY+$11)
 		CALL	C9314
-		LD		HL,ObjectList
-L8FE6:	LD		A,(HL)
-		INC		HL
-		LD		H,(HL)
-		LD		L,A
-		OR		H
-		JR		Z,L8FF7
+	;; Call C9005 on each object in the object list...
+		LD	HL,ObjectList
+L8FE6:		LD	A,(HL)
+		INC	HL
+		LD	H,(HL)
+		LD	L,A
+		OR	H
+		JR	Z,L8FF7
 		PUSH	HL
 		PUSH	HL
-		POP		IX
-		CALL	C9005
-		POP		HL
-		JR		L8FE6
-L8FF7:	CALL	C92D6
-		LD		A,(IY+$04)
-		XOR		$10
-		LD		(IY+$04),A
-		JP		C92B7
-C9005:	LD		A,(IX+$0A)
+		POP	IX
+		CALL	C9005		; Call with the object in HL and IX
+		POP	HL
+		JR	L8FE6
+L8FF7:		CALL	C92D6
+		LD	A,(IY+$04)
+		XOR	$10
+		LD	(IY+$04),A
+		JP	C92B7		; Tail call
+
+C9005:		LD		A,(IX+$0A)
 		AND		$7F
 		CP		$0E
 		RET		Z
@@ -2190,6 +2203,7 @@ C9005:	LD		A,(IX+$0A)
 		XOR		$40
 		LD		(IX+$09),A
 		RET
+
 L901E:	LD		A,$90
 		LD		BC,L523E
 		LD		(IY+$11),A
@@ -2617,26 +2631,28 @@ MainLoop3:	LD	A,(L703D)
 		XOR	$80
 		LD	(L703D),A 		; Toggle top bit of L703D
 		CALL	CharThing
-		LD	HL,(ObjectList) 		; Init pointer...
-		JR	ML3_3			; and jump to test part
+	;; Loop over object list...
+		LD	HL,(ObjectList)
+		JR	ML3_3
 ML3_1:		PUSH	HL
 		LD	A,(HL)
 		INC	HL
 		LD	H,(HL)
-		LD	L,A			; Read pointer in
-		EX	(SP),HL			; FIXME: Starts to get a bit mysterious
+		LD	L,A
+		EX	(SP),HL			; Next item on top of stack, curr item in HL
 		EX	DE,HL
 		LD	HL,L000A
 		ADD	HL,DE
+	;; Check position +10
 		LD	A,(L703D)
 		XOR	(HL)
-		CP	$80
+		CP	$80			; Skip if top bit doesn't match 703D
 		JR	C,ML3_2
 		LD	A,(HL)
 		XOR	$80
-		LD	(HL),A
+		LD	(HL),A			; Flip top bit
 		AND	$7F
-		CALL	NZ,L82A1
+		CALL	NZ,L82A1 		; And if any other bits set, call L82A1
 ML3_2:		POP	HL
 ML3_3:		LD	A,H			; loop until null pointer.
 		OR	L
@@ -3263,7 +3279,7 @@ LAB0B:		LD	BC,L0000
 		CP	B
 		EXX
 		JR	NZ,LAB64
-		CALL	CACD3
+		CALL	CheckWeOverlap
 		JR	NC,LAB64
 LAB3F:		BIT	1,(IX+$09)
 		JR	Z,LAB4E
@@ -3300,7 +3316,7 @@ LAB67:	LD		A,(HL)
 		JR		NZ,LAB90
 		EXX
 		PUSH	HL
-		CALL	CACD3
+		CALL	CheckWeOverlap
 		POP		HL
 		JR		NC,LAB67
 LAB88:	LD		(IY+$0D),L
@@ -3313,7 +3329,7 @@ LAB90:	CP		C
 		AND		A
 		JR		NZ,LAB67
 		PUSH	HL
-		CALL	CACD3
+		CALL	CheckWeOverlap
 		POP		HL
 		JR		NC,LAB67
 		LD		(LAA72),HL
@@ -3333,7 +3349,7 @@ LABBA:	ADD		A,(IX+$07)
 		JR		NZ,LABCB
 		EXX
 		PUSH	HL
-		CALL	CACD3
+		CALL	CheckWeOverlap
 		POP		HL
 		JR		NC,LABE7
 		JR		LAB88
@@ -3344,7 +3360,7 @@ LABCB:	CP		C
 		AND		A
 		JR		NZ,LABE7
 		CALL	CACAF
-		CALL	CACD3
+		CALL	CheckWeOverlap
 		JR		NC,LABE7
 		LD		(IY+$0D),$00
 		LD		(IY+$0E),$00
@@ -3378,8 +3394,8 @@ LAC0E:	XOR		A
 	;; Offset 8: Its sprite
 	;;
 	;; Loop through all items, finding ones which match on B or C
-	;; Then call CACD3 to see if ok candidate. Return if it is.
-GetStoodUpon:	CALL	CB0F9
+	;; Then call CheckWeOverlap to see if ok candidate. Return if it is.
+GetStoodUpon:	CALL	CB0F9		; Perhaps getting height as a filter?
 		LD	A,B
 		ADD	A,$06
 		LD	B,A
@@ -3405,68 +3421,68 @@ GSU_1:		LD	A,(HL)
 GSU_2:		EXX
 		JR	NZ,GSU_1
 		PUSH	HL
-		CALL	CACD3
+		CALL	CheckWeOverlap
 		POP	HL
 		JR	NC,GSU_1
 		RET
 
-CAC41:	CALL	CB0F9
-		LD		B,C
-		DEC		B
+CAC41:		CALL	CB0F9
+		LD	B,C
+		DEC	B
 		EXX
-		XOR		A
-		LD		(LAA72),A
-		LD		HL,ObjectList
-LAC4E:	LD		A,(HL)
-		INC		HL
-		LD		H,(HL)
-		LD		L,A
-		OR		H
-		JR		Z,LAC97
+		XOR	A
+		LD	(LAA72),A
+		LD	HL,ObjectList
+LAC4E:		LD	A,(HL)
+		INC	HL
+		LD	H,(HL)
+		LD	L,A
+		OR	H
+		JR	Z,LAC97
 		PUSH	HL
-		POP		IX
-		BIT		7,(IX+$04)
-		JR		NZ,LAC4E
-		LD		A,(IX+$07)
+		POP	IX
+		BIT	7,(IX+$04)
+		JR	NZ,LAC4E
+		LD	A,(IX+$07)
 		EXX
-		CP		C
-		JR		NZ,LAC7F
+		CP	C
+		JR	NZ,LAC7F
 		EXX
 		PUSH	HL
-		CALL	CACD3
-		POP		HL
-		JR		NC,LAC4E
-LAC6D:	LD		A,(IY+$0B)
-		OR		$E0
-		AND		$EF
-		LD		C,A
-		LD		A,(IX+$0C)
-		AND		C
-		LD		(IX+$0C),A
-		JP		LAB5F
-LAC7F:	CP		B
+		CALL	CheckWeOverlap
+		POP	HL
+		JR	NC,LAC4E
+LAC6D:		LD	A,(IY+$0B)
+		OR	$E0
+		AND	$EF
+		LD	C,A
+		LD	A,(IX+$0C)
+		AND	C
+		LD	(IX+$0C),A
+		JP	LAB5F
+LAC7F:		CP	B
 		EXX
-		JR		NZ,LAC4E
-		LD		A,(LAA72)
-		AND		A
-		JR		NZ,LAC4E
+		JR	NZ,LAC4E
+		LD	A,(LAA72)
+		AND	A
+		JR	NZ,LAC4E
 		PUSH	HL
-		CALL	CACD3
-		POP		HL
-		JR		NC,LAC4E
-		LD		A,$FF
-		LD		(LAA72),A
-		JR		LAC4E
-LAC97:	LD		A,(LA2BC)
-		AND		A
-		JR		Z,LACCC
+		CALL	CheckWeOverlap
+		POP	HL
+		JR	NC,LAC4E
+		LD	A,$FF
+		LD	(LAA72),A
+		JR	LAC4E
+LAC97:		LD	A,(LA2BC)
+		AND	A
+		JR	Z,LACCC
 		CALL	CACAF
 		LD		A,(IX+$07)
 		EXX
 		CP		C
 		JR		NZ,LACB6
 		EXX
-		CALL	CACD3
+		CALL	CheckWeOverlap
 		JR		NC,LACCC
 		JR		LAC6D
 CACAF:	CALL	GetCharStuff
@@ -3480,7 +3496,7 @@ LACB6:	CP		B
 		AND		A
 		JR		NZ,LACCC
 		CALL	CACAF
-		CALL	CACD3
+		CALL	CheckWeOverlap
 		JR		NC,LACCC
 		LD		A,$FF
 		JR		LACCF
@@ -3489,9 +3505,17 @@ LACCF:	AND		A
 		RET		Z
 		SCF
 		RET
+
+	;; Takes object point in IX and checks to see if we overlap with it.
+	;; FIXME: May assume our coordinates are in DE',HL'.
+CheckWeOverlap:	CALL	CACE6
+	;; NB: Fall through
 	
-CACD3:		CALL	CACE6
-CACD6:		LD	A,E
+	;; Assuming X and Y extents in DE,HL and DE',HL', check two boundaries overlap.
+	;; Sets carry flag if they do.
+CheckOverlap:
+	;; Check E < D' and E' < D
+		LD	A,E
 		EXX
 		CP	D
 		LD	A,E
@@ -3499,6 +3523,7 @@ CACD6:		LD	A,E
 		RET	NC
 		CP	D
 		RET	NC
+	;; Check L < H' and L' < H
 		LD	A,L
 		EXX
 		CP	H
@@ -3911,7 +3936,8 @@ LB0F4:	POP		DE
 		DEC		HL
 		LD		(HL),E
 		RET
-	
+
+	;; Have a suspicion this places X/Y extents in DE/HL and Z coords in BC
 CB0F9:		CALL	CB104
 		AND		$08
 		RET		Z
@@ -4013,6 +4039,8 @@ LB174:	LD		A,B
 		LD		C,A
 		EX		AF,AF'
 		RET
+
+	
 CB17A:	LD		A,L
 		EXX
 		CP		H
