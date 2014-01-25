@@ -42,6 +42,7 @@ mainloop.asm	    The main game loop and some associated functions
 character.asm	    FIXME!
 fn_tbl_stuff.asm    FIXME!
 background.asm	    Draws the background to the level - walls and floor
+obj_fns.asm	    Object-handling functions in the object function table
 
 Binary files
 ------------
