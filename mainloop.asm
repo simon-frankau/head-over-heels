@@ -39,7 +39,7 @@ MainB:		XOR	A
 MainLoop:	CALL	WaitFrame
 		CALL	CheckCtrls
 		CALL	MainLoop2
-		CALL	MainLoop3
+		CALL	DoObjects
 		CALL	CheckPause
 		CALL	CheckSwop
 		LD	HL,LA2BE

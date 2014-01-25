@@ -1189,7 +1189,7 @@ L8224:	DJNZ	L8211
 		XOR		A
 		LD		(BigSpriteFlipped),A
 		RET
-L822B:	DEFB $00,$00
+CurrObject:	DEFW $0000
 L822D: 	DEFB $FF
 L822E:	DEFW $3D00,$3D8E
 C8232:	LD		(IY+$09),$00
@@ -1254,16 +1254,17 @@ C828B:	LD		(IY+$0F),$00
 		CALL	C82E8
 		POP		HL
 		RET
-	
-L82A1:		LD	(L822B),DE
+
+	;; Takes an object pointer in DE, and index thing in A
+CallObjFn:	LD	(CurrObject),DE
 		PUSH	DE
 		POP	IY
 		DEC	A
-	;; Get word from L83BC[A] into HL.
+	;; Get word from ObjFnTbl[A] into HL.
 		ADD	A,A
-		ADD	A, L83BC & $FF
+		ADD	A, ObjFnTbl & $FF
 		LD	L,A
-		ADC	A,L83BC >> 8
+		ADC	A,ObjFnTbl >> 8
 		SUB	L
 		LD	H,A
 		LD	A,(HL)
@@ -1354,17 +1355,19 @@ L8380:	DEFB $00,$57,$D7,$00,$2B,$2B,$2C,$2B,$2C,$00,$32,$32,$33,$33,$00,$34
 L8390:	DEFB $34,$35,$35,$00,$26,$25,$26,$A6,$A5,$A6,$00,$36,$00,$37,$00,$38
 L83A0:	DEFB $39,$B9,$B8,$00,$3A,$BA,$00,$3B,$00,$3C,$00,$3E,$00,$3F,$00,$40
 L83B0:	DEFB $00,$41,$00,$42,$00,$43,$00,$44,$45,$C5,$C4,$00
-	
-L83BC:	DEFW C90CC,L9036,L903A,L903E
-	DEFW L9042,L90E3,L90E8,L90ED
-	DEFW L9101,L8F76,L90F2,L90F7
-	DEFW L90FC,L8FC6,L9106,C9172
-	DEFW C9070,C9021,L902B,C9056
-	DEFW L90DD,L90D7,L901E,L9053
-	DEFW L8F66,L90BF,L8F08,L9088
-	DEFW L8EEB,L8EDB,L904C,L8F4E
-	DEFW L9226,C9082,C8F2F,C8F19
-	DEFW L910B
+
+	;; Table has base index of 1 in CallObjFn
+ObjFnTbl:
+	DEFW ObjFn1, ObjFn2, ObjFn3, ObjFn4
+	DEFW ObjFn5, ObjFn6, ObjFn7, ObjFn8
+	DEFW ObjFn9, ObjFn10,ObjFn11,ObjFn12
+	DEFW ObjFn13,ObjFn14,ObjFn15,ObjFn16
+	DEFW ObjFn17,ObjFn18,ObjFn19,ObjFn20
+	DEFW ObjFn21,ObjFn22,ObjFn23,ObjFn24
+	DEFW ObjFn25,ObjFn26,ObjFn27,ObjFn28
+	DEFW ObjFn29,ObjFn30,ObjFn31,ObjFn32
+	DEFW ObjFn33,ObjFn34,ObjFn35,ObjFn36
+	DEFW ObjFn37
 
 L8406:	DEFB $88,$1B,$01,$2B,$1C,$40,$31,$00,$02,$4A
 L8410:	DEFB $01,$40,$9E,$17,$00,$5D,$00,$01,$56,$02,$11,$56,$03,$11,$56,$04
@@ -1910,7 +1913,7 @@ C8CAB:	LD		L,A
 		RET
 L8CBB:	DEFB $FF,$00,$0D,$FF,$FF,$09,$00,$FF,$0B,$01,$FF,$0A,$01,$00,$0E,$01
 L8CCB:	DEFB $01,$06,$00,$01,$07,$FF,$01,$05
-C8CD3:	LD		HL,(L822B)
+C8CD3:	LD		HL,(CurrObject)
 C8CD6:	PUSH	HL
 		CALL	C8CAB
 		LD		DE,L000B
@@ -2047,34 +2050,37 @@ InsertObject:	PUSH	HL
 L8ED8:	DEFB $00
 L8ED9:	DEFB $FF
 L8EDA:	DEFB $FF
-L8EDB:	LD		A,(IY+$0C)
-		LD		(IY+$0C),$FF
-		OR		$F0
-		CP		$FF
-		RET		Z
-		LD		(L8EDA),A
+ObjFn30:	LD	A,(IY+$0C)
+		LD	(IY+$0C),$FF
+		OR	$F0
+		CP	$FF
+		RET	Z
+		LD	(L8EDA),A
 		RET
-L8EEB:	CALL	C9319
-		LD		HL,L8EDA
-		LD		A,(HL)
-		LD		(HL),$FF
+
+ObjFn29:	CALL	C9319
+		LD	HL,L8EDA
+		LD	A,(HL)
+		LD	(HL),$FF
 		PUSH	AF
 		CALL	LookupDir
-		INC		A
-		SUB		$01
+		INC	A
+		SUB	$01
 		CALL	NC,L921B
-		POP		AF
+		POP	AF
 		CALL	C92DF
 		CALL	C92CF
-		JP		C92B7
-L8F08:	BIT		5,(IY+$0C)
-		RET		NZ
+		JP	C92B7		; Tail call
+
+ObjFn27:	BIT	5,(IY+$0C)
+		RET	NZ
 		CALL	C92CF
 		CALL	C92B7
-		LD		B,$47
-		JP		PlaySound
+		LD	B,$47
+		JP	PlaySound 	; Tail call
+
 L8F18:	LD		H,B
-C8F19:	LD		HL,L8F18
+ObjFn36:	LD		HL,L8F18
 		LD		A,(HL)
 		AND		A
 		RET		NZ
@@ -2084,7 +2090,7 @@ C8F19:	LD		HL,L8F18
 		LD		A,$05
 		JP		CharThing11
 L8F2E:	NOP
-C8F2F:		LD		HL,L8F2E
+ObjFn35:	LD		HL,L8F2E
 		LD		(HL),$FF
 		PUSH	HL
 		CALL	C8F3C
@@ -2099,7 +2105,7 @@ C8F3C:	LD		A,(L822D)
 		RET		NZ
 		LD		BC,(LA2BB)
 		JR		L8F61
-L8F4E:	LD		A,(L822D)
+ObjFn32:	LD		A,(L822D)
 		INC		A
 		JR		NZ,L8F82
 		CALL	C9269
@@ -2112,13 +2118,13 @@ L8F4E:	LD		A,(L822D)
 		RET		NZ
 L8F61:	LD		(IY+$0C),C
 		JR		L8F82
-L8F66:	CALL	C92D2
+ObjFn25:	CALL	C92D2
 		CALL	C8F97
 		JR		C,L8F71
 		CALL	C8F97
 L8F71:	JP		C,L905D
 		JR		L8F88
-L8F76:	LD		A,(L822D)
+ObjFn10:	LD		A,(L822D)
 		INC		A
 		JR		NZ,L8F82
 		LD		A,(IY+$0C)
@@ -2128,7 +2134,7 @@ L8F82:	CALL	C9319
 		CALL	C8F97
 L8F88:	JP		C92B7
 L8F8B:	PUSH	IY
-		CALL	C90CC
+		CALL	ObjFn1
 		POP		IY
 		LD		(IY+$0B),$FF
 		RET
@@ -2154,9 +2160,9 @@ C8F97:	LD		A,(L822D)
 		CALL	C8CD3
 		AND		A
 		RET
-C8FC0:	LD		HL,(L822B)
+C8FC0:	LD		HL,(CurrObject)
 		JP		TableCall
-L8FC6:	LD		A,(IY+$0C)
+ObjFn14:	LD		A,(IY+$0C)
 		OR		$C0
 		INC		A
 		JR		NZ,L8FD2
@@ -2205,35 +2211,36 @@ C9005:		LD		A,(IX+$0A)
 		LD		(IX+$09),A
 		RET
 
-L901E:		LD 	A,$90
+ObjFn23:	LD 	A,$90
 		DEFB 	$01			; LD BC,nn , NOPs next instruction!
 
-C9021:		LD		A,$52
+ObjFn18:	LD		A,$52
 		LD		(IY+$11),A
 		LD		(IY+$0A),$10
 		RET
-L902B:	BIT		5,(IY+$0C)
+
+ObjFn19:	BIT		5,(IY+$0C)
 		RET		NZ
 		CALL	C931F
 		JP		C92B7
-L9036:	LD		A,$FE
+ObjFn2:	LD		A,$FE
 		JR		L9044
-L903A:	LD		A,$FD
+ObjFn3:	LD		A,$FD
 		JR		L9044
-L903E:	LD		A,$F7
+ObjFn4:	LD		A,$F7
 		JR		L9044
-L9042:	LD		A,$FB
+ObjFn5:	LD		A,$FB
 L9044:	LD		(IY+$0B),A
 		LD		(IY+$0A),$00
 		RET
 	
-L904C:		LD	A,(Character)
+ObjFn31:	LD	A,(Character)
 		AND	$02			; Test if we have Head (returns early if not)
 		JR	L905C
 
-L9053:		LD	A,$C0
+ObjFn24:	LD	A,$C0
 		DEFB	$01			; LD BC,nn , NOPs next instruction!
-C9056		LD	A,$CF
+ObjFn20		LD	A,$CF
 		OR	A,(IY+$0C)
 		INC	A
 	;; NB: Fall through
@@ -2246,16 +2253,16 @@ L905D:		LD	A,$05
 		OR	$11
 		LD	(IY+$0A),A
 		LD	(IY+$0F),$08
-C9070:		LD	(IY+$04),$80
+ObjFn17:	LD	(IY+$04),$80
 		CALL	C92A6
 		CALL	C92D2
 		LD	A,(IY+$0F)
 		AND	$07
 		JP	NZ,C92B7
-C9082:		LD	HL,(L822B)
+ObjFn34:	LD	HL,(CurrObject)
 		JP	RemoveObject
 
-L9088:	LD		B,(IY+$08)
+ObjFn28:	LD		B,(IY+$08)
 		BIT		5,(IY+$0C)
 		SET		5,(IY+$0C)
 		LD		A,$2C
@@ -2265,7 +2272,7 @@ L9088:	LD		B,(IY+$08)
 		JR		NZ,L90AD
 		LD		A,$2C
 		CP		B
-		JR		NZ,C90CC
+		JR		NZ,ObjFn1
 		LD		(IY+$0F),$50
 		LD		A,$04
 		CALL	CharThing11
@@ -2276,48 +2283,59 @@ L90AD:	AND		$07
 L90B3:	LD		(IY+$08),A
 		LD		(IY+$0F),$00
 		CP		B
-		JR		Z,C90CC
+		JR		Z,ObjFn1
 		JR		L90C6
-L90BF:	LD		A,(IY+$0F)
+ObjFn26:	LD		A,(IY+$0F)
 		AND		$F0
-		JR		Z,C90CC
+		JR		Z,ObjFn1
 L90C6:	CALL	C92A6
 		CALL	C92D2
-C90CC:	CALL	C9319
+ObjFn1:	CALL	C9319
 		LD		A,$FF
 		CALL	C92DF
 		JP		C92B7
-L90D7:		LD		HL,L921F
+ObjFn22:	LD		HL,L921F
 		JP		L911B
-L90DD:		LD		HL,L920D
+
+ObjFn21:	LD		HL,L920D
 		JP		L911B
-L90E3:		LD		HL,L921F
+
+ObjFn6:		LD		HL,L921F
 		JR		L9121
-L90E8:		LD		HL,L920D
+
+ObjFn7:		LD		HL,L920D
 		JR		L9121
-L90ED:		LD		HL,L9214
+	
+ObjFn8:		LD		HL,L9214
 		JR		L9121
-L90F2:		LD		HL,L9200
+	
+ObjFn11:	LD		HL,L9200
 		JR		L9121
-L90F7:		LD		HL,L9200
+	
+ObjFn12:	LD		HL,L9200
 		JR		L9155
-L90FC:		LD		HL,L91E4
+	
+ObjFn13:	LD		HL,L91E4
 		JR		L9155
-L9101:		LD		HL,L91F1
+	
+ObjFn9:		LD		HL,L91F1
 		JR		L9155
-L9106:		LD		HL,L9245
+	
+ObjFn15:	LD		HL,L9245
 		JR		L9141
 
-L910B:	LD		A,(L866B)
+ObjFn37:	LD		A,(L866B)
 		OR		$F0
 		INC		A
 		LD		HL,L925D
 		JR		Z,L9119
 		LD		HL,L9264
-L9119:	JR		L9141
-L911B:	PUSH	HL
+L9119:		JR		L9141
+	
+L911B:		PUSH	HL
 		CALL	C92CF
 		JR		L912C
+	
 L9121:	PUSH	HL
 L9122:	CALL	C92CF
 		CALL	C9319
@@ -2353,7 +2371,7 @@ L9155:	PUSH	HL
 		CALL	C92DF
 		JP		C92B7
 L9171:		NOP
-C9172:		LD		A,$01
+ObjFn16:	LD		A,$01
 		CALL	CharThing11
 		CALL	C92CF
 		LD		A,(IY+$11)
@@ -2370,7 +2388,7 @@ C9172:		LD		A,$01
 		ADD		A,$C0
 		CP		A,(IY+$07)
 		JR		NC,L91A8
-		LD		HL,(L822B)
+		LD		HL,(CurrObject)
 		CALL	CAC41
 		RES		4,(IY+$0B)
 		JR		NC,L91A0
@@ -2399,7 +2417,7 @@ L91BE:	AND		$07
 		ADD		A,$BF
 		CP		A,(IY+$07)
 		JR		C,L91A8
-		LD		HL,(L822B)
+		LD		HL,(CurrObject)
 		CALL	CAB06
 		JR		NC,L91D7
 		JR		Z,L91E1
@@ -2437,7 +2455,7 @@ L921B:	LD		(IY+$10),A
 L921F:	LD		A,(IY+$10)
 		ADD		A,$04
 		JR		L9219
-L9226:	CALL	C9319
+ObjFn33:	CALL	C9319
 		CALL	C9269
 		LD		A,$18
 		CP		D
@@ -2514,16 +2532,16 @@ C92A6:	LD		A,(L8ED8)
 		RET		NZ
 		OR		$01
 		LD		(L8ED8),A
-		LD		HL,(L822B)
+		LD		HL,(CurrObject)
 		JP		CA05D
 C92B7:	LD		(IY+$0C),$FF
 		LD		A,(L8ED8)
 		AND		A
 		RET		Z
 		CALL	C92A6
-		LD		HL,(L822B)
+		LD		HL,(CurrObject)
 		CALL	CB0BE
-		LD		HL,(L822B)
+		LD		HL,(CurrObject)
 		JP		CA0A5
 C92CF:	CALL	C937E
 C92D2:	CALL	C82C9
@@ -2563,7 +2581,7 @@ C9314:	LD		A,$06
 		JP		CharThing11
 C9319:	BIT		4,(IY+$0C)
 		JR		Z,L9354
-C931F:	LD		HL,(L822B)
+C931F:	LD		HL,(CurrObject)
 		CALL	CAB06
 		JR		NC,L933D
 		CCF
@@ -2587,7 +2605,7 @@ L933D:	PUSH	AF
 		INC		(IY+$07)
 		SCF
 		RET
-L9354:	LD		HL,(L822B)
+L9354:	LD		HL,(CurrObject)
 		CALL	CAC41
 		RES		4,(IY+$0B)
 		JR		NC,L9362
@@ -2631,14 +2649,14 @@ L93A2:	XOR		C
 		RET
 L93AA:	DEFB $00,$00,$00,$00,$00,$00
 	
-MainLoop3:	LD	A,(L703D)
+DoObjects:	LD	A,(L703D)
 		XOR	$80
 		LD	(L703D),A 		; Toggle top bit of L703D
 		CALL	CharThing
 	;; Loop over object list...
 		LD	HL,(ObjectList)
-		JR	ML3_3
-ML3_1:		PUSH	HL
+		JR	DO_3
+DO_1:		PUSH	HL
 		LD	A,(HL)
 		INC	HL
 		LD	H,(HL)
@@ -2651,16 +2669,16 @@ ML3_1:		PUSH	HL
 		LD	A,(L703D)
 		XOR	(HL)
 		CP	$80			; Skip if top bit doesn't match 703D
-		JR	C,ML3_2
+		JR	C,DO_2
 		LD	A,(HL)
 		XOR	$80
 		LD	(HL),A			; Flip top bit
 		AND	$7F
-		CALL	NZ,L82A1 		; And if any other bits set, call L82A1
-ML3_2:		POP	HL
-ML3_3:		LD	A,H			; loop until null pointer.
+		CALL	NZ,CallObjFn 		; And if any other bits set, call CallObjFn
+DO_2:		POP	HL
+DO_3:		LD	A,H			; loop until null pointer.
 		OR	L
-		JR	NZ,ML3_1
+		JR	NZ,DO_1
 		RET
 
 	;; Room origin, in double-pixel coordinates, for attrib-drawing
