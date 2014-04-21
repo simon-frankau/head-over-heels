@@ -13,14 +13,14 @@
 	;; * CharThing11
 	;; * GetCharObj
 	;; * CharThing15
-	;; * CharThing17
+	;; * DrawCarriedObject
 
 	;; Unknown functions that are called:
 	;; C72A0
 	;; C8CD6
 	;; C8CF0
 	;; C8D7F
-	;; C8E1D
+	;; DrawScreenPeriphery
 	;; CA05D
 	;; CA0A5
 	;; LA316
@@ -120,23 +120,23 @@ DoFire:		LD	A,(FirePressed)
 		OR	~6
 		INC	A
 		JR	NZ,NopeFire 	; Skips if don't have donuts and a hooter
-		LD	A,(LA2B8)
+		LD	A,(FiredObj+$0F)
 		CP	$08
 		JR	NZ,NopeFire 	; Skips if not FIXME
-		LD	HL,LA2D7
-		LD	DE,LA2AE
+		LD	HL,HeadObj+$05
+		LD	DE,FiredObj+$05
 		LD	BC,L0003
-		LDIR			; Sets some structure...
-		LD	HL,LA2A9
+		LDIR			; Copies X/Y/Z coordinate from Head.
+		LD	HL,FiredObj
 		PUSH	HL
-		POP	IY		; Sets IY to LA2A9
+		POP	IY		; Sets IY to FiredObj
 	;; FIXME: Bunch of mystery...
 		LD	A,(L703D)
 		OR	$19
-		LD	(LA2B3),A
+		LD	(FiredObj+$0A),A
 		LD	(IY+$04),$00
 		LD	A,(LA2BB)
-		LD	(LA2B4),A
+		LD	(FiredObj+$0B),A
 		LD	(IY+$0C),$FF
 		LD	(IY+$0F),$20
 		CALL	CB03B
@@ -149,7 +149,7 @@ DoFire:		LD	A,(FirePressed)
 		JR	NZ,NotFire
 		LD	HL,Inventory
 		RES	2,(HL)			; Run out of donuts
-		CALL	C8E1D
+		CALL	DrawScreenPeriphery
 		JR	NotFire
 NopeFire:	CALL	NopeNoise
 	;; Next section?
@@ -780,7 +780,7 @@ CharThing15:	XOR	A 	; FIXME: Unused?
 		LD	(LA296),A
 		LD	(LA30A),A
 		LD	A,$08
-		LD	(LA2B8),A
+		LD	(FiredObj+$0F),A
 		CALL	SetCharThing
 		LD	A,(Character)
 		LD	(LA2A6),A
@@ -899,21 +899,21 @@ CharThing16:	LD	A,(LAF77)
 		RET
 
 	
-CharThing17:	LD	A,(Character) 	; FIXME: Unused?
-		LD	HL,LA295
-		RRA
-		OR	(HL)
-		RRA
-		RET	NC
-		LD	HL,(Carrying)
-		INC	H
-		DEC	H
-		RET	Z
-		LD	DE,L0008
-		ADD	HL,DE
-		LD	A,(HL)
-		LD	BC,CARRY_POSN
-		JP	Draw3x24
+DrawCarriedObject:	LD	A,(Character)
+			LD	HL,LA295
+			RRA
+			OR	(HL)
+			RRA
+			RET	NC		; Return if low bit not set on LA295 and not head
+			LD	HL,(Carrying)
+			INC	H
+			DEC	H
+			RET	Z		; Return if high byte zero...
+			LD	DE,L0008
+			ADD	HL,DE
+			LD	A,(HL)		; Get sprite from object pointed to...
+			LD	BC,CARRY_POSN
+			JP	Draw3x24 	; And draw it
 
 LAA64:	DEFB $28,$28,$C0,$FD,$FD,$FB,$FE,$F7,$FD,$FD
 LAA6E:	DEFB 08,$04,$02,$01

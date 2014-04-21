@@ -62,13 +62,12 @@ CrownsSpriteList:	DEFB SPR_CROWN,$54,$60
 			DEFB SPR_CROWN,$A4,$D0
 			DEFB SPR_CROWN,$7C,$98
 
-	;; FIXME: Draw the screen border stuff?
-C8E1D:		CALL	CharThing17
-		LD	HL,PeripherySpriteList
-		LD	DE,(Inventory)
-		LD	D,$03
-		CALL	DrawFromList
-		LD	DE,(Character)
+DrawScreenPeriphery:	CALL	DrawCarriedObject
+			LD	HL,PeripherySpriteList
+			LD	DE,(Inventory)
+			LD	D,$03
+			CALL	DrawFromList
+			LD	DE,(Character)
 	;; NB: Fall through
 	
 Draw2FromList:	LD	D,$02

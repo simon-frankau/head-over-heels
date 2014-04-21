@@ -314,7 +314,7 @@ SwC_8:		LD	A,(HL)
 		LD	(LA2BB),A
 		LD	A,(LA295)
 		AND	A
-		JP	NZ,C8E1D
+		JP	NZ,DrawScreenPeriphery
 		JR	L72B1
 
 SwitchGet:	PUSH	AF

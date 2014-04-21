@@ -985,7 +985,7 @@ L7BAD:		CALL	C7395
 C7BB3:		LD	A,(AttribScheme)
 		CALL	UpdateAttribs
 		CALL	PrintStatus
-		JP	C8E1D		; Tail call
+		JP	DrawScreenPeriphery		; Tail call
 
 C7BBF:		CALL	Reinitialise
 		DEFW	LAF5B
@@ -1769,7 +1769,7 @@ L880A:	LD		H,$88
 	;; Pick up an inventory item. Item number in A.
 PickUp:		LD	HL,Inventory
 		CALL	SetBit
-		CALL	C8E1D
+		CALL	DrawScreenPeriphery
 		LD	B,$C2
 		JP	PlaySound
 
@@ -2557,29 +2557,34 @@ LA2A1:	DEFB $02
 LA2A2:	DEFB $00
 LA2A3:	DEFB $00,$00,$00
 LA2A6:	DEFB $03
-Carrying:	DEFW $0000
-LA2A9:	DEFB $00,$00,$00,$00,$20
-LA2AE:	DEFB $28,$0B,$C0
-LA2B1:	DEFB $24,$08
-LA2B3:	DEFB $12
-LA2B4:	DEFB $FF,$FF,$00,$00
-LA2B8:	DEFB $08,$00,$00
+Carrying:	DEFW $0000	 ; Pointer to carried object.
+	
+FiredObj:	DEFB $00,$00,$00,$00,$20
+		DEFB $28,$0B,$C0
+		DEFB $24,$08
+		DEFB $12
+		DEFB $FF,$FF,$00,$00
+		DEFB $08,$00,$00
+	
 LA2BB:	DEFB $0F
 LA2BC:	DEFB $00
 LA2BD:	DEFB $00
 LA2BE:	DEFB $00
 LA2BF:	DEFB $FF
+	
 HeelsObj:	DEFB $00
 LA2C1:	DEFB $00,$00,$00,$08
 LA2C5:	DEFB $28,$0B,$C0
 LA2C8:	DEFB $18,$21,$00,$FF,$FF
 LA2CD:	DEFB $00,$00,$00,$00
 LA2D1:	DEFB $00
+	
 HeadObj:	DEFB $00,$00,$00,$00,$08
 LA2D7:	DEFB $28,$0B,$C0
 LA2DA:	DEFB $1F,$25,$00,$FF,$FF
 LA2DF:	DEFB $00,$00
 LA2E1:	DEFB $00,$00,$00
+	
 LA2E4:	DEFB $00,$18,$19,$18,$1A,$00
 LA2EA:	DEFB $00,$1B,$1C,$1B,$1D,$00
 LA2F0:	DEFB $00
