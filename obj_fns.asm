@@ -7,6 +7,17 @@
 	;; 
 
 	;; Exports ObjFn* and L8F18.
+
+	;; ObjectList appears to be head of a linked list:
+	;; Offset 0: Next item (null == end)
+	;; Offset 4: Some flag - bit 6 and 7 causes skipping
+	;; Offset 5: X/Y coordinate
+	;; Offset 6: Y/X coordinate
+	;; Offset 7: Z coordinate, C0 = ground
+	;; Offset 8: Its sprite
+	;; ...?
+	;; Offset C:
+	;; Hmmm. May be 17 bytes?
 	
 ObjFn30:	LD	A,(IY+$0C)
 		LD	(IY+$0C),$FF
@@ -181,14 +192,20 @@ ObjFn19:	BIT		5,(IY+$0C)
 		RET		NZ
 		CALL	C931F
 		JP		C92B7
-ObjFn2:	LD		A,$FE
-		JR		L9044
-ObjFn3:	LD		A,$FD
-		JR		L9044
-ObjFn4:	LD		A,$F7
-		JR		L9044
-ObjFn5:	LD		A,$FB
-L9044:	LD		(IY+$0B),A
+	
+ObjFn2:		LD		A,$FE
+		JR		Write0B
+
+ObjFn3:		LD		A,$FD
+		JR		Write0B
+
+ObjFn4:		LD		A,$F7
+		JR		Write0B
+
+ObjFn5:		LD		A,$FB
+	;; Fall through
+	
+Write0B:	LD		(IY+$0B),A
 		LD		(IY+$0A),$00
 		RET
 	
@@ -445,7 +462,7 @@ L925D:	CALL	C9269
 		JR		L9258
 L9264:	CALL	C9269
 		JR		L9258
-C9269:	CALL	GetCharStuff
+C9269:	CALL	GetCharObj
 		LD		DE,L0005
 		ADD		HL,DE
 		LD		A,(HL)

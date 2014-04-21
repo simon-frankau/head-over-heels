@@ -11,7 +11,7 @@
 	;; * CharThing
 	;; * CharThing3
 	;; * CharThing11
-	;; * GetCharStuff
+	;; * GetCharObj
 	;; * CharThing15
 	;; * CharThing17
 
@@ -91,7 +91,7 @@ EPIC_2:		LD	A,$FF
 EPIC_3:		LD	(LB218),A
 EPIC_4:		CALL	CharThing4
 	;; NB: Big loop back up to here.
-EPIC_5:		CALL	GetCharStuff
+EPIC_5:		CALL	GetCharObj
 		PUSH	HL
 		POP	IY
 		LD	A,(IY+$07)
@@ -165,7 +165,7 @@ NotFire:	LD	HL,LB218
 EPIC_9:		LD	A,(LA295)
 		AND	A
 		JR	Z,EPIC_12
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		PUSH	HL
 		POP	IY
 		CALL	CB0C6
@@ -257,7 +257,7 @@ EPIC_23:	CALL	EPIC_22
 EPIC_24:	LD	A,(LA2A6)
 		LD	(Character),A
 		CALL	CharThing3
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		LD	DE,L0005
 		ADD	HL,DE
 		EX	DE,HL
@@ -279,7 +279,7 @@ CharThing19:	PUSH	HL
 		LD	HL,LA2FC
 	;; NB: Fall through
 
-CharThing21:	LD	IY,HeelsStuff
+CharThing21:	LD	IY,HeelsObj
 		CALL	C8CF0
 		POP	HL
 		PUSH	HL
@@ -288,9 +288,9 @@ CharThing21:	LD	IY,HeelsStuff
 		PUSH	AF
 		LD	(LA2DA),A
 		RES	3,(IY+$16)
-		LD	HL,HeadStuff
+		LD	HL,HeadObj
 		CALL	CA05D
-		LD	HL,HeadStuff
+		LD	HL,HeadObj
 		CALL	CA0A5
 		POP	AF
 EPIC_29:	POP	HL
@@ -299,9 +299,9 @@ EPIC_29:	POP	HL
 		XOR	$80
 		LD	(LA2C8),A
 		RES	3,(IY+$04)
-		LD	HL,HeelsStuff
+		LD	HL,HeelsObj
 		CALL	CA05D
-		LD	HL,HeelsStuff
+		LD	HL,HeelsObj
 		JP	CA0A5			; NB: Tail call
 	
 CharThing3:	AND	$01
@@ -314,14 +314,14 @@ CharThing3:	AND	$01
 		RET
 
 	;; Looks like more movement stuff
-CharThing4:	CALL	GetCharStuff
+CharThing4:	CALL	GetCharObj
 		PUSH	HL
 		POP	IY
 		LD	A,$3F
 		LD	(LA2BD),A
 		LD	A,(LA2BC)
 		CALL	CAF96
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		CALL	CA05D
 		LD	HL,LA29F
 		LD	A,(HL)
@@ -333,7 +333,7 @@ CharThing4:	CALL	GetCharStuff
 		LD	(HL),$00
 		JR	EPIC_37
 EPIC_31:	DEC	(HL)
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		CALL	CAC41
 		JR	C,EPIC_32
 		DEC	(IY+$07)
@@ -363,7 +363,7 @@ EPIC_36:	LD	A,(CurrDir)
 		JR	EPIC_35
 EPIC_37:	SET	4,(IY+$0B)
 		SET	5,(IY+$0C)
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		LD	A,(LB218)
 		AND	A
 		JR	NZ,EPIC_38
@@ -381,7 +381,7 @@ EPIC_39:	LD	A,$86
 		BIT	4,(IY+$0C)
 		SET	4,(IY+$0C)
 		JR	NZ,EPIC_41
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		CALL	CAC41
 		JR	NC,EPIC_40
 		JR	NZ,EPIC_40
@@ -454,12 +454,12 @@ EPIC_52:	LD	A,(Character)
 	
 CharThing26:	LD	A,(LA2BF)
 		LD	(IY+$0C),A
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		CALL	CB0BE
 		CALL	CharThing16
 		XOR	A
 		CALL	CAF96
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		CALL	CA0A5
 		JP	CharThing13 		; NB: Tail call
 	
@@ -554,7 +554,7 @@ EPIC_67:	PUSH	AF
 		CALL	LookupDir
 		CP	$FF
 		JR	Z,EPIC_68
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		CALL	TableCall	
 		JR	NC,EPIC_69
 		LD	A,(IY+$0B)
@@ -567,7 +567,7 @@ EPIC_68:	POP	AF
 		OR	$0F
 		LD	(IY+$0B),A
 		RET
-EPIC_69:	CALL	GetCharStuff
+EPIC_69:	CALL	GetCharObj
 		CALL	C8CD6
 		POP	BC
 		LD	HL,LA2A1
@@ -597,7 +597,7 @@ EPIC_71:	LD	A,$81
 		CALL	LookupDir
 		CP	$FF
 		RET	Z
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		PUSH	HL
 		CALL	TableCall
 		POP	HL
@@ -692,7 +692,7 @@ PurseNope:	JP	NC,NopeNoise 		; Tail call
 		LD	A,(Carrying+1)
 		AND	A
 		JR	NZ,DropCarried 		; If holding something, drop it
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		CALL	GetStoodUpon
 		JR	NC,PurseNope		; NC if nothing there
 		LD	A,(IX+$08)		; Load sprite of thing carried
@@ -709,7 +709,7 @@ DropCarried:	LD	A,(LA2BC)
 		JP	NZ,NopeNoise 		; FIXME: Can't drop if ???
 		LD	C,(IY+$07)
 		LD	B,$03
-CarryLoop:	CALL	GetCharStuff
+CarryLoop:	CALL	GetCharObj
 		PUSH	BC
 		CALL	CAC41
 		POP	BC
@@ -723,10 +723,10 @@ CarryLoop:	CALL	GetCharStuff
 		LD	DE,L0007
 		ADD	HL,DE
 		PUSH	HL
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		LD	DE,L0006
 		ADD	HL,DE
-		EX	DE,HL			; CharStuff + 6 in DL
+		EX	DE,HL			; CharObj + 6 in DL
 		POP	HL			; Object + 7 in HL
 		LD	(HL),C			; Overwrite id thing with C...
 		EX	DE,HL
@@ -739,9 +739,9 @@ CarryLoop:	CALL	GetCharStuff
 		LD	(Carrying),HL
 		LD	BC,CARRY_POSN
 		CALL	Clear3x24 		; Clear out the what's-carried display
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		CALL	CAA74
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		JP	CA05D
 NoDrop:		LD	(IY+$07),C 		; Restore old value
 		JP	NopeNoise		; Tail call
@@ -764,12 +764,13 @@ CharThing13:	LD	A,(LA2BD)
 		AND	A
 		RET	NZ
 		JP	PlaySound
-	
-GetCharStuff:	LD	HL,Character
+
+	;; Get the object data structure associated with the character.
+GetCharObj:	LD	HL,Character
 		BIT	0,(HL)
-		LD	HL,HeelsStuff
+		LD	HL,HeelsObj
 		RET	NZ
-		LD	HL,HeadStuff
+		LD	HL,HeadObj
 		RET
 
 
@@ -783,7 +784,7 @@ CharThing15:	XOR	A 	; FIXME: Unused?
 		CALL	SetCharThing
 		LD	A,(Character)
 		LD	(LA2A6),A
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		PUSH	HL
 		PUSH	HL
 		PUSH	HL
@@ -807,7 +808,7 @@ CharThing15:	XOR	A 	; FIXME: Unused?
 		AND	(HL)
 		JR	NZ,EPIC_86
 		LD	(IY+$07),C
-EPIC_86:	CALL	GetCharStuff
+EPIC_86:	CALL	GetCharObj
 		LD	DE,L0005
 		ADD	HL,DE
 		EX	DE,HL

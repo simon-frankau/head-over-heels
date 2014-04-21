@@ -79,7 +79,7 @@ L72F0:		RET		NZ 		; Self-modifying code
 		AND		D
 		RET
 L72F3:	PUSH	DE
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		EX		DE,HL
 		LD		BC,L0012
 		PUSH	BC
@@ -96,9 +96,9 @@ L7305:		LD		HL,(LAF92) 	; NB: Referenced as data.
 	
 C7314:		LD		HL,Character
 		BIT		0,(HL) 		; Heels?
-		LD		HL,HeelsStuff	; No Heels case
+		LD		HL,HeelsObj	; No Heels case
 		RET		Z
-		LD		HL,HeadStuff 	; Have Heels case
+		LD		HL,HeadObj 	; Have Heels case
 		RET
 
 C7321:	POP		IX
@@ -1003,10 +1003,10 @@ L7BDC:		CALL	C728C
 		JR	NZ,L7C10
 		CALL	C72A3
 		CALL	C774D
-		LD	HL,HeelsStuff
+		LD	HL,HeelsObj
 		CALL	CB104
 		EXX
-		LD	HL,HeadStuff
+		LD	HL,HeadObj
 		CALL	CB104
 		CALL	CheckOverlap
 		JR	NC,L7C0C
@@ -2569,13 +2569,13 @@ LA2BC:	DEFB $00
 LA2BD:	DEFB $00
 LA2BE:	DEFB $00
 LA2BF:	DEFB $FF
-HeelsStuff:	DEFB $00
+HeelsObj:	DEFB $00
 LA2C1:	DEFB $00,$00,$00,$08
 LA2C5:	DEFB $28,$0B,$C0
 LA2C8:	DEFB $18,$21,$00,$FF,$FF
 LA2CD:	DEFB $00,$00,$00,$00
 LA2D1:	DEFB $00
-HeadStuff:	DEFB $00,$00,$00,$00,$08
+HeadObj:	DEFB $00,$00,$00,$00,$08
 LA2D7:	DEFB $28,$0B,$C0
 LA2DA:	DEFB $1F,$25,$00,$FF,$FF
 LA2DF:	DEFB $00,$00
@@ -2673,7 +2673,7 @@ FloorThing2:	SCF
 		CP	$07 		; No floor?
 		JR	NZ,RetZeroC
 	;; Code to handle no floor...
-		CALL	GetCharStuff
+		CALL	GetCharObj
 		PUSH	IY
 		POP	DE
 		AND	A
@@ -2750,46 +2750,48 @@ LAB55:		OR		$E0
 LAB5F:	XOR		A
 		SCF
 		JP		LB2BF
-LAB64:	LD		HL,ObjectList
-LAB67:	LD		A,(HL)
-		INC		HL
-		LD		H,(HL)
-		LD		L,A
-		OR		H
-		JR		Z,LABA6
+	;; Run through all the objects
+LAB64:		LD	HL,ObjectList
+LAB67:		LD	A,(HL)
+		INC	HL
+		LD	H,(HL)
+		LD	L,A
+		OR	H
+		JR	Z,LABA6
 		PUSH	HL
-		POP		IX
-		BIT		7,(IX+$04)
-		JR		NZ,LAB67
-		LD		A,(IX+$07)
-		SUB		$06
+		POP	IX
+		BIT	7,(IX+$04)
+		JR	NZ,LAB67 	; Bit set? Skip this item
+		LD	A,(IX+$07)
+		SUB	$06
 		EXX
-		CP		B
-		JR		NZ,LAB90
+		CP	B
+		JR	NZ,LAB90
 		EXX
-		PUSH	HL
-		CALL	CheckWeOverlap
-		POP		HL
-		JR		NC,LAB67
-LAB88:	LD		(IY+$0D),L
-		LD		(IY+$0E),H
-		JR		LAB3F
-LAB90:	CP		C
-		EXX
-		JR		NZ,LAB67
-		LD		A,(LAA73)
-		AND		A
-		JR		NZ,LAB67
 		PUSH	HL
 		CALL	CheckWeOverlap
-		POP		HL
-		JR		NC,LAB67
-		LD		(LAA72),HL
-		JR		LAB67
+		POP	HL
+		JR	NC,LAB67
+LAB88:		LD	(IY+$0D),L
+		LD	(IY+$0E),H
+		JR	LAB3F
+LAB90:		CP	C
+		EXX
+		JR	NZ,LAB67
+		LD	A,(LAA73)
+		AND	A
+		JR	NZ,LAB67
+		PUSH	HL
+		CALL	CheckWeOverlap
+		POP	HL
+		JR	NC,LAB67
+		LD	(LAA72),HL
+		JR	LAB67
+	;; Completed object list traversal
 LABA6:	LD		A,(LA2BC)
 		AND		A
 		JR		Z,LABE7
-		CALL	CACAF
+		CALL	GetCharObjIX
 		LD		A,(Character)
 		CP		$03
 		LD		A,$F4
@@ -2811,7 +2813,7 @@ LABCB:	CP		C
 		LD		A,(LAA73)
 		AND		A
 		JR		NZ,LABE7
-		CALL	CACAF
+		CALL	GetCharObjIX
 		CALL	CheckWeOverlap
 		JR		NC,LABE7
 		LD		(IY+$0D),$00
@@ -2839,12 +2841,6 @@ LAC0E:	XOR		A
 	;; Called by the purse routine to find something to pick up.
 	;; Carry flag set if something is found, and thing returned in HL.
 	;;
-	;; ObjectList appears to be head of a linked list:
-	;; Offset 0: Next item (null == end)
-	;; Offset 4: Some flag - bit 6 causes skipping
-	;; Offset 7: Some id
-	;; Offset 8: Its sprite
-	;;
 	;; Loop through all items, finding ones which match on B or C
 	;; Then call CheckWeOverlap to see if ok candidate. Return if it is.
 GetStoodUpon:	CALL	CB0F9		; Perhaps getting height as a filter?
@@ -2854,6 +2850,7 @@ GetStoodUpon:	CALL	CB0F9		; Perhaps getting height as a filter?
 		INC	A
 		LD	C,A
 		EXX
+	;; Traverse list of objects
 		LD	HL,ObjectList
 GSU_1:		LD	A,(HL)
 		INC	HL
@@ -2878,23 +2875,25 @@ GSU_2:		EXX
 		JR	NC,GSU_1
 		RET
 
+	;; FIXME: Looks suspiciously like we're checking contact with objects.
 CAC41:		CALL	CB0F9
 		LD	B,C
 		DEC	B
 		EXX
 		XOR	A
 		LD	(LAA72),A
+	;; Traverse list of objects
 		LD	HL,ObjectList
 LAC4E:		LD	A,(HL)
 		INC	HL
 		LD	H,(HL)
 		LD	L,A
 		OR	H
-		JR	Z,LAC97
+		JR	Z,LAC97		; Reached end?
 		PUSH	HL
 		POP	IX
 		BIT	7,(IX+$04)
-		JR	NZ,LAC4E
+		JR	NZ,LAC4E 	; Skip if bit set
 		LD	A,(IX+$07)
 		EXX
 		CP	C
@@ -2911,7 +2910,7 @@ LAC6D:		LD	A,(IY+$0B)
 		LD	A,(IX+$0C)
 		AND	C
 		LD	(IX+$0C),A
-		JP	LAB5F
+		JP	LAB5F		; Tail call
 LAC7F:		CP	B
 		EXX
 		JR	NZ,LAC4E
@@ -2925,29 +2924,32 @@ LAC7F:		CP	B
 		LD	A,$FF
 		LD	(LAA72),A
 		JR	LAC4E
+	;; Finished traversing list
 LAC97:		LD	A,(LA2BC)
 		AND	A
 		JR	Z,LACCC
-		CALL	CACAF
-		LD		A,(IX+$07)
+		CALL	GetCharObjIX
+		LD	A,(IX+$07)
 		EXX
-		CP		C
-		JR		NZ,LACB6
+		CP	C
+		JR	NZ,LACB6
 		EXX
 		CALL	CheckWeOverlap
-		JR		NC,LACCC
-		JR		LAC6D
-CACAF:	CALL	GetCharStuff
+		JR	NC,LACCC
+		JR	LAC6D
+
+GetCharObjIX:	CALL	GetCharObj
 		PUSH	HL
-		POP		IX
+		POP	IX
 		RET
+
 LACB6:	CP		B
 		EXX
 		JR		NZ,LACCC
 		LD		A,(LAA72)
 		AND		A
 		JR		NZ,LACCC
-		CALL	CACAF
+		CALL	GetCharObjIX
 		CALL	CheckWeOverlap
 		JR		NC,LACCC
 		LD		A,$FF

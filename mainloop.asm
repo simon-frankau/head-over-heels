@@ -255,7 +255,7 @@ SwC_1:		INC	HL
 		JR	NC,SwC_2
 		LD	(HL),C
 SwC_2:		LD	HL,SwopPressed
-		LD	IY,HeelsStuff
+		LD	IY,HeelsObj
 		LD	A,E
 		CP	$03
 		JR	Z,SwC_6
@@ -324,7 +324,7 @@ SwitchGet:	PUSH	AF
 		RL	E
 		RET
 
-SetCharThing:	LD	IY,HeelsStuff
+SetCharThing:	LD	IY,HeelsObj
 		LD	A,(Character)
 	;; NB: Fall through
 	
