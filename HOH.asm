@@ -1004,10 +1004,10 @@ L7BDC:		CALL	C728C
 		CALL	C72A3
 		CALL	C774D
 		LD	HL,HeelsObj
-		CALL	CB104
+		CALL	GetUpdatedCoords
 		EXX
 		LD	HL,HeadObj
-		CALL	CB104
+		CALL	GetUpdatedCoords
 		CALL	CheckOverlap
 		JR	NC,L7C0C
 		LD	A,(Character)
@@ -3262,7 +3262,7 @@ CB010:	LD		A,(LAF77)
 		POP		DE
 		CALL	CAFAB
 		PUSH	HL
-		CALL	CB106
+		CALL	GetUpdatedCoords2
 		EXX
 		PUSH	IY
 		POP		HL
@@ -3270,27 +3270,30 @@ CB010:	LD		A,(LAF77)
 		INC		HL
 		JR		LB085
 CB034:	PUSH	HL
-		CALL	CB106
+		CALL	GetUpdatedCoords2
 		EXX
 		JR		LB082
-CB03B:	INC		HL
+
+	
+CB03B:		INC		HL
 		INC		HL
 		BIT		3,(IY+$04)
 		JR		Z,CB057
-		PUSH	HL
-		CALL	CB057
+		PUSH		HL
+		CALL		CB057
 		POP		DE
-		CALL	CAFAB
-		PUSH	HL
-		CALL	CB106
+		CALL		CAFAB
+		PUSH		HL
+		CALL		GetUpdatedCoords2
 		EXX
-		PUSH	IY
+		PUSH		IY
 		POP		HL
 		INC		HL
 		INC		HL
 		JR		LB085
-CB057:	PUSH	HL
-		CALL	CB106
+
+CB057:		PUSH		HL
+		CALL		GetUpdatedCoords2
 		LD		A,$03
 		EX		AF,AF'
 		LD		A,(L771A)
@@ -3323,7 +3326,7 @@ LB088:	LD		A,(HL)
 		OR		H
 		JR		Z,LB09C
 		PUSH	HL
-		CALL	CB106
+		CALL	GetUpdatedCoords2
 		CALL	CB17A
 		POP		HL
 		JR		NC,LB085
@@ -3397,7 +3400,7 @@ LB0F4:	POP		DE
 		RET
 
 	;; Have a suspicion this places X/Y extents in DE/HL and Z coords in BC
-CB0F9:		CALL	CB104
+CB0F9:		CALL	GetUpdatedCoords
 		AND		$08
 		RET		Z
 		LD		A,C
@@ -3405,62 +3408,69 @@ CB0F9:		CALL	CB104
 		LD		C,A
 		RET
 
-CB104:		INC		HL
-		INC		HL
-CB106:		INC		HL
-		INC		HL
-		LD		A,(HL)
-		INC		HL
-		LD		C,A
-		EX		AF,AF'
-		LD		A,C
-		BIT		2,A
-		JR		NZ,LB153
-		BIT		1,A
-		JR		NZ,LB12F
-		AND		$01
-		ADD		A,$03
-		LD		B,A
-		ADD		A,A
-		LD		C,A
-		LD		A,(HL)
-		ADD		A,B
-		LD		D,A
-		SUB		C
-		LD		E,A
-		INC		HL
-		LD		A,(HL)
-		INC		HL
-		ADD		A,B
-		LD		B,(HL)
-		LD		H,A
-		SUB		C
-		LD		L,A
-LB129:		LD		A,B
-		SUB		$06
-		LD		C,A
-		EX		AF,AF'
-		RET
-LB12F:	RRA
-		JR		C,LB143
+	;; FIXME: Some object-processing thing...
+	;; FIXME: Seems to calculate speeds to move in particular directions
+GetUpdatedCoords:	INC		HL
+			INC		HL
+GetUpdatedCoords2:	INC		HL
+			INC		HL
+			LD		A,(HL) 		; Offset 4: Flags
+			INC		HL
+			LD		C,A
+			EX		AF,AF'
+			LD		A,C
+			BIT		2,A
+			JR		NZ,LB153 	; If bit 2 set
+			BIT		1,A
+			JR		NZ,GUC3 	; If bit 1 set
+			AND		$01
+			ADD		A,$03
+			LD		B,A 		; Bit 0 + 3 in B
+			ADD		A,A
+			LD		C,A 		; x2 in C
+			LD		A,(HL)
+			ADD		A,B
+			LD		D,A 		; Store added co-ord in D
+			SUB		C
+			LD		E,A 		; And subtracted co-ord in E
+			INC		HL
+			LD		A,(HL)
+			INC		HL
+			ADD		A,B
+			LD		B,(HL)
+			LD		H,A 		; Store 2nd added co-ord in H
+			SUB		C
+			LD		L,A 		; And 2nd subtracted co-ored in L
+GUC2:			LD		A,B
+			SUB		$06
+			LD		C,A 		; Put Z co-ord - 6 in C
+			EX		AF,AF'
+			RET
+
+	;; Bit 1 was set in the object flags
+GUC3:		RRA
+		JR		C,GUC4
+	;; Bit 1 set, bit 0 not set
 		LD		A,(HL)
 		ADD		A,$04
 		LD		D,A
 		SUB		$08
-		LD		E,A
+		LD		E,A 			; D/E given added/subtracted co-ords of 4
 		INC		HL
 		LD		A,(HL)
 		INC		HL
 		LD		B,(HL)
 		LD		H,A
-		LD		L,A
+		LD		L,A 			; H/L given added/subtracted co-ords of 1
 		INC		H
 		DEC		L
-		JR		LB129
-LB143:	LD		D,(HL)
+		JR		GUC2
+
+	;; Bits 1 and 0 were set
+GUC4:		LD		D,(HL)
 		LD		E,D
 		INC		D
-		DEC		E
+		DEC		E 			; D/E given added/subtracted co-ords of 1
 		INC		HL
 		LD		A,(HL)
 		INC		HL
@@ -3468,19 +3478,21 @@ LB143:	LD		D,(HL)
 		LD		B,(HL)
 		LD		H,A
 		SUB		$08
-		LD		L,A
-		JR		LB129
-LB153:	LD		A,(HL)
+		LD		L,A 			; H/L given added/subtracted co-ords of 4
+		JR		GUC2
+
+	;; Bit 2 was set in the object flags
+LB153:		LD		A,(HL)
 		RR		C
 		JR		C,LB15E
 		LD		E,A
 		ADD		A,$04
 		LD		D,A
 		JR		LB162
-LB15E:	LD		D,A
+LB15E:		LD		D,A
 		SUB		$04
 		LD		E,A
-LB162:	INC		HL
+LB162:		INC		HL
 		LD		A,(HL)
 		INC		HL
 		LD		B,(HL)
@@ -3490,10 +3502,10 @@ LB162:	INC		HL
 		ADD		A,$04
 		LD		H,A
 		JR		LB174
-LB170:	LD		H,A
+LB170:		LD		H,A
 		SUB		$04
 		LD		L,A
-LB174:	LD		A,B
+LB174:		LD		A,B
 		SUB		$12
 		LD		C,A
 		EX		AF,AF'
