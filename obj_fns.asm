@@ -57,7 +57,7 @@ ObjFn36:	LD		HL,L8F18
 		LD		(IY+$0B),$F7
 		LD		(IY+$0A),$19
 		LD		A,$05
-		JP		CharThing11
+		JP		SetSound
 L8F2E:	NOP
 ObjFn35:	LD		HL,L8F2E
 		LD		(HL),$FF
@@ -222,7 +222,7 @@ ObjFn20		LD	A,$CF
 
 L905C:		RET	Z	
 L905D:		LD	A,$05
-		CALL	CharThing11
+		CALL	SetSound
 		LD	A,(IY+$0A)
 		AND	$80
 		OR	$11
@@ -250,7 +250,7 @@ ObjFn28:	LD		B,(IY+$08)
 		JR		NZ,ObjFn1
 		LD		(IY+$0F),$50
 		LD		A,$04
-		CALL	CharThing11
+		CALL	SetSound
 		JR		L90C6
 L90AD:	AND		$07
 		JR		NZ,L90C6
@@ -347,7 +347,7 @@ L9155:	PUSH	HL
 		JP		C92B7
 L9171:		NOP
 ObjFn16:	LD		A,$01
-		CALL	CharThing11
+		CALL	SetSound
 		CALL	C92CF
 		LD		A,(IY+$11)
 		LD		B,A
@@ -553,7 +553,7 @@ L930F:	LD		A,(L822D)
 		INC		A
 		RET		Z
 C9314:	LD		A,$06
-		JP		CharThing11
+		JP		SetSound
 C9319:	BIT		4,(IY+$0C)
 		JR		Z,L9354
 C931F:	LD		HL,(CurrObject)
@@ -574,7 +574,7 @@ L933D:	PUSH	AF
 		RES		5,(IY+$0B)
 		INC		(IY+$07)
 		LD		A,$03
-		CALL	CharThing11
+		CALL	SetSound
 		POP		AF
 		RET		C
 		INC		(IY+$07)

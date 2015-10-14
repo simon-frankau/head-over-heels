@@ -42,7 +42,8 @@ MainLoop:	CALL	WaitFrame
 		CALL	DoObjects
 		CALL	CheckPause
 		CALL	CheckSwop
-		LD	HL,LA2BE
+        ;; Play sound if there is one.
+		LD	HL,SoundId
 		LD	A,(HL)
 		SUB	$01
 		LD	(HL),$00

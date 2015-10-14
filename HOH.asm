@@ -1342,8 +1342,8 @@ L8313:	LD		(IY+$08),A
 		JR		Z,L832A
 		CP		$90
 		LD		C,$01
-L832A:	LD		A,C
-		CALL	Z,CharThing11
+L832A:		LD		A,C
+		CALL	Z,SetSound
 		SCF
 		RET
 L8330:	DEFB $6E,$83,$73,$83,$75,$83,$77,$83,$77,$83,$7C,$83,$7C,$83,$81,$83
@@ -2568,8 +2568,8 @@ FiredObj:	DEFB $00,$00,$00,$00,$20
 	
 LA2BB:	DEFB $0F
 LA2BC:	DEFB $00
-LA2BD:	DEFB $00
-LA2BE:	DEFB $00
+OtherSoundId:	DEFB $00
+SoundId:	DEFB $00	 ; Id of sound, +1 (0 = no sound)
 LA2BF:	DEFB $FF
 	
 HeelsObj:	DEFB $00

@@ -10,7 +10,7 @@
 	;; Exported functions:
 	;; * CharThing
 	;; * CharThing3
-	;; * CharThing11
+	;; * SetSound
 	;; * GetCharObj
 	;; * CharThing15
 	;; * DrawCarriedObject
@@ -318,7 +318,7 @@ CharThing4:	CALL	GetCharObj
 		PUSH	HL
 		POP	IY
 		LD	A,$3F
-		LD	(LA2BD),A
+		LD	(OtherSoundId),A
 		LD	A,(LA2BC)
 		CALL	CAF96
 		CALL	GetCharObj
@@ -338,13 +338,13 @@ EPIC_31:	DEC	(HL)
 		JR	C,EPIC_32
 		DEC	(IY+$07)
 		LD	A,$84
-		CALL	CharThing12
+		CALL	SetOtherSound
 		JR	EPIC_33
 EPIC_32:	EX	AF,AF'
 		LD	A,$88
 		BIT	4,(IY+$0B)
 		SET	4,(IY+$0B)
-		CALL	Z,CharThing12
+		CALL	Z,SetOtherSound
 		EX	AF,AF'
 		JR	Z,EPIC_34
 EPIC_33:	RES	4,(IY+$0B)
@@ -377,7 +377,7 @@ EPIC_38:	LD	A,(LB218)
 EPIC_39:	LD	A,$86
 		BIT	5,(IY+$0B)
 		SET	5,(IY+$0B)
-		CALL	Z,CharThing12 		; NB: Tail call
+		CALL	Z,SetOtherSound 		; NB: Tail call
 		BIT	4,(IY+$0C)
 		SET	4,(IY+$0C)
 		JR	NZ,EPIC_41
@@ -386,7 +386,7 @@ EPIC_39:	LD	A,$86
 		JR	NC,EPIC_40
 		JR	NZ,EPIC_40
 		LD	A,$88
-		CALL	CharThing12
+		CALL	SetOtherSound
 		JR	EPIC_41
 EPIC_40:	DEC	(IY+$07)
 		RES	4,(IY+$0B)
@@ -461,7 +461,7 @@ CharThing26:	LD	A,(LA2BF)
 		CALL	CAF96
 		CALL	GetCharObj
 		CALL	CA0A5
-		JP	CharThing13 		; NB: Tail call
+		JP	PlayOtherSound 		; NB: Tail call
 	
 CharThing5:	LD	HL,LA315
 		DEC	(HL)
@@ -501,7 +501,7 @@ EPIC_59:	INC	(IY+$07)
 		AND	A
 		JR	NZ,EPIC_61
 		LD	A,$82
-		CALL	CharThing12
+		CALL	SetOtherSound
 		LD	HL,LA293
 		LD	A,(HL)
 		AND	A
@@ -511,7 +511,7 @@ EPIC_59:	INC	(IY+$07)
 		JR	EPIC_62
 EPIC_60:	INC	(IY+$07)
 EPIC_61:	LD	A,$83
-		CALL	CharThing12
+		CALL	SetOtherSound
 		LD	A,(CurrDir)
 		RRA
 EPIC_62:	CALL	CharThing7
@@ -541,7 +541,7 @@ CharThing7:	OR	$F0
 		XOR	A
 		LD	(LA2A0),A
 		LD	A,$80
-		CALL	CharThing12
+		CALL	SetOtherSound
 		EX	AF,AF'
 		LD	HL,LA2BB
 		CP	(HL)
@@ -561,7 +561,7 @@ EPIC_67:	PUSH	AF
 		OR	$F0
 		INC	A
 		LD	A,$88
-		CALL	NZ,CharThing12
+		CALL	NZ,SetOtherSound
 EPIC_68:	POP	AF
 		LD	A,(IY+$0B)
 		OR	$0F
@@ -592,7 +592,7 @@ EPIC_70:	LD	HL,Speed ; FIXME: Fast if have Speed or are Heels...
 		LD	A,$00
 		CALL	DecCount
 EPIC_71:	LD	A,$81
-		CALL	CharThing12
+		CALL	SetOtherSound
 		POP	AF
 		CALL	LookupDir
 		CP	$FF
@@ -603,7 +603,7 @@ EPIC_71:	LD	A,$81
 		POP	HL
 		JP	NC,C8CD6
 		LD	A,$88
-		JP	CharThing12 	; NB: Tail call
+		JP	SetOtherSound 	; NB: Tail call
 	
 CharThing8:	LD	A,$02
 		LD	(LA2A1),A
@@ -668,7 +668,7 @@ EPIC_78:	LD	(LA29F),A
 		JR	NZ,EPIC_79
 		LD	HL,LA293
 		LD	(HL),$07
-EPIC_79:	JP	CharThing12 	; NB: Tail call
+EPIC_79:	JP	SetOtherSound 	; NB: Tail call
 EPIC_80:	LD	HL,L080C
 		LD	(LA296),HL
 		LD	B,$C7
@@ -688,7 +688,7 @@ PurseNope:	JP	NC,NopeNoise 		; Tail call
 		AND	$01
 		JR	Z,PurseNope 		; Check if heels is present
 		LD	A,$87			; FIXME: ???
-		CALL	CharThing12
+		CALL	SetOtherSound
 		LD	A,(Carrying+1)
 		AND	A
 		JR	NZ,DropCarried 		; If holding something, drop it
@@ -746,16 +746,19 @@ CarryLoop:	CALL	GetCharObj
 NoDrop:		LD	(IY+$07),C 		; Restore old value
 		JP	NopeNoise		; Tail call
 
-CharThing11:	LD	HL,LA2BE 	; FIXME: Unused?
-		JR	EPIC_85
+SetSound:	LD	HL,SoundId 	; FIXME: Unused?
+		JR	BumpUp
 
-CharThing12:	LD	HL,LA2BD
-EPIC_85:	CP	(HL)
+SetOtherSound:	LD	HL,OtherSoundId
+	;; Fall through.
+        
+	;; Sets (HL) to A if A > (HL)
+BumpUp:		CP	(HL)
 		RET	C
 		LD	(HL),A
 		RET
-	
-CharThing13:	LD	A,(LA2BD)
+
+PlayOtherSound:	LD	A,(OtherSoundId)
 		OR	$80
 		LD	B,A
 		CP	$85
