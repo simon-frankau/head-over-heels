@@ -1886,7 +1886,7 @@ LookupDir:	AND		$0F
 
 	;; Input into this look-up table is the 4-bit bitmask:
 	;; Left Right Down Up.
-	;; 
+	;;
 	;; Combinations are mapped to the following directions:
 	;;
 	;; $05 $04 $03

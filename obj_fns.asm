@@ -19,6 +19,7 @@
 	;; Offset A: Top bit is flag that's checked against Phase, lower bits are object function.
 	;; Offset B: Some form of direction mask?
 	;; Offset C: Some form of direction mask?
+	;; Offset 10: Direction code.
 	;; Hmmm. May be 17 bytes?
 	
 ObjFn30:	LD	A,(IY+$0C)
@@ -37,7 +38,7 @@ ObjFn29:	CALL	C9319
 		CALL	LookupDir
 		INC	A
 		SUB	$01
-		CALL	NC,L921B
+		CALL	NC,MoveDir
 		POP	AF
 		CALL	C92DF
 		CALL	C92CF
@@ -50,7 +51,7 @@ ObjFn27:	BIT	5,(IY+$0C)
 		LD	B,$47
 		JP	PlaySound 	; Tail call
 
-L8F18:	LD		H,B
+L8F18:		LD		H,B
 ObjFn36:	LD		HL,L8F18
 		LD		A,(HL)
 		AND		A
@@ -60,6 +61,7 @@ ObjFn36:	LD		HL,L8F18
 		LD		(IY+$0A),$19
 		LD		A,$05
 		JP		SetSound
+
 L8F2E:	NOP
 ObjFn35:	LD		HL,L8F2E
 		LD		(HL),$FF
@@ -68,7 +70,7 @@ ObjFn35:	LD		HL,L8F2E
 		POP		HL
 		LD		(HL),$00
 		RET
-C8F3C:	LD		A,(ObjDir)
+C8F3C:		LD		A,(ObjDir)
 		INC		A
 		JR		NZ,L8F82
 		LD		A,(IY+$0C)
@@ -76,11 +78,12 @@ C8F3C:	LD		A,(ObjDir)
 		RET		NZ
 		LD		BC,(LA2BB)
 		JR		L8F61
+
 ObjFn32:	LD		A,(ObjDir)
 		INC		A
 		JR		NZ,L8F82
-		CALL	C9269
-		OR		$F3
+		CALL		CharDistAndDir
+		OR		~$0C	; Clear one axis of direction bits
 		CP		C
 		JR		Z,L8F61
 		LD		A,C
@@ -104,6 +107,8 @@ ObjFn10:	LD		A,(ObjDir)
 		LD		A,(IY+$0C)
 		INC		A
 		JR		Z,L8F8B
+	;; NB: Fall through
+
 L8F82:		CALL		C9319
 		CALL		C8F97
 L8F88:		JP		C92B7
@@ -112,6 +117,7 @@ L8F8B:		PUSH		IY
 		POP		IY
 		LD		(IY+$0B),$FF
 		RET
+
 C8F97:		LD		A,(ObjDir)
 		AND		A,(IY+$0C)
 		CALL		LookupDir
@@ -134,6 +140,7 @@ C8F97:		LD		A,(ObjDir)
 		CALL	C8CD3
 		AND		A
 		RET
+
 C8FC0:	LD		HL,(CurrObject)
 		JP		TableCall
 ObjFn14:	LD		A,(IY+$0C)
@@ -213,7 +220,8 @@ ObjFn5:		LD		A,$FB
 Write0B:	LD		(IY+$0B),A
 		LD		(IY+$0A),$00
 		RET
-	
+
+	;; Suspect these are hush puppies...
 ObjFn31:	LD	A,(Character)
 		AND	$02			; Test if we have Head (returns early if not)
 		JR	L905C
@@ -270,6 +278,7 @@ L90B3:	LD		(IY+$08),A
 		CP		B
 		JR		Z,ObjFn1
 		JR		L90C6
+
 ObjFn26:	LD		A,(IY+$0F)
 		AND		$F0
 		JR		Z,ObjFn1
@@ -306,15 +315,15 @@ ObjFn13:	LD		HL,L91E4
 ObjFn9:		LD		HL,L91F1
 		JR		L9155
 	
-ObjFn15:	LD		HL,L9245
+ObjFn15:	LD		HL,HomeIn
 		JR		L9141
 
 ObjFn37:	LD		A,(L866B)
 		OR		$F0
 		INC		A
-		LD		HL,L925D
+		LD		HL,MoveAway
 		JR		Z,L9119
-		LD		HL,L9264
+		LD		HL,MoveTowards
 L9119:		JR		L9141
 	
 L911B:		PUSH	HL
@@ -332,30 +341,36 @@ L912F:	CALL	C92DF
 		LD		A,(L8ED9)
 		INC		A
 		JP		Z,C92B7
-		CALL	C9140
+		CALL	TOHL
 		JP		C92B7
-C9140:	JP		(HL)
-L9141:	PUSH	HL
+
+	;; Calling here is like calling HL.
+TOHL:		JP		(HL)
+
+L9141:		PUSH	HL
 		CALL	C9319
-		POP		HL
-		CALL	C9140
-L9149:	CALL	C92CF
+		POP	HL
+		CALL	TOHL
+Collision33:	CALL	C92CF
 		CALL	C936A
 		CALL	C92DF
 		JP		C92B7
-L9155:	PUSH	HL
+
+L9155:		PUSH	HL
 		CALL	C8D18
 		LD		A,L
 		AND		$0F
 		JR		NZ,L9122
 		CALL	C9319
 		POP		HL
-		CALL	C9140
+		CALL	TOHL
 		CALL	C92CF
 		CALL	C936A
 		CALL	C92DF
 		JP		C92B7
+
 L9171:		NOP
+
 ObjFn16:	LD		A,$01
 		CALL	SetSound
 		CALL	C92CF
@@ -415,103 +430,126 @@ L91E4:	CALL	C8D18
 		AND		$06
 		CP		A,(IY+$10)
 		JR		Z,L91E4
-		JR		L921B
+		JR		MoveDir
 L91F1:	CALL	C8D18
 		LD		A,L
 		AND		$06
 		OR		$01
 		CP		A,(IY+$10)
 		JR		Z,L91F1
-		JR		L921B
+		JR		MoveDir
 L9200:	CALL	C8D18
 		LD		A,L
 		AND		$07
 		CP		A,(IY+$10)
 		JR		Z,L9200
-		JR		L921B
+		JR		MoveDir
 L920D:	LD		A,(IY+$10)
 		SUB		$02
 		JR		L9219
 L9214:	LD		A,(IY+$10)
 		ADD		A,$02
 L9219:	AND		$07
-L921B:	LD		(IY+$10),A
+
+MoveDir:	LD		(IY+$10),A
 		RET
+
 L921F:	LD		A,(IY+$10)
 		ADD		A,$04
 		JR		L9219
-ObjFn33:	CALL	C9319
-		CALL	C9269
+
+ObjFn33:	CALL		C9319
+	;; Check for collision
+		CALL		CharDistAndDir
 		LD		A,$18
 		CP		D
-		JR		C,L923F
+		JR		C,NoColl33
 		CP		E
-		JP		C,L923F
+		JP		C,NoColl33
 		LD		A,C
-		CALL	LookupDir
+		CALL		LookupDir
 		LD		(IY+$10),A
-		JP		L9149
-L923F:	CALL	C92CF
+		JP		Collision33
+NoColl33:	CALL		C92CF
 		JP		C92B7
-L9245:	CALL	C9269
+
+	;; Find the direction number associated with zeroing the
+	;; smaller distance, and then working towards the other
+	;; dimension.
+HomeIn:		CALL		CharDistAndDir
 		LD		A,D
 		CP		E
-		LD		B,$F3
-		JR		C,L9251
+		LD		B,~$0C
+		JR		C,HI2
 		LD		A,E
-		LD		B,$FC
-L9251:	AND		A
+		LD		B,~$03
+HI2:		AND		A
 		LD		A,B
-		JR		NZ,L9257
+		JR		NZ,HI3
 		XOR		$0F
-L9257:	OR		C
-L9258:	CALL	LookupDir
-		JR		L921B
-L925D:	CALL	C9269
+HI3:		OR		C
+	;; NB: Fall through
+
+MoveToDirMask:	CALL		LookupDir
+		JR		MoveDir
+
+MoveAway:	CALL		CharDistAndDir
 		XOR		$0F
-		JR		L9258
-L9264:	CALL	C9269
-		JR		L9258
-C9269:	CALL	GetCharObj
+		JR		MoveToDirMask
+MoveTowards:	CALL		CharDistAndDir
+		JR		MoveToDirMask
+
+	;; Return the absolute distances from the character in DE,
+	;; and direction as a bitmask in A.
+CharDistAndDir:	CALL		GetCharObj
 		LD		DE,L0005
 		ADD		HL,DE
 		LD		A,(HL)
 		INC		HL
 		LD		H,(HL)
 		LD		L,A
+	;; Character position now in HL.
 		LD		C,$FF
 		LD		A,H
 		SUB		(IY+$06)
 		LD		D,A
-		JR		Z,L928A
-		JR		NC,L9283
+	;; Second coord diff in D...
+		JR		Z,SndCoordMatch
+		JR		NC,SndCoordDiff
 		NEG
 		LD		D,A
 		SCF
-L9283:	PUSH	AF
+	;; Absolute coord diff in D...
+SndCoordDiff:	PUSH		AF
 		RL		C
 		POP		AF
 		CCF
 		RL		C
-L928A:	LD		A,(IY+$05)
+        ;; Build 2 bits of direction flag in C
+SndCoordMatch:	LD		A,(IY+$05)
 		SUB		L
 		LD		E,A
-		JR		Z,L92A0
-		JR		NC,L9297
+		JR		Z,FstCoordMatch
+		JR		NC,FstCoordDiff
 		NEG
 		LD		E,A
 		SCF
-L9297:	PUSH	AF
+	;; Absolute coord diff in E...
+FstCoordDiff:	PUSH		AF
 		RL		C
 		POP		AF
 		CCF
 		RL		C
 		LD		A,C
+	;; Direction flag now in A.
 		RET
-L92A0:	RLC		C
+FstCoordMatch:	RLC		C
 		RLC		C
 		LD		A,C
+	;; Direction flag now in A.
 		RET
+
+
 C92A6:	LD		A,(L8ED8)
 		BIT		0,A
 		RET		NZ
