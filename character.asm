@@ -130,10 +130,11 @@ DoFire:		LD	A,(FirePressed)
 		LD	HL,FiredObj
 		PUSH	HL
 		POP	IY		; Sets IY to FiredObj
-	;; FIXME: Bunch of mystery...
-		LD	A,(L703D)
-		OR	$19
+	;; Set initial phase and object function
+		LD	A,(Phase)
+		OR	$19		; ObjFnFire
 		LD	(FiredObj+$0A),A
+	;; FIXME: Initialise other fields...
 		LD	(IY+$04),$00
 		LD	A,(LA2BB)
 		LD	(FiredObj+$0B),A

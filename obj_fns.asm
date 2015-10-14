@@ -16,7 +16,9 @@
 	;; Offset 7: Z coordinate, C0 = ground
 	;; Offset 8: Its sprite
 	;; ...?
-	;; Offset C:
+	;; Offset A: Top bit is flag that's checked against Phase, lower bits are object function.
+	;; Offset B: Some form of direction mask?
+	;; Offset C: Some form of direction mask?
 	;; Hmmm. May be 17 bytes?
 	
 ObjFn30:	LD	A,(IY+$0C)
@@ -66,7 +68,7 @@ ObjFn35:	LD		HL,L8F2E
 		POP		HL
 		LD		(HL),$00
 		RET
-C8F3C:	LD		A,(L822D)
+C8F3C:	LD		A,(ObjDir)
 		INC		A
 		JR		NZ,L8F82
 		LD		A,(IY+$0C)
@@ -74,7 +76,7 @@ C8F3C:	LD		A,(L822D)
 		RET		NZ
 		LD		BC,(LA2BB)
 		JR		L8F61
-ObjFn32:	LD		A,(L822D)
+ObjFn32:	LD		A,(ObjDir)
 		INC		A
 		JR		NZ,L8F82
 		CALL	C9269
@@ -87,29 +89,32 @@ ObjFn32:	LD		A,(L822D)
 		RET		NZ
 L8F61:	LD		(IY+$0C),C
 		JR		L8F82
-ObjFn25:	CALL	C92D2
-		CALL	C8F97
-		JR		C,L8F71
-		CALL	C8F97
-L8F71:	JP		C,L905D
+
+	;; The function associated with a firing donut object.
+ObjFnFire:	CALL		C92D2
+		CALL		C8F97
+		JR		C,OFF2
+		CALL		C8F97
+OFF2:		JP		C,Fn17ify
 		JR		L8F88
-ObjFn10:	LD		A,(L822D)
+
+ObjFn10:	LD		A,(ObjDir)
 		INC		A
 		JR		NZ,L8F82
 		LD		A,(IY+$0C)
 		INC		A
 		JR		Z,L8F8B
-L8F82:	CALL	C9319
-		CALL	C8F97
-L8F88:	JP		C92B7
-L8F8B:	PUSH	IY
-		CALL	ObjFn1
+L8F82:		CALL		C9319
+		CALL		C8F97
+L8F88:		JP		C92B7
+L8F8B:		PUSH		IY
+		CALL		ObjFn1
 		POP		IY
 		LD		(IY+$0B),$FF
 		RET
-C8F97:	LD		A,(L822D)
+C8F97:		LD		A,(ObjDir)
 		AND		A,(IY+$0C)
-		CALL	LookupDir
+		CALL		LookupDir
 		CP		$FF
 		SCF
 		RET		Z
@@ -220,14 +225,19 @@ ObjFn20		LD	A,$CF
 		INC	A
 	;; NB: Fall through
 
-L905C:		RET	Z	
-L905D:		LD	A,$05
+L905C:		RET	Z
+	;; NB: Fall through
+
+        ;; Set to use ObjFn17
+Fn17ify:	LD	A,$05
 		CALL	SetSound
 		LD	A,(IY+$0A)
 		AND	$80
-		OR	$11
+		OR	$11     ; ObjFn17
 		LD	(IY+$0A),A
 		LD	(IY+$0F),$08
+        ;; NB: Fall through
+
 ObjFn17:	LD	(IY+$04),$80
 		CALL	C92A6
 		CALL	C92D2
@@ -549,7 +559,7 @@ L9306:	CALL	C92A6
 		CALL	C8CD3
 		SCF
 		RET
-L930F:	LD		A,(L822D)
+L930F:	LD		A,(ObjDir)
 		INC		A
 		RET		Z
 C9314:	LD		A,$06

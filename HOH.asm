@@ -1190,7 +1190,7 @@ L8224:	DJNZ	L8211
 		LD		(BigSpriteFlipped),A
 		RET
 CurrObject:	DEFW $0000
-L822D: 	DEFB $FF
+ObjDir: 	DEFB $FF
 L822E:	DEFW $3D00,$3D8E
 C8232:	LD		(IY+$09),$00
 		LD		L,A
@@ -1275,7 +1275,7 @@ CallObjFn:	LD	(CurrObject),DE
 		XOR	A
 		LD	(L8ED8),A
 		LD	A,(IY+$0B)
-		LD	(L822D),A
+		LD	(ObjDir),A
 		LD	(IY+$0B),$FF
 		BIT	6,(IY+$09)
 		RET	NZ
@@ -1364,7 +1364,7 @@ ObjFnTbl:
 	DEFW ObjFn13,ObjFn14,ObjFn15,ObjFn16
 	DEFW ObjFn17,ObjFn18,ObjFn19,ObjFn20
 	DEFW ObjFn21,ObjFn22,ObjFn23,ObjFn24
-	DEFW ObjFn25,ObjFn26,ObjFn27,ObjFn28
+	DEFW ObjFnFire,ObjFn26,ObjFn27,ObjFn28
 	DEFW ObjFn29,ObjFn30,ObjFn31,ObjFn32
 	DEFW ObjFn33,ObjFn34,ObjFn35,ObjFn36
 	DEFW ObjFn37
@@ -2011,7 +2011,8 @@ RemoveObject:	PUSH	HL
 		CALL	C8D6F
 		POP	IX
 		SET	7,(IX+$04)
-		LD	A,(L703D)
+	;; Transfer top bit of Phase to IX+$0A
+		LD	A,(Phase)
 		LD	C,(IX+$0A)
 		XOR	C
 		AND	$80
@@ -2078,10 +2079,12 @@ L93A2:	XOR		C
 		LD		(IY+$0F),A
 		RET
 L93AA:	DEFB $00,$00,$00,$00,$00,$00
-	
-DoObjects:	LD	A,(L703D)
+
+	;; The phase mechanism allows an object to not get processed
+	;; for one frame.
+DoObjects:	LD	A,(Phase)
 		XOR	$80
-		LD	(L703D),A 		; Toggle top bit of L703D
+		LD	(Phase),A 		; Toggle top bit of Phase
 		CALL	CharThing
 	;; Loop over object list...
 		LD	HL,(ObjectList)
@@ -2096,13 +2099,13 @@ DO_1:		PUSH	HL
 		LD	HL,L000A
 		ADD	HL,DE
 	;; Check position +10
-		LD	A,(L703D)
+		LD	A,(Phase)
 		XOR	(HL)
-		CP	$80			; Skip if top bit doesn't match 703D
+		CP	$80			; Skip if top bit doesn't match Phase
 		JR	C,DO_2
 		LD	A,(HL)
 		XOR	$80
-		LD	(HL),A			; Flip top bit
+		LD	(HL),A			; Flip top bit - will now mismatch Phase
 		AND	$7F
 		CALL	NZ,CallObjFn 		; And if any other bits set, call CallObjFn
 DO_2:		POP	HL

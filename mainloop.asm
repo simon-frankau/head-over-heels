@@ -12,7 +12,7 @@ Entry:		LD	SP,$FFF4
 
 L703B:		DEFB $00
 L703C:		DEFB $00
-L703D:		DEFB $00
+Phase:		DEFB $00	; Top bit toggles every DoObjects loop.
 LastDir:	DEFB $EF
 CurrDir:	DEFB $FF
 CarryPressed:	DEFB $00	; Bit 1 means 'currently pressed'. Bit 0 is 'newly triggered'.
@@ -33,7 +33,7 @@ MainStart:	CALL	C8DC2
 		LD	A,$40
 		LD	(L8F18),A
 MainB:		XOR	A
-		LD	(L703D),A
+		LD	(Phase),A
 		CALL	C7B91
 	;; The main game-playing loop
 MainLoop:	CALL	WaitFrame
