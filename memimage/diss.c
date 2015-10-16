@@ -1149,7 +1149,7 @@ CHAR    s[80];          // Ausgabestring
 	ParseOpcodes(0x9FBB);
 	ParseOpcodes(0x9FF3);
 	ParseOpcodes(0xA02B);
-	// B24B: Probably not code?
+	ParseOpcodes(0xB24B);
 	// B378 looks like start of jump table.
 	ParseOpcodes(0xB39F);
 	ParseOpcodes(0xB3C0);

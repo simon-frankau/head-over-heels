@@ -58,7 +58,9 @@ EPIC_1:		LD	HL,LA296
 		INC	HL
 		OR	(HL)
 		JP	NZ,EPIC_13
-		LD	HL,LA298
+
+	;; Deal with invuln counter every 3 frames.
+		LD	HL,InvulnModulo
 		DEC	(HL)
 		JR	NZ,EPIC_2
 		LD	(HL),$03
@@ -69,10 +71,12 @@ EPIC_1:		LD	HL,LA296
 		OR	L
 		RRA
 		PUSH	AF
+	;; Use up heels invuln
 		LD	A,$02
 		CALL	C,DecCount
 		POP	AF
 		RRA
+	;; Use up head invuln
 		LD	A,$03
 		CALL	C,DecCount
 EPIC_2:		LD	A,$FF
@@ -141,6 +145,7 @@ DoFire:		LD	A,(FirePressed)
 		LD	(IY+$0C),$FF
 		LD	(IY+$0F),$20
 		CALL	CB03B
+	;; Use up a donut
 		LD	A,$06
 		CALL	DecCount
 		LD	B,$48
@@ -577,12 +582,15 @@ EPIC_69:	CALL	GetCharObj
 		JR	Z,EPIC_70
 		DEC	(HL)
 		RET
+
 EPIC_70:	LD	HL,Speed ; FIXME: Fast if have Speed or are Heels...
 		LD	A,(Character)
 		AND	$01
 		OR	(HL)
 		RET	Z
-		LD	HL,LA299
+
+	;; Deal with speed every other frame
+		LD	HL,SpeedModulo
 		DEC	(HL)
 		PUSH	BC
 		JR	NZ,EPIC_71
@@ -590,12 +598,15 @@ EPIC_70:	LD	HL,Speed ; FIXME: Fast if have Speed or are Heels...
 		LD	A,(Character)
 		RRA
 		JR	C,EPIC_71
+	;; Use up speed if heels not present
 		LD	A,$00
 		CALL	DecCount
+
 EPIC_71:	LD	A,$81
 		CALL	SetOtherSound
 		POP	AF
 		CALL	LookupDir
+	;; Return if nothing pressed
 		CP	$FF
 		RET	Z
 		CALL	GetCharObj
@@ -605,7 +616,7 @@ EPIC_71:	LD	A,$81
 		JP	NC,C8CD6
 		LD	A,$88
 		JP	SetOtherSound 	; NB: Tail call
-	
+
 CharThing8:	LD	A,$02
 		LD	(LA2A1),A
 		RET
@@ -613,6 +624,7 @@ CharThing8:	LD	A,$02
 
 	
 CharThing9:	LD	A,(Character)
+	;; Zero LA293 if it's Heels
 		LD	B,A
 		DEC	A
 		JR	NZ,EPIC_72
@@ -621,9 +633,11 @@ CharThing9:	LD	A,(Character)
 EPIC_72:	LD	A,(LA2BC)
 		AND	A
 		RET	NZ
+	;; Return if jump not pressed.
 		LD	A,(CurrDir)
 		RRA
 		RET	C
+	;; Jump button handling case
 		LD	C,$00
 		LD	L,(IY+$0D)
 		LD	H,(IY+$0E)
@@ -650,11 +664,13 @@ EPIC_74:	INC	C
 EPIC_75:	LD	A,(Character)
 		AND	$02
 		JR	NZ,EPIC_76
+	;; No Head - use up a spring
 		PUSH	BC
 		LD	A,$01
 		CALL	DecCount
 		POP	BC
 		JR	Z,EPIC_77
+	;;  Head
 EPIC_76:	INC	C
 EPIC_77:	LD	A,C
 		ADD	A,A

@@ -2543,8 +2543,8 @@ Character:	DEFB $03	; $3 = Both, $2 = Head, $1 = Heels
 LA295:	DEFB $01
 LA296:	DEFB $00
 LA297:	DEFB $00
-LA298:	DEFB $03
-LA299:	DEFB $02
+InvulnModulo:	DEFB $03
+SpeedModulo:	DEFB $02
 	
 ReinitThing:	DEFB $03	; Three bytes to reinit with
 	
@@ -3662,7 +3662,8 @@ DoTableCall:	CALL	SomeTableCall
 		RET
 
 	;; Takes value in A, indexes into table, writes variable, makes call...
-SomeTableCall:	LD	DE,LB24B
+SomeTableCall:	LD	DE,PostTableCall
+        ;; Pop this on the stack to be called upon return.
 		PUSH	DE
 		LD	C,A
 		ADD	A,A
@@ -3687,15 +3688,73 @@ SomeTableCall:	LD	DE,LB24B
 		PUSH	DE
 		EXX			; Save regs, and...
 		RET			; tail call DE.
-	
-LB24B:	DEFB $D9,$C8,$E5,$DD,$E1,$CB,$51,$20,$15,$21,$7E,$AF,$7E,$23,$66,$6F
-LB25B:	DEFB $B4,$28,$24,$E5,$CD,$F4,$9D,$E1,$38,$3B,$20,$F0,$18,$19,$21,$80
-LB26B:	DEFB $AF,$7E,$23,$66,$6F,$B4,$28,$09,$E5,$CD,$F4,$9D,$E1,$38,$28,$20
-LB27B:	DEFB $F0,$CD,$4B,$A9,$5D,$18,$06,$CD,$4B,$A9,$5D,$23,$23,$FD,$CB,$09
-LB28B:	DEFB $46,$28,$04,$FD,$7D,$BB,$C8,$3A,$BC,$A2,$A7,$C8,$CD,$F4,$9D,$D0
-LB29B:	DEFB $CD,$4B,$A9,$23,$23,$2B,$2B,$E5,$DD,$E1,$3A,$17,$B2,$DD,$CB,$09
-LB2AB:	DEFB $4E,$28,$08,$DD,$A6,$FA,$DD,$77,$FA,$18,$06,$DD,$A6,$0C,$DD,$77
-LB2BB:	DEFB $0C,$AF,$D6,$01
+
+PostTableCall:    EXX
+                        RET             Z
+                        PUSH    HL
+                        POP             IX
+                        BIT             2,C
+                        JR              NZ,LB269
+                        LD              HL,LAF7E
+LB257:    LD              A,(HL)
+                        INC             HL
+                        LD              H,(HL)
+                        LD              L,A
+                        OR              H
+                        JR              Z,LB282
+                        PUSH    HL
+                        CALL    DoCopy
+                        POP             HL
+                        JR              C,LB2A0
+                        JR              NZ,LB257
+                        JR              LB282
+LB269:    LD              HL,LAF80
+LB26C:    LD              A,(HL)
+                        INC             HL
+                        LD              H,(HL)
+                        LD              L,A
+                        OR              H
+                        JR              Z,LB27C
+                        PUSH    HL
+                        CALL    DoCopy
+                        POP             HL
+                        JR              C,LB2A2
+                        JR              NZ,LB26C
+LB27C:    CALL	GetCharObj
+                        LD              E,L
+                        JR              LB288
+LB282:    CALL    GetCharObj
+                        LD              E,L
+                        INC             HL
+                        INC             HL
+LB288:    BIT             0,(IY+$09)
+                        JR              Z,LB292
+                        LD              A,YL
+                        CP              E
+                        RET             Z
+
+LB292:    LD              A,(LA2BC)
+                        AND             A
+                        RET             Z
+                        CALL    DoCopy
+                        RET             NC
+                        CALL    GetCharObj
+                        INC             HL
+                        INC             HL
+LB2A0:    DEC             HL
+                        DEC             HL
+LB2A2:    PUSH    HL
+                        POP             IX
+                        LD              A,(LB217)
+                        BIT             1,(IX+$09)
+                        JR              Z,LB2B6
+                        AND             A,(IX-$06)
+                        LD              (IX-$06),A
+                        JR              LB2BC
+LB2B6:    AND             A,(IX+$0C)
+                        LD              (IX+$0C),A
+LB2BC:    XOR             A
+                        SUB             $01
 LB2BF:	PUSH	AF
 		PUSH	IX
 		PUSH	IY

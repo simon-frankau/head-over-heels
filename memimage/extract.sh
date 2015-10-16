@@ -8,7 +8,7 @@ mkdir -p ../out
 # Build and run the decompiler...
 # Command-line stuff not set up. Here's one I prepared earlier with Xcode:
 # gcc BLAH
-cp ~/z80diss/build/Release/z80diss ../out/diss
+# cp ~/z80diss/build/Release/z80diss ../out/diss
 pushd ../out
 ./diss
 popd
