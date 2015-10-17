@@ -10,7 +10,7 @@
 
 	;; ObjectList appears to be head of a linked list:
 	;; Offset 0: Next item (null == end)
-	;; Offset 4: Some flag - bit 6 and 7 causes skipping
+	;; Offset 4: Some flag - bit 6 and 7 causes skipping. Bit 6 = carryable?
 	;; Offset 5: X/Y coordinate
 	;; Offset 6: Y/X coordinate
 	;; Offset 7: Z coordinate, C0 = ground

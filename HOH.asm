@@ -2850,7 +2850,8 @@ LAC0E:	XOR		A
 	;; Carry flag set if something is found, and thing returned in HL.
 	;;
 	;; Loop through all items, finding ones which match on B or C
-	;; Then call CheckWeOverlap to see if ok candidate. Return if it is.
+	;; Then call CheckWeOverlap to see if ok candidate. Return it
+	;; in HL if it is.
 GetStoodUpon:	CALL	CB0F9		; Perhaps getting height as a filter?
 		LD	A,B
 		ADD	A,$06
@@ -3657,6 +3658,7 @@ TableCall:	PUSH	AF
 		LD	(LB21B),A
 	;; NB: Fall through
 
+        ;; Takes value in A etc. plus extra return value.
 DoTableCall:	CALL	SomeTableCall
 		LD	A,(LB21B)
 		RET

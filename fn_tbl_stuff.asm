@@ -38,8 +38,10 @@ FnTbl:		DEFB $FD
 		DEFW SomeTableFn7,L0000
 
 SomeTableFn1:	EXX
+	;; Remove original return path, hit DoTableCall again.
 		POP	HL
 		POP	DE
+        ;; Call Fn0
 		XOR	A
 		CALL	DoTableCall
 		JR	C,STF1_1
@@ -47,12 +49,14 @@ SomeTableFn1:	EXX
 		DEC	D
 		DEC	E
 		EXX
+        ;; Call Fn2
 		LD	A,$02
 		CALL	DoTableCall
 		LD	A,$01
 		RET	NC
 		XOR	A
 		RET
+        ;; Call Fn2
 STF1_1:		LD	A,$02
 		CALL	DoTableCall
 		RET	C
@@ -61,8 +65,10 @@ STF1_1:		LD	A,$02
 		RET
 
 SomeTableFn3:	EXX
+	;; Remove original return path, hit DoTableCall again.
 		POP	HL
 		POP	DE
+        ;; Call Fn4
 		LD	A,$04
 		CALL	DoTableCall
 		JR	C,STF3_1
@@ -70,6 +76,7 @@ SomeTableFn3:	EXX
 		INC	D
 		INC	E
 		EXX
+        ;; Call Fn2
 		LD	A,$02
 		CALL	DoTableCall
 		LD	A,$03
@@ -77,6 +84,7 @@ SomeTableFn3:	EXX
 		LD	A,$04
 		AND	A
 		RET
+        ;; Call Fn2
 STF3_1:		LD	A,$02
 		CALL	DoTableCall
 		RET	C
@@ -85,8 +93,10 @@ STF3_1:		LD	A,$02
 		RET
 
 SomeTableFn5:	EXX
+	;; Remove original return path, hit DoTableCall again.
 		POP	HL
 		POP	DE
+        ;; Call Fn4
 		LD	A,$04
 		CALL	DoTableCall
 		JR	C,STF5_1
@@ -94,6 +104,7 @@ SomeTableFn5:	EXX
 		INC	D
 		INC	E
 		EXX
+        ;; Call Fn6
 		LD	A,$06
 		CALL	DoTableCall
 		LD	A,$05
@@ -101,6 +112,7 @@ SomeTableFn5:	EXX
 		LD	A,$04
 		AND	A
 		RET
+        ;; Call Fn6
 STF5_1:		LD	A,$06
 		CALL	DoTableCall
 		RET	C
@@ -108,8 +120,10 @@ STF5_1:		LD	A,$06
 		RET
 	
 SomeTableFn7:	EXX
+	;; Remove original return path, hit DoTableCall again.
 		POP	HL
 		POP	DE
+        ;; Call Fn0
 		XOR	A
 		CALL	DoTableCall
 		JR	C,STF7_1
@@ -117,12 +131,14 @@ SomeTableFn7:	EXX
 		DEC	D
 		DEC	E
 		EXX
+        ;; Call Fn6
 		LD	A,$06
 		CALL	DoTableCall
 		LD	A,$07
 		RET	NC
 		XOR	A
 		RET
+        ;; Call Fn6
 STF7_1:		LD	A,$06
 		CALL	DoTableCall
 		RET	C

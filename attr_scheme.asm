@@ -4,6 +4,15 @@
 	;; Attribute colour schemes
 	;;
 
+	;; Exported functions:
+        ;; * SetAttribs
+        ;; * UpdateAttribs
+
+        ;; Exported variables:
+        ;; * Attrib1
+        ;; * Attrib2
+        ;; * LastOut
+        
 	;; FIXME: Give the schemes nicer names, generally polish
 	
 	;; Paper colour

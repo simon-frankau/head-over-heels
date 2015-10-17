@@ -8,6 +8,10 @@
 	;; FIXME: Needs tidying.
 	;; 
 
+	;; Exported functions:
+        ;; * GetSpriteAddr
+        ;; * Sprite3x56
+
 	;; Names for all the sprites...
 	
 SPR_FLIP:	EQU $80
@@ -195,7 +199,9 @@ Sprite3Wide:	EX	DE,HL
 		EXX
 		CALL	NeedsFlip
 		EXX
-		RET	C		; NB: Fall-through.
+		RET	C
+	;; NB: Fall-through.
+
 	;; Flip a 3-character-wide sprite. Height in B, source in DE.
 FlipSprite3:	PUSH	HL
 		PUSH	DE
