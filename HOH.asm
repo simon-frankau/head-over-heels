@@ -2135,7 +2135,10 @@ Attrib5:	DEFB $46
 #include "background.asm"
 	
 #include "blit_rot.asm"
-	
+
+        ;; LSB is upper extent, MSB is lower extent
+        ;; X extent is in screen units (2 pixels per unit). Units
+	;; increase down and to the right.
 SpriteXExtent:	DEFW $6066
 SpriteYExtent:	DEFW $5070
 LA056:	DEFB $00

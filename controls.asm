@@ -148,9 +148,9 @@ Fuller:		IN	A,($7F)
 	;; Scan input and return single key/button.
 	;; Returns 0 in A if something pressed, and the code in B.
 	;; Otherwise returns non-zero in A.
-	;; We return LBF20 + row idx in HL, apparently to help EditControls,
+	;; We return Buffer + row idx in HL, apparently to help EditControls,
 	;; and C the actual bit-mask.
-GetInput:	LD		HL,LBF20
+GetInput:	LD		HL,Buffer
 		LD		BC,LFEFE
 	;; This bit scans for any key pressed. Jumps to GI_2 if found.
 GI_1:		IN		A,(C)
@@ -177,7 +177,7 @@ GI_3:		RLC		C		; Generate the bit mask for one key
 		RRA
 		JR		C,GI_3
 		LD		A,L
-		SUB		LBF20 & $FF	; Convert back to index
+		SUB		Buffer & $FF	; Convert back to index
 		LD		E,A
 		ADD		A,A
 		ADD		A,A
@@ -264,7 +264,7 @@ EditControls:	CALL	GetKeyMapAddr
 		PUSH	HL
 		CALL	WaitInputClear
 	;; Initialise the buffer
-		LD	HL,LBF20
+		LD	HL,Buffer
 		LD	E,$FF
 		LD	BC,L0009
 		CALL	FillValue
@@ -300,7 +300,7 @@ EC_2:		LD	A,C
 	;; Now update map (?)
 EC_3:		EXX
 	;; Search for a pressed key...
-		LD	HL,LBF20
+		LD	HL,Buffer
 		LD	A,$FF
 		LD	B,$09
 EC_4:		CP	(HL)
@@ -316,7 +316,7 @@ EC_5:		POP	HL
 	;; And copy our buffer over to the main KeyMap buffer.
 		LD	BC,L0008
 		LD	A,$09
-		LD	DE,LBF20
+		LD	DE,Buffer
 EC_6:		EX	AF,AF'
 		LD	A,(DE)
 		LD	(HL),A

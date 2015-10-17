@@ -90,7 +90,7 @@ LAF80:	EQU $AF80		; Numeric constant?
         
 	;; Data-ish stuff
 LBA3E:	EQU $BA3E
-LBF20:	EQU $BF20
+Buffer:	EQU $BF20               ; Buffer area used by controls and sprite-rotation code.
 LC000:	EQU $C000
 LC040:	EQU $C040
 LC043:	EQU $C043
