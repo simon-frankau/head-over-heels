@@ -25,7 +25,7 @@ SpriteBuff:	EQU $B800
 ColBuf:		EQU $F944
 ColBufLen:	EQU $94
 
-BigSpriteBuf:	EQU $F9D8
+DoorwayBuf:	EQU $F9D8
 
 #include "mainloop.asm"
 
@@ -332,7 +332,7 @@ L770B:	DEFB $05
 L770C:	DEFB $04
 L770D:	DEFB $36
 L770E:	DEFB $34
-BigSpriteTest:	DEFB $00
+DoorwayTest:	DEFB $00
 L7710:	DEFB $00
 FloorCode:	DEFB $00
 L7712:	DEFB $00
@@ -376,7 +376,7 @@ C774D:		LD		A,$FF
 		LD		(L7713),A
 	;; NB: Fall through
 
-	;; Guess that this is redraw screen, based on setting sprite extend to flul screen...
+	;; Guess that this is redraw screen, based on setting sprite extend to full screen...
 DrawScreen:	LD	IY,L7718 		; FIXME: ???
 	;; Initialise the sprite extents to cover the full screen.
 		LD	HL,L40C0
@@ -396,7 +396,7 @@ DrawScreen:	LD	IY,L7718 		; FIXME: ???
 		LD	HL,(LAF78)
 		LD	(LAF92),HL
 		LD	A,(L7710)
-		LD	(BigSpriteTest),A
+		LD	(DoorwayTest),A
 		LD	DE,L7744
 		LD	HL,L7748
 		LD	BC,L0004
@@ -453,7 +453,7 @@ L77D0:	LD		IY,L7720
 L77F8:		LD	A,(L774C)
 		LD	HL,(L7705)
 		PUSH	AF
-		CALL	C81DC
+		CALL	OccludeDoorway
 		POP	AF
 		CALL	SetColHeight
 		POP	HL
@@ -1135,40 +1135,55 @@ Reinitialise:
 		RET
 	
 #include "menus.asm"
-	
-C81DC:	PUSH	AF
+
+;; Takes a sprite code in B and a height in A, and applies truncation
+;; of the third column A * 2 + from the top of the column. This
+;; performs removal of the bits of the door hidden by the walls.
+;; If the door is raised, more of the frame is visible, so A is
+;; the height of the door.
+OccludeDoorway:
+        ;; Copy the sprite (and mask) indexed by L to DoorwayBuf
+		PUSH		AF
 		LD		A,L
 		LD		H,$00
 		LD		(SpriteCode),A
-		CALL	Sprite3x56
+		CALL		Sprite3x56
 		EX		DE,HL
-		LD		DE,BigSpriteBuf
-		PUSH	DE
-		LD		BC,L0150
+		LD		DE,DoorwayBuf
+		PUSH		DE
+		LD		BC, 56 * 3 * 2
 		LDIR
 		POP		HL
 		POP		AF
+	;; A = Min(A * 2 + 8, 0x38)
 		ADD		A,A
 		ADD		A,$08
 		CP		$39
-		JR		C,L81FB
+		JR		C,ODW
 		LD		A,$38
-L81FB:	LD		B,A
+	;; A *= 3
+ODW:		LD		B,A
 		ADD		A,A
 		ADD		A,B
+	;; DE = Top of sprite + A
+	;; HL = Top of mask + A
 		LD		E,A
 		LD		D,$00
 		ADD		HL,DE
 		EX		DE,HL
-		LD		HL,L00A8
+		LD		HL, 56 * 3
 		ADD		HL,DE
+	;; B = $39 - A
 		LD		A,B
 		NEG
 		ADD		A,$39
 		LD		B,A
+	;; C = ~$03
 		LD		C,$FC
-		JR		L8224
-L8211:	LD		A,(DE)
+		JR		ODW3
+	;; This loop then cuts off a wedge from the right-hand side,
+	;; presumably to give a nice trunction of the image?
+ODW2:		LD		A,(DE)
 		AND		C
 		LD		(DE),A
 		INC		DE
@@ -1185,10 +1200,12 @@ L8211:	LD		A,(DE)
 		RL		C
 		AND		A
 		RL		C
-L8224:	DJNZ	L8211
+ODW3:		DJNZ	ODW2
+	;; Clear the flipped flag for this copy.
 		XOR		A
-		LD		(BigSpriteFlipped),A
+		LD		(DoorwayFlipped),A
 		RET
+
 CurrObject:	DEFW $0000
 ObjDir: 	DEFB $FF
 L822E:	DEFW $3D00,$3D8E
@@ -2267,9 +2284,9 @@ CA11E:		LD		A,(HL)
 		LD		L,A
 		OR		H
 		RET		Z
-		LD		(BigSpriteThing+1),HL
+		LD		(DoorwayThing+1),HL
 		CALL	CA12F
-BigSpriteThing:		LD		HL,L0000 	; NB: Self-modifying code
+DoorwayThing:		LD		HL,L0000 	; NB: Self-modifying code
 		JR		CA11E
 CA12F:		CALL	CA1BD
 		RET		NC
@@ -3125,7 +3142,7 @@ LADE1:	LD		A,B
 		RRA
 		LD	(SpriteWidth),A
 		RET
-LADF4:	LD		HL,(BigSpriteThing+1)
+LADF4:	LD		HL,(DoorwayThing+1)
 		INC	HL
 		INC	HL
 		BIT	5,(HL)
@@ -3154,10 +3171,9 @@ LAE15:	ADD		A,B
 		LD	(SpriteWidth),A
 		RET
 
-
 #include "get_sprite.asm"
 	
-BigSpriteFlipped:	DEFB $00
+DoorwayFlipped:	DEFB $00
 LAF5B:	DEFB $1B		; Reinitialisation size
 
 	DEFB $00
