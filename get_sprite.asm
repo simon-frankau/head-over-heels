@@ -121,10 +121,10 @@ GetSpriteAddr:  LD      A,(SpriteCode)
                 JR      NC,Sprite3x32
         ;; Special case stuff for 3x56:
                 LD      L,A
-                LD      DE,(DoorwayThing+1)
+                LD      DE,(CurrObject2+1)
                 INC     DE
                 INC     DE
-        ;; Normal case if the DoorwayThing flag & 3 != 3
+        ;; Normal case if the object's flag & 3 != 3
                 LD      A,(DE)
                 OR      ~$03
                 INC     A

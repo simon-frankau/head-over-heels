@@ -2197,19 +2197,21 @@ LA085:		LD		A,L
 		LD		L,C
 		RET
 
-
-CA08A:		LD		A,L
-		ADD		A,$03
-		AND		$FC
-		LD		L,A
-		LD		A,H
-		AND		$FC
-		LD		H,A
-		LD		(SpriteXExtent),HL
+;;;  TODO: This section looks like full screen drawing.
+        
+;; Store X extent, rounded, from HL
+PutXExtent:	LD	A,L 		; Round L up
+		ADD	A,$03
+		AND	~$03
+		LD	L,A
+		LD	A,H
+		AND	~$03    	; Round H down
+		LD	H,A
+		LD	(SpriteXExtent),HL
 		RET
 
 
-CA098:		CALL	CA08A
+CA098:		CALL	PutXExtent
 		JR	LA0AF
 
 LA09D:		LD	A,$48
@@ -2219,7 +2221,9 @@ LA09D:		LD	A,$48
 		JR	LA0B6
 
 CA0A5:		CALL	CA06A
-CA0A8:		CALL	CA08A
+        ;; NB: Fall through
+
+CA0A8:		CALL	PutXExtent
 		LD	A,E
 		CP	$F1
 		RET	NC
@@ -2267,40 +2271,45 @@ LA0EC:		LD	BC,(SpriteXExtent)
 		LD	A,(L84C8)
 		CP	D
 		JR	C,LA109
-		LD	HL,LAF86
+		LD	HL,ObjList1
 		CALL	CA11E
-LA109:		LD	HL,LAF8A
+LA109:		LD	HL,ObjList2
 		CALL	CA11E
-		LD	HL,LAF7E
+		LD	HL,ObjList3
 		CALL	CA11E
-		LD	HL,LAF8E
+		LD	HL,ObjList4
 		CALL	CA11E
-		JP	BlitScreen
+		JP	BlitScreen 	; NB: Tail call
 
-	;; TODO: This function is seriously epic...	
-CA11E:		LD		A,(HL)
-		INC		HL
-		LD		H,(HL)
-		LD		L,A
-		OR		H
-		RET		Z
-		LD		(DoorwayThing+1),HL
+;; Call CA12F for each object in the linked list.
+;; Note that we're using the second link, so the passed HL is an
+;; object + 2.
+CA11E:		LD	A,(HL)
+		INC	HL
+		LD	H,(HL)
+		LD	L,A
+		OR	H
+		RET	Z
+		LD	(CurrObject2+1),HL	; Odd way to save an item!
 		CALL	CA12F
-DoorwayThing:		LD		HL,L0000 	; NB: Self-modifying code
-		JR		CA11E
+CurrObject2:	LD	HL,L0000 		; NB: Self-modifying code
+		JR	CA11E
+
+	;; TODO: This function is seriously epic...
+        ;; TODO: HL is a an object + 2
 CA12F:		CALL	CA1BD
-		RET		NC
-		LD		(SpriteByteCount),A
-		LD		A,H
-		ADD		A,A
-		ADD		A,H
-		ADD		A,A
+		RET	NC
+		LD	(SpriteByteCount),A
+		LD	A,H
+		ADD	A,A
+		ADD	A,H
+		ADD	A,A
 		EXX
-		SRL		H
-		SRL		H
-		ADD		A,H
-		LD		E,A
-		LD		D,SpriteBuff >> 8
+		SRL	H
+		SRL	H
+		ADD	A,H
+		LD	E,A
+		LD	D,SpriteBuff >> 8
 		PUSH	DE
 		PUSH	HL
 		EXX
@@ -2365,6 +2374,8 @@ LA158:		PUSH	AF
 		LD		A,(SpriteByteCount)
 		LD		B,A
 		JP		(HL)
+
+        
 LA19F:		AND		L 	; FIXME: Might just be data?!
 		AND		C
 		XOR		E
@@ -2391,54 +2402,61 @@ LA19F:		AND		L 	; FIXME: Might just be data?!
 		SBC		A,E
 		ADC		A,E
 		SBC		A,E
+        ;; NB: Fall through
+
+        ;; TODO: HL contains a object + 2
 CA1BD:		CALL	CA1F0
-		LD		A,B
-		LD		(LA056),A
+		LD	A,B
+		LD	(LA056),A
 		PUSH	HL
-		LD		DE,(SpriteXExtent)
+		LD	DE,(SpriteXExtent)
 		CALL	CA20C
 		EXX
-		POP		BC
-		RET		NC
-		EX		AF,AF'
-		LD		DE,(SpriteYExtent)
+		POP	BC
+		RET	NC
+		EX	AF,AF'
+		LD	DE,(SpriteYExtent)
 		CALL	CA20C
 		RET
 
 
-	
-CA1D8:	INC		HL
-		INC		HL
-		LD		A,(HL)
-		BIT		3,A
-		JR		Z,CA1F3
+	;; TODO: Like CA1F0, but does extra stuff if bit 3 is set.
+CA1D8:		INC	HL
+		INC	HL
+		LD	A,(HL)
+		BIT	3,A
+		JR	Z,CA1F3
 		CALL	CA1F3
-		LD		A,(SpriteFlags)
-		BIT		5,A
-		LD		A,$F0
-		JR		Z,LA1ED
-		LD		A,$F4
-LA1ED:	ADD		A,H
-		LD		H,A
+		LD	A,(SpriteFlags)
+		BIT	5,A
+		LD	A,-16
+		JR	Z,LA1ED
+		LD	A,-12
+LA1ED:		ADD	A,H
+		LD	H,A
 		RET
-CA1F0:	INC		HL
-		INC		HL
-		LD		A,(HL)
-CA1F3:	BIT		4,A
-		LD		A,$00
-		JR		Z,LA1FB
-		LD		A,$80
-LA1FB:	EX		AF,AF'
-		INC		HL
-		CALL	CA231
-		INC		HL
-		INC		HL
-		LD		A,(HL)
-		LD		(SpriteFlags),A
-		DEC		HL
-		EX		AF,AF'
-		XOR		(HL)
-		JP		LADB7
+
+;; TODO: HL points to an object + 2
+CA1F0:		INC	HL
+		INC	HL
+		LD	A,(HL)
+        ;; A = (object[4] & 0x10) ? 0x80 : 0x00
+CA1F3:		BIT	4,A
+		LD	A,$00
+		JR	Z,LA1FB
+		LD	A,$80
+LA1FB:		EX	AF,AF'
+		INC	HL
+		CALL	UVZtoXY 	; Called with object + 5
+		INC	HL
+		INC	HL      	; Now at object + 10
+		LD	A,(HL)
+		LD	(SpriteFlags),A
+		DEC	HL
+		EX	AF,AF'
+		XOR	(HL)            ; Flip flag on top of offset 9?
+		JP	GetSprExtents   ; NB: Tail call
+
 CA20C:	LD		A,D
 		SUB		C
 		RET		NC
@@ -2472,21 +2490,24 @@ LA224:	LD		L,A
 		LD		A,C
 		SCF
 		RET
-CA231:	LD		A,(HL)
-		LD		D,A
-		INC		HL
-		LD		E,(HL)
-		SUB		E
-		ADD		A,$80
-		LD		C,A
-		INC		HL
-		LD		A,(HL)
-		ADD		A,A
-		SUB		E
-		SUB		D
-		ADD		A,$7F
-		LD		B,A
-		RET
+
+;; Given HP pointing to an Object + 5, return X coordinate
+;; in C, Y coordinate in B. Increments HL by 3.
+UVZtoXY:        LD      A,(HL)
+                LD      D,A             ; U coordinate
+                INC     HL
+                LD      E,(HL)          ; V coordinate
+                SUB     E
+                ADD     A,$80           ; U - V + 128 = X coordinate
+                LD      C,A
+                INC     HL
+                LD      A,(HL)          ; Z coordinate
+                ADD     A,A
+                SUB     E
+                SUB     D
+                ADD     A,$7F
+                LD      B,A             ; 2 * Z - U - V + 127 = Y coordinate
+                RET
 
 	;; Fetch bit-packed data.
 	;; Expects number of bits in B.
@@ -3106,70 +3127,83 @@ RevLoop_2:	RRA
 		JR	NZ,RevLoop_1
 		RET
 
-LADB7:		LD	(SpriteCode),A
-		AND	$7F
-		CP	$10
-		JR	C,LADF4
-		LD	DE,L0606
-		LD	H,$12
-		CP	$54
-		JR	C,LADCE
-		LD	DE,L0808
-		LD	H,$14
-LADCE:	CP		$18
-		JR	NC,LADE1
-		LD	A,(SpriteFlags)
-		AND	$02
-		LD	D,$04
-		LD	H,$0C
-		JR	Z,LADE1
-		LD	D,$00
-		LD	H,$10
-LADE1:	LD		A,B
-		ADD	A,D
-		LD	L,A
-		SUB	D
-		SUB	H
-		LD	H,A
-		LD	A,C
-		ADD	A,E
-		LD	C,A
-		SUB	E
-		SUB	E
-		LD	B,A
-		LD	A,E
-		AND	A
-		RRA
-		LD	(SpriteWidth),A
-		RET
-LADF4:	LD		HL,(DoorwayThing+1)
-		INC	HL
-		INC	HL
-		BIT	5,(HL)
-		EX	AF,AF'
-		LD	A,(HL)
-		SUB	$10
-		CP	$20
-		LD	L,$04
-		JR	NC,LAE07
-		LD	L,$08
-LAE07:	LD		A,B
-		ADD	A,L
-		LD	L,A
-		SUB	$38
-		LD	H,A
-		EX	AF,AF'
-		LD	A,C
-		LD	B,$08
-		JR	NZ,LAE15
-		LD	B,$04
-LAE15:	ADD		A,B
-		LD	C,A
-		SUB	$0C
-		LD	B,A
-		LD	A,$03
-		LD	(SpriteWidth),A
-		RET
+;; Generates the X and Y extents, and sets the sprite code and sprite
+;; width.
+;;
+;; Parameters: Sprite code is passed in in A.
+;;             X coordinate in C, Y coordinate in B
+;; Returns: X extent in BC, Y extent in HL
+GetSprExtents:  LD      (SpriteCode),A
+                AND     $7F
+                CP      $10
+                JR      C,Case3x56      ; Codes < $10 are 3x56
+                LD      DE,L0606
+                LD      H,$12
+                CP      $54
+                JR      C,SSW1
+                LD      DE,L0808        ; Codes >= $54 are 4x28
+                LD      H,$14
+SSW1:           CP      $18
+                JR      NC,SSW2
+                LD      A,(SpriteFlags) ; 3x24 or 4x28
+                AND     $02
+                LD      D,$04
+                LD      H,$0C
+                JR      Z,SSW2
+                LD      D,$00
+                LD      H,$10
+        ;; All cases but 3x56 join up here:
+        ;; D is Y extent down, H is Y extent up
+        ;; E is half-width (in double pixels)
+        ;; 4x28: D = 8, E = 8, H = 20
+        ;; 3x24: D = 6, E = 6, H = 18
+        ;; 3x32: D = 4, E = 6, H = 12 if flags & 2
+        ;; 3x32: D = 0, E = 6, H = 16 otherwise
+SSW2:           LD      A,B
+                ADD     A,D
+                LD      L,A             ; L = B + D
+                SUB     D
+                SUB     H
+                LD      H,A             ; H = B - H
+                LD      A,C
+                ADD     A,E
+                LD      C,A             ; C = C + E
+                SUB     E
+                SUB     E
+                LD      B,A             ; B = C - 2*E
+                LD      A,E
+                AND     A
+                RRA                     ; And save width in bytes to SpriteWidth
+                LD      (SpriteWidth),A
+                RET
+Case3x56:       LD      HL,(CurrObject2+1)
+                INC     HL
+                INC     HL
+                BIT     5,(HL)          ; Check flag bit 0x20 for later
+                EX      AF,AF'
+                LD      A,(HL)
+                SUB     $10
+                CP      $20
+                LD      L,$04
+                JR      NC,C356_1
+                LD      L,$08
+C356_1:         LD      A,B             ; L = (Flag - $10) >= $20 ? 8 : 4
+                ADD     A,L
+                LD      L,A             ; L = B + L
+                SUB     $38
+                LD      H,A             ; H = L - 56
+                EX      AF,AF'
+                LD      A,C
+                LD      B,$08
+                JR      NZ,C356_2
+                LD      B,$04
+C356_2:         ADD     A,B             ; B = (Flag & 0x20) ? 8 : 4
+                LD      C,A             ; C = C + B
+                SUB     $0C
+                LD      B,A             ; B = C - 12
+                LD      A,$03           ; Always 3 bytes wide.
+                LD      (SpriteWidth),A
+                RET
 
 #include "get_sprite.asm"
 	
@@ -3178,7 +3212,7 @@ LAF5B:	DEFB $1B		; Reinitialisation size
 
 	DEFB $00
 	DEFW LBA40
-	DEFW LAF7E
+	DEFW ObjList3
 	DEFW ObjectList
 	DEFW $0000
 	DEFW $0000
@@ -3189,14 +3223,14 @@ LAF5B:	DEFB $1B		; Reinitialisation size
 
 LAF77:	DEFB $00
 LAF78:	DEFW LBA40
-LAF7A:	DEFW LAF7E
+LAF7A:	DEFW ObjList3
 LAF7C:	DEFW ObjectList
-LAF7E:	DEFW $0000
+ObjList3:	DEFW $0000
 ObjectList:	DEFW $0000
 LAF82:	DEFW $0000,$0000
-LAF86:	DEFW $0000,$0000
-LAF8A:	DEFW $0000,$0000
-LAF8E:	DEFW $0000,$0000
+ObjList1:	DEFW $0000,$0000
+ObjList2:	DEFW $0000,$0000
+ObjList4:	DEFW $0000,$0000
 	
 LAF92:	DEFW LBA40
 LAF94:	DEFW $0000
@@ -3234,11 +3268,12 @@ CAFAB:	LD		HL,L0012
 		LDI
 LAFC4:	POP		HL
 		RET
-LAFC6:	PUSH	HL
+        ;; HL points to an object
+LAFC6:		PUSH	HL
 		PUSH	BC
 		INC		HL
 		INC		HL
-		CALL	CA1BD
+		CALL	CA1BD   ; HL now contains an object + 2
 		POP		BC
 		POP		HL
 		RET		NC
@@ -3716,7 +3751,7 @@ PostTableCall:    EXX
                         POP             IX
                         BIT             2,C
                         JR              NZ,LB269
-                        LD              HL,LAF7E
+                        LD              HL,ObjList3
 LB257:    LD              A,(HL)
                         INC             HL
                         LD              H,(HL)

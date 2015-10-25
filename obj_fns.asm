@@ -10,18 +10,29 @@
 
 	;; ObjectList appears to be head of a linked list:
 	;; Offset 0: Next item (null == end)
+        ;; Offset 2: Another list?
 	;; Offset 4: Some flag - bit 6 and 7 causes skipping. Bit 6 = carryable?
-	;; Offset 5: X/Y coordinate
-	;; Offset 6: Y/X coordinate
+	;; Offset 5: U coordinate
+	;; Offset 6: V coordinate
 	;; Offset 7: Z coordinate, C0 = ground
 	;; Offset 8: Its sprite
-	;; ...?
+	;; Offset 9: Gets used as a sprite code???
 	;; Offset A: Top bit is flag that's checked against Phase, lower bits are object function.
+        ;;           Gets loaded into SpriteFlags
 	;; Offset B: Some form of direction mask?
 	;; Offset C: Some form of direction mask?
 	;; Offset 10: Direction code.
 	;; Hmmm. May be 17 bytes?
-	
+
+        ;; U/V coordinates: X/Y coordinates are used for screen space,
+        ;; so we'll use U/V/Z coordinates for the isometric space.
+        ;; V     U
+        ;;  \   /
+        ;;   \ /
+        ;;    *
+        ;;    |
+        ;;    Z
+        
 ObjFn30:	LD	A,(IY+$0C)
 		LD	(IY+$0C),$FF
 		OR	$F0
