@@ -5,7 +5,7 @@
 ;;
 
 ;; Exported functions:
-;; * BlitMask3of3
+;; * BlitMaskXofX
 
 ;; BlitMaskNofM does a masked blit into a destination buffer assumed 6 bytes wide.
 ;; The blit is from a source N bytes wide in a buffer M bytes wide.

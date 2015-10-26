@@ -355,6 +355,11 @@ Boolean label = xtrue;
             return;
         }
 
+        if (adr == 0xA19F) {
+            DebugStr("EEEEEK");
+            return;
+        }
+
         if(label)                       // ein Label setzen?
             OpcodesFlags[adr] |= 0x10;  // Label setzen
         if((OpcodesFlags[adr] & 0x0F) == Opcode) break; // Schleife erkannt!

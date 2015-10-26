@@ -90,7 +90,7 @@ L72F3:	PUSH	DE
 		LDIR
 L7305:		LD		HL,(LAF92) 	; NB: Referenced as data.
 		LD		(LAF78),HL
-		LD		HL,LAF82
+		LD		HL,ObjList5
 		LD		BC,L0008
 		JP		FillZero
 	
@@ -2040,7 +2040,7 @@ RemoveObject:	PUSH	HL
 C8D6F:	PUSH	IY
 		INC		HL
 		INC		HL
-		CALL	CA1D8
+		CALL	GetObjExtents2
 		EX		DE,HL
 		LD		H,B
 		LD		L,C
@@ -2158,8 +2158,8 @@ Attrib5:	DEFB $46
 	;; increase down and to the right.
 SpriteXExtent:	DEFW $6066
 SpriteYExtent:	DEFW $5070
-LA056:	DEFB $00
-SpriteByteCount:	DEFB $00
+SpriteXStart:	DEFB $00
+SpriteRowCount:	DEFB $00
 LA058:	DEFB $00
 LA059:	DEFB $00
 LA05A:	DEFB $00
@@ -2168,7 +2168,7 @@ SpriteFlags:	DEFB $00
 
 CA05D:		INC		HL
 		INC		HL
-		CALL	CA1D8
+		CALL	GetObjExtents2
 		LD		(LA058),BC
 		LD		(LA05A),HL
 		RET
@@ -2176,7 +2176,7 @@ CA05D:		INC		HL
 	
 CA06A:		INC		HL
 		INC		HL
-		CALL		CA1D8
+		CALL		GetObjExtents2
 		LD		DE,(LA05A)
 		LD		A,H
 		CP		D
@@ -2253,9 +2253,9 @@ LA0B6:		LD	(SpriteYExtent),DE
 		LD	A,(L84C7)
 		CP	D
 		JR	C,LA0EC
-		LD	HL,LAF82
+		LD	HL,ObjList5
 		PUSH	DE
-		CALL	CA11E
+		CALL	BlitObjects
 		POP	DE
 		BIT	2,E
 		JR	Z,LA109
@@ -2272,224 +2272,253 @@ LA0EC:		LD	BC,(SpriteXExtent)
 		CP	D
 		JR	C,LA109
 		LD	HL,ObjList1
-		CALL	CA11E
+		CALL	BlitObjects
 LA109:		LD	HL,ObjList2
-		CALL	CA11E
+		CALL	BlitObjects
 		LD	HL,ObjList3
-		CALL	CA11E
+		CALL	BlitObjects
 		LD	HL,ObjList4
-		CALL	CA11E
+		CALL	BlitObjects
 		JP	BlitScreen 	; NB: Tail call
 
-;; Call CA12F for each object in the linked list.
+;; Call BlitObject for each object in the linked list.
 ;; Note that we're using the second link, so the passed HL is an
 ;; object + 2.
-CA11E:		LD	A,(HL)
-		INC	HL
-		LD	H,(HL)
-		LD	L,A
-		OR	H
-		RET	Z
-		LD	(CurrObject2+1),HL	; Odd way to save an item!
-		CALL	CA12F
-CurrObject2:	LD	HL,L0000 		; NB: Self-modifying code
-		JR	CA11E
+BlitObjects:    LD      A,(HL)
+                INC     HL
+                LD      H,(HL)
+                LD      L,A
+                OR      H
+                RET     Z
+                LD      (CurrObject2+1),HL      ; Odd way to save an item!
+                CALL    BlitObject
+CurrObject2:    LD      HL,L0000                ; NB: Self-modifying code
+                JR      BlitObjects
 
-	;; TODO: This function is seriously epic...
-        ;; TODO: HL is a an object + 2
-CA12F:		CALL	CA1BD
-		RET	NC
-		LD	(SpriteByteCount),A
-		LD	A,H
-		ADD	A,A
-		ADD	A,H
-		ADD	A,A
-		EXX
-		SRL	H
-		SRL	H
-		ADD	A,H
-		LD	E,A
-		LD	D,SpriteBuff >> 8
-		PUSH	DE
-		PUSH	HL
-		EXX
-		LD		A,L
-		NEG
-		LD		B,A
-		LD		A,(SpriteWidth)
-		AND		$04
-		LD		A,B
-		JR		NZ,LA156
-		ADD		A,A
-		ADD		A,B
-		JR		LA158
-LA156:		ADD		A,A
-		ADD		A,A
-LA158:		PUSH	AF
-		CALL	GetSpriteAddr
-		POP		BC
-		LD		C,B
-		LD		B,$00
-		ADD		HL,BC
-		EX		DE,HL
-		ADD		HL,BC
-		LD		A,(LA056)
-		AND		$03
-		CALL	NZ,BlitRot
-		POP		BC
-		LD		A,C
-		NEG
-		ADD		A,$03
-		RRCA
-		RRCA
-		AND		$07
-		LD		C,A
-		LD		B,$00
-		ADD		HL,BC
-		EX		DE,HL
-		ADD		HL,BC
-		POP		BC
-		EXX
-		LD		A,(SpriteWidth)
-		SUB		$03
-		ADD		A,A
-		LD		E,A
-		LD		D,$00
-		LD		HL,LA19F
-		ADD		HL,DE
-		LD		E,(HL)
-		INC		HL
-		LD		D,(HL)
-		EX		AF,AF'
-		DEC		A
-		RRA
-		AND		$0E
-		LD		L,A
-		LD		H,$00
-		ADD		HL,DE
-		LD		A,(HL)
-		INC		HL
-		LD		H,(HL)
-		LD		L,A
-		LD		A,(SpriteByteCount)
-		LD		B,A
-		JP		(HL)
+;;  Set carry flag if there's overlap
+;;  X adjustments in HL', X overlap in A'
+;;  Y adjustments in HL,  Y overlap in A
+BlitObject:     CALL    IntersectObj
+                RET     NC              ; No intersection? Return
+                LD      (SpriteRowCount),A
+        ;; Find sprite blit destination:
+        ;; &SpriteBuff[Y-low * 6 + X-low / 4]
+        ;; (X coordinates are in 2-bit units, want byte coordinate)
+                LD      A,H
+                ADD     A,A
+                ADD     A,H
+                ADD     A,A
+                EXX
+                SRL     H
+                SRL     H
+                ADD     A,H
+                LD      E,A
+                LD      D,SpriteBuff >> 8
+        ;; Push destination.
+                PUSH    DE
+        ;; Push X adjustments
+                PUSH    HL
+                EXX
+        ;; A = SpriteWidth & 4 ? -L * 4: -L * 3
+        ;; (Where L is the Y-adjustment for the sprite)
+                LD      A,L
+                NEG
+                LD      B,A
+                LD      A,(SpriteWidth)
+                AND     $04
+                LD      A,B
+                JR      NZ,BO_1
+                ADD     A,A
+                ADD     A,B
+                JR      BO_2
+BO_1:           ADD     A,A
+                ADD     A,A
+BO_2:           PUSH    AF
+        ;; Image and mask addressed loaded, and then adjusted by A.
+                CALL    GetSpriteAddr
+                POP     BC
+                LD      C,B
+                LD      B,$00
+                ADD     HL,BC
+                EX      DE,HL
+                ADD     HL,BC
+        ;; Rotate the sprite if not byte-aligned.
+                LD      A,(SpriteXStart)
+                AND     $03
+                CALL    NZ,BlitRot
+        ;; Get X adjustment back.
+                POP     BC
+                LD      A,C
+                NEG
+        ;; Rounded up divide by 4 to get byte adjustment...
+                ADD     A,$03
+                RRCA
+                RRCA
+        ;; and apply to image and mask.
+                AND     $07
+                LD      C,A
+                LD      B,$00
+                ADD     HL,BC
+                EX      DE,HL
+                ADD     HL,BC
+        ;; Set it so thtat destination is in BC', image and mask in HL' and DE'.
+                POP     BC
+                EXX
+        ;; Load DE with an index from the blit functions table. This selects
+        ;; the subtable based on the sprite width.
+                LD      A,(SpriteWidth)
+                SUB     $03
+                ADD     A,A
+                LD      E,A
+                LD      D,$00
+                LD      HL,BlitMaskFns
+                ADD     HL,DE
+                LD      E,(HL)
+                INC     HL
+                LD      D,(HL)
+        ;; X overlap is still in A' from the IntersectObj call
+                EX      AF,AF'
+        ;; We use this to select the function within the subtable, which will
+        ;; blit over n bytes worth, depending on the overlap size...
+        ;;
+        ;; We convert the overlap in double pixels into the overlap in bytes,
+        ;; x2, to get the offset of the function in the table.
+                DEC     A
+                RRA
+                AND     $0E
+                LD      L,A
+                LD      H,$00
+                ADD     HL,DE
+                LD      A,(HL)
+                INC     HL
+                LD      H,(HL)
+                LD      L,A
+        ;; Call the blit function with number of rows in B, destination in
+        ;; BC', source in DE', mask in HL'
+                LD      A,(SpriteRowCount)
+                LD      B,A
+                JP      (HL)            ; Tail call to blitter...
 
-        
-LA19F:		AND		L 	; FIXME: Might just be data?!
-		AND		C
-		XOR		E
-		AND		C
-		OR		E
-		AND		C
-		DEC		H
-		SBC		A,D
-		LD		A,(L569A)
-		SBC		A,D
-		LD		A,C
-		SBC		A,D
-		SUB		B
-		SBC		A,D
-		XOR		(HL)
-		SBC		A,D
-		OUT		($9A),A
-		CP		$9A
-		RLA
-		SBC		A,E
-		SCF
-		SBC		A,E
-		LD		E,(HL)
-		SBC		A,E
-		ADC		A,E
-		SBC		A,E
-        ;; NB: Fall through
+BlitMaskFns:    DEFW BlitMasksOf1
+                DEFW BlitMasksOf2
+                DEFW BlitMasksOf3
+BlitMasksOf1:   DEFW BlitMask1of3, BlitMask2of3, BlitMask3of3
+BlitMasksOf2:   DEFW BlitMask1of4, BlitMask2of4, BlitMask3of4, BlitMask4of4
+BlitMasksOf3:   DEFW BlitMask1of5, BlitMask2of5, BlitMask3of5, BlitMask4of5, BlitMask5of5
 
-        ;; TODO: HL contains a object + 2
-CA1BD:		CALL	CA1F0
-		LD	A,B
-		LD	(LA056),A
-		PUSH	HL
-		LD	DE,(SpriteXExtent)
-		CALL	CA20C
-		EXX
-		POP	BC
-		RET	NC
-		EX	AF,AF'
-		LD	DE,(SpriteYExtent)
-		CALL	CA20C
-		RET
+;; Given an object, calculate the intersections with
+;; SpriteXExtent and SpriteYExtent. Also saves the X start in
+;; SpriteXStart.
+;;
+;; Parameters: HL contains object+2
+;; Returns:
+;;  Set carry flag if there's overlap
+;;  X adjustments in HL', X overlap in A'
+;;  Y adjustments in HL,  Y overlap in A
+IntersectObj:   CALL    GetObjExtents
+                LD      A,B
+                LD      (SpriteXStart),A
+                PUSH    HL
+                LD      DE,(SpriteXExtent)
+                CALL    IntersectExtent
+                EXX
+                POP     BC
+                RET     NC
+                EX      AF,AF'
+                LD      DE,(SpriteYExtent)
+                CALL    IntersectExtent
+                RET
 
+;; Like GetObjExtents, except if bit of flags is set, H is adjusted.
+;; If bit 5 is set, H is adjusted by -12, not set then -16
+;;
+;; Parameters: Object+2 in HL
+;; Returns: X extent in BC, Y extent in HL
+GetObjExtents2: INC     HL
+                INC     HL
+                LD      A,(HL)
+                BIT     3,A             ; object[4] & 0x08?
+                JR      Z,GOE_1         ; Tail call out if not set
+                CALL    GOE_1           ; Otherwise, call and return
+                LD      A,(SpriteFlags)
+                BIT     5,A
+                LD      A,-16
+                JR      Z,GOE2_1
+                LD      A,-12
+GOE2_1:         ADD     A,H
+                LD      H,A             ; Adjust H
+                RET
 
-	;; TODO: Like CA1F0, but does extra stuff if bit 3 is set.
-CA1D8:		INC	HL
-		INC	HL
-		LD	A,(HL)
-		BIT	3,A
-		JR	Z,CA1F3
-		CALL	CA1F3
-		LD	A,(SpriteFlags)
-		BIT	5,A
-		LD	A,-16
-		JR	Z,LA1ED
-		LD	A,-12
-LA1ED:		ADD	A,H
-		LD	H,A
-		RET
-
-;; TODO: HL points to an object + 2
-CA1F0:		INC	HL
-		INC	HL
-		LD	A,(HL)
+;; Sets SpriteFlags and generates extents for the object.
+;;
+;; Parameters: Object+2 in HL
+;; Returns: X extent in BC, Y extent in HL
+GetObjExtents:  INC     HL
+                INC     HL
+                LD      A,(HL)
         ;; A = (object[4] & 0x10) ? 0x80 : 0x00
-CA1F3:		BIT	4,A
-		LD	A,$00
-		JR	Z,LA1FB
-		LD	A,$80
-LA1FB:		EX	AF,AF'
-		INC	HL
-		CALL	UVZtoXY 	; Called with object + 5
-		INC	HL
-		INC	HL      	; Now at object + 10
-		LD	A,(HL)
-		LD	(SpriteFlags),A
-		DEC	HL
-		EX	AF,AF'
-		XOR	(HL)            ; Flip flag on top of offset 9?
-		JP	GetSprExtents   ; NB: Tail call
+GOE_1:          BIT     4,A
+                LD      A,$00
+                JR      Z,GOE_2
+                LD      A,$80
+GOE_2:          EX      AF,AF'
+                INC     HL
+                CALL    UVZtoXY         ; Called with object + 5
+                INC     HL
+                INC     HL              ; Now at object + 10
+                LD      A,(HL)
+                LD      (SpriteFlags),A
+                DEC     HL
+                EX      AF,AF'
+                XOR     (HL)            ; Flip flag on top of offset 9?
+                JP      GetSprExtents   ; NB: Tail call
 
-CA20C:	LD		A,D
-		SUB		C
-		RET		NC
-		LD		A,B
-		SUB		E
-		RET		NC
-		NEG
-		LD		L,A
-		LD		A,B
-		SUB		D
-		JR		C,LA224
-		LD		H,A
-		LD		A,C
-		SUB		B
-		LD		C,L
-		LD		L,$00
-		CP		C
-		RET		C
-		LD		A,C
-		SCF
-		RET
-LA224:	LD		L,A
-		LD		A,C
-		SUB		D
-		LD		C,A
-		LD		A,E
-		SUB		D
-		CP		C
-		LD		H,$00
-		RET		C
-		LD		A,C
-		SCF
-		RET
+;; Calculate parameters to do with overlapping extents
+;; Parameters:
+;;  BC holds extent of sprite
+;;  DE holds current extent
+;; Returns:
+;;  Sets carry flag if there's any overlap.
+;;  H holds the lower adjustment
+;;  L holds the upper adjustment
+;;  A holds the overlap size.
+IntersectExtent:
+        ;; Check overlap and return NC if there is none.
+                LD      A,D
+                SUB     C
+                RET     NC      ; C <= D, return
+                LD      A,B
+                SUB     E
+                RET     NC      ; E <= B, return
+        ;; There's overlap. Calculate it.
+                NEG
+                LD      L,A     ; L = E - B
+                LD      A,B
+                SUB     D       ; A = B - D
+                JR      C,IE_1
+        ;; B >= D case
+                LD      H,A     ; H = B - D
+                LD      A,C
+                SUB     B       ; A = C - B
+                LD      C,L     ; C = E - B
+                LD      L,$00   ; L = 0
+                CP      C       ; Return A = min(C - B, E - B)
+                RET     C
+                LD      A,C
+                SCF
+                RET
+IE_1:           LD      L,A     ; L = B - D
+                LD      A,C
+                SUB     D
+                LD      C,A     ; C = C - D
+                LD      A,E
+                SUB     D       ; A = E - D
+                CP      C
+                LD      H,$00   ; H = 0
+                RET     C       ; Return A = min(E - D, C - D)
+                LD      A,C
+                SCF
+                RET
 
 ;; Given HP pointing to an Object + 5, return X coordinate
 ;; in C, Y coordinate in B. Increments HL by 3.
@@ -3107,25 +3136,25 @@ LAD7C:	DEFB $90,$11,$C0,$E1,$B0,$00,$C0,$E2,$B0,$10,$00,$C1,$F0,$8B,$F0,$00
 LAD8C:	DEFB $30,$97,$20,$EF,$00,$1D,$00,$A8,$70,$BA,$00,$4E,$00,$88,$30,$1B
 LAD9C:	DEFB $00,$4C,$30,$39,$30,$8B,$30,$8D
 
-SpriteWidth:	DEFB $04	; Width of sprite in bytes.
+;; Width of sprite in bytes.
+SpriteWidth:    DEFB $04
+;; Current sprite we're drawing.
+SpriteCode:     DEFB $00
 
-	;; Current sprite we're drawing.
-SpriteCode:	DEFB $00
+RevTable:       EQU $B900
 
-RevTable:	EQU $B900
-	
-	;; Initialise a look-up table of byte reverses.
-InitRevTbl:	LD	HL,RevTable
-RevLoop_1:	LD	C,L
-		LD	A,$01
-		AND	A
-RevLoop_2:	RRA
-		RL	C
-		JR	NZ,RevLoop_2
-		LD	(HL),A
-		INC	L
-		JR	NZ,RevLoop_1
-		RET
+;; Initialise a look-up table of byte reverses.
+InitRevTbl:     LD      HL,RevTable
+RevLoop_1:      LD      C,L
+                LD      A,$01
+                AND     A
+RevLoop_2:      RRA
+                RL      C
+                JR      NZ,RevLoop_2
+                LD      (HL),A
+                INC     L
+                JR      NZ,RevLoop_1
+                RET
 
 ;; Generates the X and Y extents, and sets the sprite code and sprite
 ;; width.
@@ -3227,7 +3256,7 @@ LAF7A:	DEFW ObjList3
 LAF7C:	DEFW ObjectList
 ObjList3:	DEFW $0000
 ObjectList:	DEFW $0000
-LAF82:	DEFW $0000,$0000
+ObjList5:	DEFW $0000,$0000
 ObjList1:	DEFW $0000,$0000
 ObjList2:	DEFW $0000,$0000
 ObjList4:	DEFW $0000,$0000
@@ -3273,7 +3302,7 @@ LAFC6:		PUSH	HL
 		PUSH	BC
 		INC		HL
 		INC		HL
-		CALL	CA1BD   ; HL now contains an object + 2
+		CALL	IntersectObj   ; HL now contains an object + 2
 		POP		BC
 		POP		HL
 		RET		NC

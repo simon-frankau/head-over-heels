@@ -14,7 +14,7 @@
 ;; A' is incremented.
 ;;
 ;; The sprite width and number of bytes are read from SpriteWidth and
-;; SpriteByteCount. SpriteWidth is incremented.
+;; SpriteRowCount. SpriteWidth is incremented.
 ;; Uses 'Buffer'.
 BlitRot:        DEC     A
                 ADD     A,A
@@ -42,7 +42,7 @@ BR_1:           ADD     HL,BC
                 EX      AF,AF'
                 PUSH    AF
         ;; Time to rotate the sprite.
-                LD      A,(SpriteByteCount)
+                LD      A,(SpriteRowCount)
                 PUSH    DE
                 LD      DE,Buffer
                 LD      B,$00           ; Blank space in the filler.
@@ -52,7 +52,7 @@ BR_2:           CALL    L0000           ; NB: Target of self-modifying code.
                 POP     HL
                 PUSH    DE
         ;; And to rotate the mask.
-                LD      A,(SpriteByteCount)
+                LD      A,(SpriteRowCount)
                 LD      B,$FF           ; Appropriate filler for the mask.
 BR_3:           CALL    L0000           ; NB: Target of self-modifying code.
                 LD      HL,Buffer
