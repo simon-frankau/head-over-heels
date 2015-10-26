@@ -20,12 +20,8 @@
 	;; C8CD6
 	;; C8CF0
 	;; C8D7F
-	;; DrawScreenPeriphery
-	;; CA05D
-	;; CA0A5
 	;; LA316
 	;; CAA74
-	;; GetStoodUpon
 	;; CAC41
 	;; CAF96
 	;; CB010
@@ -295,9 +291,9 @@ CharThing21:	LD	IY,HeelsObj
 		LD	(LA2DA),A
 		RES	3,(IY+$16)
 		LD	HL,HeadObj
-		CALL	CA05D
+		CALL	StoreObjExtents
 		LD	HL,HeadObj
-		CALL	CA0A5
+		CALL	UnionAndDraw
 		POP	AF
 EPIC_29:	POP	HL
 		RR	L
@@ -306,9 +302,9 @@ EPIC_29:	POP	HL
 		LD	(LA2C8),A
 		RES	3,(IY+$04)
 		LD	HL,HeelsObj
-		CALL	CA05D
+		CALL	StoreObjExtents
 		LD	HL,HeelsObj
-		JP	CA0A5			; NB: Tail call
+		JP	UnionAndDraw			; NB: Tail call
 	
 CharThing3:	AND	$01
 		RLCA
@@ -328,7 +324,7 @@ CharThing4:	CALL	GetCharObj
 		LD	A,(LA2BC)
 		CALL	CAF96
 		CALL	GetCharObj
-		CALL	CA05D
+		CALL	StoreObjExtents
 		LD	HL,LA29F
 		LD	A,(HL)
 		AND	A
@@ -466,7 +462,7 @@ CharThing26:	LD	A,(LA2BF)
 		XOR	A
 		CALL	CAF96
 		CALL	GetCharObj
-		CALL	CA0A5
+		CALL	UnionAndDraw
 		JP	PlayOtherSound 		; NB: Tail call
 	
 CharThing5:	LD	HL,LA315
@@ -759,7 +755,7 @@ CarryLoop:	CALL	GetCharObj
 		CALL	GetCharObj
 		CALL	CAA74
 		CALL	GetCharObj
-		JP	CA05D
+		JP	StoreObjExtents
 NoDrop:		LD	(IY+$07),C 		; Restore old value
 		JP	NopeNoise		; Tail call
 

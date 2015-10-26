@@ -567,7 +567,7 @@ C92A6:	LD		A,(L8ED8)
 		OR		$01
 		LD		(L8ED8),A
 		LD		HL,(CurrObject)
-		JP		CA05D
+		JP		StoreObjExtents
 C92B7:	LD		(IY+$0C),$FF
 		LD		A,(L8ED8)
 		AND		A
@@ -576,7 +576,7 @@ C92B7:	LD		(IY+$0C),$FF
 		LD		HL,(CurrObject)
 		CALL	CB0BE
 		LD		HL,(CurrObject)
-		JP		CA0A5
+		JP		UnionAndDraw
 C92CF:	CALL	C937E
 C92D2:	CALL	C82C9
 		RET		NC

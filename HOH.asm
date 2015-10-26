@@ -175,7 +175,7 @@ C7395:		LD	A,$08
 		LD	DE,L4857
 L73A0:		PUSH	HL
 		PUSH	DE
-		CALL	CA098
+		CALL	CheckYAndDraw
 		POP	DE
 		POP	HL
 		LD	H,L
@@ -2044,7 +2044,7 @@ C8D6F:	PUSH	IY
 		EX		DE,HL
 		LD		H,B
 		LD		L,C
-		CALL	CA0A8
+		CALL	CheckAndDraw
 		POP		IY
 		RET
 	

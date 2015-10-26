@@ -140,7 +140,7 @@ CP_1:		CALL	GetInputEntSh
 		LD	HL,L4C50
 CP_2:		PUSH	HL
 		LD	DE,L6088
-		CALL	CA0A8
+		CALL	CheckAndDraw
 		POP	HL
 		LD	A,L
 		LD	H,A

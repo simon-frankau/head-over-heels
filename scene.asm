@@ -5,10 +5,10 @@
 ;;
 
 ;; Exported functions:
-;; * CA05D
-;; * CA098
-;; * CA0A5
-;; * CA0A8
+;; * StoreObjExtents
+;; * CheckYAndDraw
+;; * UnionAndDraw
+;; * CheckAndDraw
 ;; * GetObjExtents2
 
 ;; Exported variables:
@@ -18,134 +18,153 @@
 ;; * SpriteRowCount
 ;; * CurrObject2
 
-        
-        ;; LSB is upper extent, MSB is lower extent
-        ;; X extent is in screen units (2 pixels per unit). Units
-	;; increase down and to the right.
-ViewXExtent:	DEFW $6066
-ViewYExtent:	DEFW $5070
-SpriteXStart:	DEFB $00
-SpriteRowCount:	DEFB $00
-LA058:	DEFB $00
-LA059:	DEFB $00
-LA05A:	DEFB $00
-LA05B:	DEFB $00
-SpriteFlags:	DEFB $00
+;; Sprite variables
+;;
+;; LSB is upper extent, MSB is lower extent
+;; X extent is in screen units (2 pixels per unit). Units
+;; increase down and to the right.
+ViewXExtent:    DEFW $6066
+ViewYExtent:    DEFW $5070
+SpriteXStart:   DEFB $00
+SpriteRowCount: DEFB $00
+ObjXExtent:     DEFW $0000
+ObjYExtent:     DEFW $0000
+SpriteFlags:    DEFB $00
 
-CA05D:		INC		HL
-		INC		HL
-		CALL	GetObjExtents2
-		LD		(LA058),BC
-		LD		(LA05A),HL
-		RET
+;; Given an object pointer in HL, calculate and store the object extents.
+StoreObjExtents:INC     HL
+                INC     HL
+                CALL    GetObjExtents2
+                LD      (ObjXExtent),BC
+                LD      (ObjYExtent),HL
+                RET
 
-	
-CA06A:		INC		HL
-		INC		HL
-		CALL		GetObjExtents2
-		LD		DE,(LA05A)
-		LD		A,H
-		CP		D
-		JR		NC,LA078
-		LD		D,H
-LA078:		LD		A,E
-		CP		L
-		JR		NC,LA07D
-		LD		E,L
-LA07D:		LD		HL,(LA058)
-		LD		A,B
-		CP		H
-		JR		NC,LA085
-		LD		H,B
-LA085:		LD		A,L
-		CP		C
-		RET		NC
-		LD		L,C
-		RET
+;; Takes object in HL, gets union of the extents of that object and
+;; Obj.Extent. Returns X extent in DE, Y extent in HL.
+UnionExtents:   INC     HL
+                INC     HL
+                CALL    GetObjExtents2
+        ;; At this point, X extent in BC, Y extent in HL.
+                LD      DE,(ObjYExtent)
+        ;; D = min(D, H)
+                LD      A,H
+                CP      D
+                JR      NC,LA078
+                LD      D,H
+        ;; E = max(E, L)
+LA078:          LD      A,E
+                CP      L
+                JR      NC,LA07D
+                LD      E,L
+LA07D:          LD      HL,(ObjXExtent)
+        ;; H = min(B, H)
+                LD      A,B
+                CP      H
+                JR      NC,LA085
+                LD      H,B
+        ;; L = max(C, L)
+LA085:          LD      A,L
+                CP      C
+                RET     NC
+                LD      L,C
+                RET
 
-;;;  TODO: This section looks like full screen drawing.
-        
 ;; Store X extent, rounded, from HL
-PutXExtent:	LD	A,L 		; Round L up
-		ADD	A,$03
-		AND	~$03
-		LD	L,A
-		LD	A,H
-		AND	~$03    	; Round H down
-		LD	H,A
-		LD	(ViewXExtent),HL
-		RET
+PutXExtent:     LD      A,L             ; Round L up
+                ADD     A,$03
+                AND     ~$03
+                LD      L,A
+                LD      A,H
+                AND     ~$03            ; Round H down
+                LD      H,A
+                LD      (ViewXExtent),HL
+                RET
 
+;; Takes X extent in HL and Y extent in DE.
+CheckYAndDraw:  CALL    PutXExtent
+                JR      CheckYAndDraw2
 
-CA098:		CALL	PutXExtent
-		JR	LA0AF
+;; If the end's before $48, give up, Otherwise bump the start down and
+;; continue.
+BumpYMinAndDraw:LD      A,$48
+                CP      E
+                RET     NC
+                LD      D,$48
+                JR      DrawCore
 
-LA09D:		LD	A,$48
-		CP	E
-		RET	NC
-		LD	D,$48
-		JR	LA0B6
-
-CA0A5:		CALL	CA06A
+UnionAndDraw:   CALL    UnionExtents
         ;; NB: Fall through
 
-CA0A8:		CALL	PutXExtent
-		LD	A,E
-		CP	$F1
-		RET	NC
-LA0AF:		LD	A,D
-		CP	E
-		RET	NC
-		CP	$48
-		JR	C,LA09D
+;; Check the X extent - give up if it's too far to the right.
+CheckAndDraw:   CALL    PutXExtent
+                LD      A,E
+                CP      $F1
+                RET     NC
+        ;; NB: Fall through
 
-LA0B6:		LD	(ViewYExtent),DE
-		CALL	DrawBkgnd
-		LD	A,(L7716)
-		AND	$0C
-		JR	Z,LA109
-		LD	E,A
-		AND	$08
-		JR	Z,LA0EC
-		LD	BC,(ViewXExtent)
-		LD	HL,L84C9
-		LD	A,B
-		CP	(HL)
-		JR	NC,LA0EC
-		LD	A,(ViewYExtent+1)
-		ADD	A,B
-		RRA
-		LD	D,A
-		LD	A,(L84C7)
-		CP	D
-		JR	C,LA0EC
-		LD	HL,ObjList5
-		PUSH	DE
-		CALL	BlitObjects
-		POP	DE
-		BIT	2,E
-		JR	Z,LA109
-LA0EC:		LD	BC,(ViewXExtent)
-		LD	A,(L84C9)
-		CP	C
-		JR	NC,LA109
-		LD	A,(ViewYExtent+1)
-		SUB	C
-		CCF
-		RRA
-		LD	D,A
-		LD	A,(L84C8)
-		CP	D
-		JR	C,LA109
-		LD	HL,ObjList1
-		CALL	BlitObjects
-LA109:		LD	HL,ObjList2
-		CALL	BlitObjects
-		LD	HL,ObjList3
-		CALL	BlitObjects
-		LD	HL,ObjList4
-		CALL	BlitObjects
-		JP	BlitScreen 	; NB: Tail call
+;; Check the Y extent - give up if it's negative.
+;; If the start's less than $48, do a special case.
+;; Takes Y extent in DE.
+CheckYAndDraw2: LD      A,D
+                CP      E
+                RET     NC
+                CP      $48
+                JR      C,BumpYMinAndDraw
+        ;; NB: Fall through
+
+;; The core drawing routine: Draw the background to the view buffer,
+;; draw the sprites, and then copy it to the screen.
+;;
+;; Y extent passed in through DE.
+;;
+;; TODO: Work out what all these flag variables are about...
+DrawCore:       LD      (ViewYExtent),DE
+                CALL    DrawBkgnd
+                LD      A,(L7716)
+                AND     $0C
+                JR      Z,DrC_2
+                LD      E,A
+                AND     $08
+                JR      Z,DrC_1
+                LD      BC,(ViewXExtent)
+                LD      HL,L84C9
+                LD      A,B
+                CP      (HL)
+                JR      NC,DrC_1
+                LD      A,(ViewYExtent+1)
+                ADD     A,B
+                RRA
+                LD      D,A
+                LD      A,(L84C7)
+                CP      D
+                JR      C,DrC_1
+                LD      HL,ObjList5
+                PUSH    DE
+                CALL    BlitObjects
+                POP     DE
+                BIT     2,E
+                JR      Z,DrC_2
+DrC_1:          LD      BC,(ViewXExtent)
+                LD      A,(L84C9)
+                CP      C
+                JR      NC,DrC_2
+                LD      A,(ViewYExtent+1)
+                SUB     C
+                CCF
+                RRA
+                LD      D,A
+                LD      A,(L84C8)
+                CP      D
+                JR      C,DrC_2
+                LD      HL,ObjList1
+                CALL    BlitObjects
+DrC_2:          LD      HL,ObjList2
+                CALL    BlitObjects
+                LD      HL,ObjList3
+                CALL    BlitObjects
+                LD      HL,ObjList4
+                CALL    BlitObjects
+                JP      BlitScreen              ; NB: Tail call
 
 ;; Call BlitObject for each object in the linked list.
 ;; Note that we're using the second link, so the passed HL is an
