@@ -96,12 +96,12 @@ DrawSprite:	PUSH	AF
 		LD	A,B
 		ADD	A,H
 		LD	E,A
-		LD	(SpriteYExtent),DE
+		LD	(ViewYExtent),DE
 		LD	A,C
 		LD	B,C
 		ADD	A,L
 		LD	C,A
-		LD	(SpriteXExtent),BC
+		LD	(ViewXExtent),BC
 		LD	A,L
 	;; Put width in bytes into L
 		RRCA
@@ -114,7 +114,7 @@ DrawSprite:	PUSH	AF
 	;; FIXME: Decode this lot.
 		LD	C,A
 		LD	A,H
-		LD	HL,SpriteBuff
+		LD	HL,ViewBuff
 DrS_1:		EX	AF,AF'
 		LD	B,C
 DrS_2:		LD	A,(DE)

@@ -10,14 +10,14 @@
 ;; Exported variables:
 ;; * BlitYOffset
 
-;; BlitScreen copies from SpriteBuff to the screen coordinates of
-;; SpriteYExtent and SpriteXExtent.
+;; BlitScreen copies from ViewBuff to the screen coordinates of
+;; ViewYExtent and ViewXExtent.
 ;;
-;; SpriteBuff must be arranged as 6 bytes wide, and the Y origin can
+;; ViewBuff must be arranged as 6 bytes wide, and the Y origin can
 ;; be adjusted by overwriting BlitYOffset.
 BlitScreen:
         ;; Construct X coordinate: 2 * (XHigh) - $80
-                LD      HL,(SpriteXExtent)
+                LD      HL,(ViewXExtent)
                 LD      A,H
                 SUB     $40
                 ADD     A,A
@@ -39,7 +39,7 @@ BlitScreen:
                 LD      D,(HL)
                 PUSH    DE              ; Push CoordLut[Width-1]
         ;; Construct height: (YHigh) - (YLow)
-                LD      HL,(SpriteYExtent)
+                LD      HL,(ViewYExtent)
                 LD      A,L
                 SUB     H
                 EX      AF,AF'
@@ -53,7 +53,7 @@ BlitYOffset:    SUB     $48             ; Target of self-modifying code
         ;; Height in B, $FF in C.
                 LD      B,A
                 LD      C,$FF
-                LD      HL,SpriteBuff
+                LD      HL,ViewBuff
         ;; Oooh, clever - tail call the blitter.
                 RET
 

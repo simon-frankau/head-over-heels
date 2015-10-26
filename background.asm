@@ -19,13 +19,13 @@
 ;;  * LeftAdj
 ;;  * RightAdj
 
-;; Given extents stored in SpriteXExtent and SpriteYExtent,
+;; Given extents stored in ViewXExtent and ViewYExtent,
 ;; draw the appropriate piece of screen background into
-;; SpriteBuff (to be drawn over and blitted to display later)
+;; ViewBuff (to be drawn over and blitted to display later)
 ;;
 ;; Despite ostensibly coping with varied X extents, the buffer to
 ;; write to is assumed to be 6 bytes wide.
-DrawBkgnd:      LD      HL,(SpriteXExtent)
+DrawBkgnd:      LD      HL,(ViewXExtent)
         ;; H contains start, L end, in double-pixels
                 LD      A,H
                 RRA
@@ -46,7 +46,7 @@ DrawBkgnd:      LD      HL,(SpriteXExtent)
                 AND     $07
                 SUB     $02
         ;; Oh, and destination buffer
-                LD      DE,SpriteBuff
+                LD      DE,ViewBuff
         ;; Below here, DE points at the sprite buffer, and HL' the
         ;; source data (two bytes per column pair). A contains number
         ;; of cols to draw.
@@ -101,7 +101,7 @@ SHORT_WALL:     EQU $38         ; The basic panels are 56 pixels high
 TALL_WALL:      EQU $4A         ; 74 pixels max height for columns (indices 4 and 5)
 
 ;; Call inputs:
-;; * Reads from SpriteYExtent
+;; * Reads from ViewYExtent
 ;; * Takes in:
 ;;   HL' - Floor drawing function
 ;;   IX  - Copying function (takes #rows in A, writes to DE' and updates it)
@@ -111,7 +111,7 @@ TALL_WALL:      EQU $4A         ; 74 pixels max height for columns (indices 4 an
 ;;           Byte 1: Id for wall panel sprite
 ;;                   (0-3 - world-specific, 4 - blank, 5 - columns, | $80 to flip)
 ;; Note that the Y coordinates are downward-increasing, matching memory.
-BkgndCall2:     LD      DE,(SpriteYExtent)
+BkgndCall2:     LD      DE,(ViewYExtent)
                 LD      A,E
                 SUB     D
                 LD      E,A             ; E now contains height

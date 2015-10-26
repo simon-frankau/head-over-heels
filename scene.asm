@@ -5,26 +5,25 @@
 ;;
 
 ;; Exported functions:
-        ;; * CA05D
-        ;; * CA098
+;; * CA05D
+;; * CA098
 ;; * CA0A5
-        ;; * CA0A8
-        ;; * GetObjExtents2
-        
+;; * CA0A8
+;; * GetObjExtents2
 
-        ;; Exported variables:
-        ;; * SpriteXExtent
-        ;; * SpriteYExtent
-        ;; * SpriteFlags
-        ;; * SpriteRowCount
-        ;; * CurrObject2
+;; Exported variables:
+;; * ViewXExtent
+;; * ViewYExtent
+;; * SpriteFlags
+;; * SpriteRowCount
+;; * CurrObject2
 
         
         ;; LSB is upper extent, MSB is lower extent
         ;; X extent is in screen units (2 pixels per unit). Units
 	;; increase down and to the right.
-SpriteXExtent:	DEFW $6066
-SpriteYExtent:	DEFW $5070
+ViewXExtent:	DEFW $6066
+ViewYExtent:	DEFW $5070
 SpriteXStart:	DEFB $00
 SpriteRowCount:	DEFB $00
 LA058:	DEFB $00
@@ -74,7 +73,7 @@ PutXExtent:	LD	A,L 		; Round L up
 		LD	A,H
 		AND	~$03    	; Round H down
 		LD	H,A
-		LD	(SpriteXExtent),HL
+		LD	(ViewXExtent),HL
 		RET
 
 
@@ -100,7 +99,7 @@ LA0AF:		LD	A,D
 		CP	$48
 		JR	C,LA09D
 
-LA0B6:		LD	(SpriteYExtent),DE
+LA0B6:		LD	(ViewYExtent),DE
 		CALL	DrawBkgnd
 		LD	A,(L7716)
 		AND	$0C
@@ -108,12 +107,12 @@ LA0B6:		LD	(SpriteYExtent),DE
 		LD	E,A
 		AND	$08
 		JR	Z,LA0EC
-		LD	BC,(SpriteXExtent)
+		LD	BC,(ViewXExtent)
 		LD	HL,L84C9
 		LD	A,B
 		CP	(HL)
 		JR	NC,LA0EC
-		LD	A,(SpriteYExtent+1)
+		LD	A,(ViewYExtent+1)
 		ADD	A,B
 		RRA
 		LD	D,A
@@ -126,11 +125,11 @@ LA0B6:		LD	(SpriteYExtent),DE
 		POP	DE
 		BIT	2,E
 		JR	Z,LA109
-LA0EC:		LD	BC,(SpriteXExtent)
+LA0EC:		LD	BC,(ViewXExtent)
 		LD	A,(L84C9)
 		CP	C
 		JR	NC,LA109
-		LD	A,(SpriteYExtent+1)
+		LD	A,(ViewYExtent+1)
 		SUB	C
 		CCF
 		RRA
@@ -169,7 +168,7 @@ BlitObject:     CALL    IntersectObj
                 RET     NC              ; No intersection? Return
                 LD      (SpriteRowCount),A
         ;; Find sprite blit destination:
-        ;; &SpriteBuff[Y-low * 6 + X-low / 4]
+        ;; &ViewBuff[Y-low * 6 + X-low / 4]
         ;; (X coordinates are in 2-bit units, want byte coordinate)
                 LD      A,H
                 ADD     A,A
@@ -180,7 +179,7 @@ BlitObject:     CALL    IntersectObj
                 SRL     H
                 ADD     A,H
                 LD      E,A
-                LD      D,SpriteBuff >> 8
+                LD      D,ViewBuff >> 8
         ;; Push destination.
                 PUSH    DE
         ;; Push X adjustments
@@ -274,7 +273,7 @@ BlitMasksOf2:   DEFW BlitMask1of4, BlitMask2of4, BlitMask3of4, BlitMask4of4
 BlitMasksOf3:   DEFW BlitMask1of5, BlitMask2of5, BlitMask3of5, BlitMask4of5, BlitMask5of5
 
 ;; Given an object, calculate the intersections with
-;; SpriteXExtent and SpriteYExtent. Also saves the X start in
+;; ViewXExtent and ViewYExtent. Also saves the X start in
 ;; SpriteXStart.
 ;;
 ;; Parameters: HL contains object+2
@@ -286,13 +285,13 @@ IntersectObj:   CALL    GetObjExtents
                 LD      A,B
                 LD      (SpriteXStart),A
                 PUSH    HL
-                LD      DE,(SpriteXExtent)
+                LD      DE,(ViewXExtent)
                 CALL    IntersectExtent
                 EXX
                 POP     BC
                 RET     NC
                 EX      AF,AF'
-                LD      DE,(SpriteYExtent)
+                LD      DE,(ViewYExtent)
                 CALL    IntersectExtent
                 RET
 

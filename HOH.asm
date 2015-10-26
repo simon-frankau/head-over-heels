@@ -19,7 +19,7 @@
 
 MAGIC_OFFSET:	EQU 360 	; The offset high data is moved down by...
 	
-SpriteBuff:	EQU $B800
+ViewBuff:	EQU $B800
 
 	;; The buffer into which we draw the columns doors stand on
 ColBuf:		EQU $F944
@@ -380,9 +380,9 @@ C774D:		LD		A,$FF
 DrawScreen:	LD	IY,L7718 		; FIXME: ???
 	;; Initialise the sprite extents to cover the full screen.
 		LD	HL,L40C0
-		LD	(SpriteXExtent),HL
+		LD	(ViewXExtent),HL
 		LD	HL,L00FF
-		LD	(SpriteYExtent),HL
+		LD	(ViewYExtent),HL
 	;;  FIXME: ???
 		LD	HL,LC0C0
 		LD	(L7748),HL

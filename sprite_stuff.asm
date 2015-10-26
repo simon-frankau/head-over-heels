@@ -132,7 +132,7 @@ Draw3x24:	LD	L,$00
 		CALL	SetExtents3x24
 		CALL	ClearSpriteBuf
 		CALL	GetSpriteAddr
-		LD	BC,SpriteBuff
+		LD	BC,ViewBuff
 		EXX
 		LD	B,$18
 		CALL	BlitMask3of3
@@ -149,11 +149,11 @@ SetExtents3x24:	LD	H,C
 		LD	A,H
 		ADD	A,$0C
 		LD	L,A
-		LD	(SpriteXExtent),HL
+		LD	(ViewXExtent),HL
 		LD	A,B
 		ADD	A,$18
 		LD	C,A
-		LD	(SpriteYExtent),BC
+		LD	(ViewYExtent),BC
 		RET
 
 	;; Draw a 3 byte x 32 row sprite on clear background.
@@ -162,17 +162,17 @@ Draw3x32:	LD	(SpriteCode),A
 		CALL	SetExtents3x24
 		LD	A,B
 		ADD	A,$20
-		LD	(SpriteYExtent),A	; Set adjusted extents.
+		LD	(ViewYExtent),A		; Set adjusted extents.
 		CALL	ClearSpriteBuf 		; Clear buffer
 		LD	A,$02
 		LD	(SpriteFlags),A 	; FIXME: ?
 		CALL	GetSpriteAddr
-		LD	BC,SpriteBuff
+		LD	BC,ViewBuff
 		EXX
 		LD	B,$20
 		CALL	BlitMask3of3 		; Draw into buffer.
 		JP	BlitScreen		; Buffer to screen.
 
-ClearSpriteBuf:	LD	HL,SpriteBuff
+ClearSpriteBuf:	LD	HL,ViewBuff
 		LD	BC,L0100
 		JP	FillZero 	; Tail call
