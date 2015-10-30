@@ -77,7 +77,7 @@ EndThing:	LD	A,D
 		CALL	SetBit
 		LD	B,$C1
 		CALL	PlaySound
-		JP	L8D9E			; FIXME: Tail call to end screen thing
+		JP	EndScreen		; FIXME: Tail call to end screen thing
 
 	;; FIXME: Decode!
 	;; NB: Not directly called from any code I've seen!

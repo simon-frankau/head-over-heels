@@ -29,7 +29,7 @@ Main:		LD	SP,$FFF4
 		JR	MainStart
 MainContinue:	CALL	AltPlaySound
 		CALL	InitContinue
-MainStart:	CALL	C8DC2
+MainStart:	CALL	CrownScreen
 		LD	A,$40
 		LD	(L8F18),A
 MainB:		XOR	A
