@@ -9,8 +9,8 @@
         ;; * UpdateAttribs
 
         ;; Exported variables:
-        ;; * Attrib1
-        ;; * Attrib2
+        ;; * AttribL
+        ;; * AttribR
         ;; * LastOut
         
 	;; FIXME: Give the schemes nicer names, generally polish
@@ -69,7 +69,7 @@ SetAttribs:	LD	C,A
 		LD	E,(HL)
 		INC	HL
 		LD	D,(HL)
-		LD	(Attrib1),DE 	; Writes out Attrib2 at the same time
+		LD	(AttribL),DE 	; Writes out AttribR at the same time
 		LD	DE,Attrib3
 		INC	HL
 		LDI			; Write out Attrib3
@@ -85,5 +85,6 @@ AttribLoop:	LD	(HL),C
 		JR	C,AttribLoop
 		RET
 
-Attrib1:	DEFB $00
-Attrib2:	DEFB $00
+;; AttribL is used for the left-hand play area edge, AttribR the right.
+AttribL:        DEFB $00
+AttribR:        DEFB $00

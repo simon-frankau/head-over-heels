@@ -14,7 +14,8 @@
 ;; ViewYExtent and ViewXExtent.
 ;;
 ;; ViewBuff must be arranged as 6 bytes wide, and the Y origin can
-;; be adjusted by overwriting BlitYOffset.
+;; be adjusted by overwriting BlitYOffset. The X origin is always
+;; fixed at 0x40 in double-width pixels.
 BlitScreen:
         ;; Construct X coordinate: 2 * (XHigh) - $80
                 LD      HL,(ViewXExtent)
