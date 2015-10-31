@@ -49,21 +49,21 @@ UnionExtents:   INC     HL
         ;; D = min(D, H)
                 LD      A,H
                 CP      D
-                JR      NC,LA078
+                JR      NC,UE_1
                 LD      D,H
         ;; E = max(E, L)
-LA078:          LD      A,E
+UE_1:           LD      A,E
                 CP      L
-                JR      NC,LA07D
+                JR      NC,UE_2
                 LD      E,L
-LA07D:          LD      HL,(ObjXExtent)
+UE_2:           LD      HL,(ObjXExtent)
         ;; H = min(B, H)
                 LD      A,B
                 CP      H
-                JR      NC,LA085
+                JR      NC,UE_3
                 LD      H,B
         ;; L = max(C, L)
-LA085:          LD      A,L
+UE_3:           LD      A,L
                 CP      C
                 RET     NC
                 LD      L,C
