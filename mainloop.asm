@@ -1,10 +1,31 @@
-	;;
-	;;  mainloop.asm
-	;;
-	;;  The main game loop and some associated functions
-	;;
-	
-	;; Main entry point
+;;
+;;  mainloop.asm
+;;
+;;  The main game loop and some associated functions
+;;
+
+;; Exported functions:
+;;  * SetCharThing
+;;  * C728C
+;;  * SetSens
+;;  * C708B
+;;  * NopeNoise
+;;  * FirePresed
+;;  * L70BA
+;;  * FinishGame
+;;  * SwitchChar
+;;  * L70E6
+
+;; Exported variables:
+;;  * L703B
+;;  * Phase
+;;  * CurrDir
+;;  * CarryPressed
+;;  * SwopPressed
+;;  * FirePressed
+;;  * FrameCounter
+
+;; Main entry point
 Entry:		LD	SP,$FFF4
 		CALL	InitStuff
 		CALL	InitStick
@@ -15,11 +36,16 @@ L703C:		DEFB $00
 Phase:		DEFB $00	; Top bit toggles every DoObjects loop.
 LastDir:	DEFB $EF
 CurrDir:	DEFB $FF
-CarryPressed:	DEFB $00	; Bit 1 means 'currently pressed'. Bit 0 is 'newly triggered'.
-SwopPressed:	DEFB $00	; Ditto
-FirePressed:	DEFB $00	; Ditto
+
+;; For each of these, bit 1 means 'currently pressed', and bit 0 is
+;; 'newly triggered'.
+CarryPressed:	DEFB $00
+SwopPressed:	DEFB $00
+FirePressed:	DEFB $00
+
 FrameCounter:	DEFB $01
 L7044:		DEFB $FB,$FB
+
 FinishGame:	CALL	GameOverScreen
 
 Main:		LD	SP,$FFF4
@@ -104,6 +130,8 @@ L70D7:		RRA
 L70E1:		RRD
 		ADD	A,C
 		RLD
+        ;; NB: Fall through
+
 L70E6:		LD	SP,$FFF4
 		JP	MainB
 L70EC:		CALL	CAD26

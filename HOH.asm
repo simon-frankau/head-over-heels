@@ -28,7 +28,7 @@ ColBufLen:	EQU $94
 DoorwayBuf:	EQU $F9D8
 
 #include "mainloop.asm"
-
+        
 C72A0:	XOR		A
 		JR		L72A9
 C72A3:	LD		A,$FF
