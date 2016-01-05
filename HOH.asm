@@ -389,7 +389,7 @@ DrawScreen:	LD	IY,L7718 		; FIXME: ???
 		LD	(L774A),HL
 		LD	HL,L0000
 		LD	BC,(L703B)
-		CALL	C780E
+		CALL	BigProcData
 		XOR	A
 		LD	(L7713),A
 		LD	(L774C),A
@@ -428,7 +428,7 @@ DrawScreen:	LD	IY,L7718 		; FIXME: ???
 		LD		A,(L771B)
 		LD		H,A
 		LD		L,$00
-		CALL	C780E
+		CALL	BigProcData
 		CALL	CA260
 L77D0:	LD		IY,L7720
 		POP		HL
@@ -448,7 +448,7 @@ L77D0:	LD		IY,L7720
 		LD		A,(L771A)
 		LD		L,A
 		LD		H,$00
-		CALL	C780E
+		CALL	BigProcData
 		CALL	CA260
 L77F8:		LD	A,(L774C)
 		LD	HL,(L7705)
@@ -461,12 +461,14 @@ L77F8:		LD	A,(L774C)
 		XOR	A
 		JP	CAF96
 
-	;; FIXME: Called lots
-C780E:		LD	(L76E0),HL
+;; FIXME: Called lots. Suspect it forms the backbone of loading a
+;; screen or something? Reads all the packed data.
+;; Takes something in HL.
+BigProcData:	LD	(L76E0),HL
 		XOR	A
 		LD	(L76E2),A
 		PUSH	BC
-		CALL	C7A45
+		CALL	BPDSubA
 		LD	B,$03
 		CALL	FetchData
 		LD	(L7710),A
@@ -479,10 +481,10 @@ C780E:		LD	(L76E0),HL
 		LD	H,A
 		LD	B,$02
 		LD	IX,L76E0
-L7830:		LD	C,(HL)
+BPD1:		LD	C,(HL)
 		LD	A,(IX+$00)
 		AND	A
-		JR	Z,L7842
+		JR	Z,BPD2
 		SUB	C
 		LD	E,A
 		RRA
@@ -491,24 +493,24 @@ L7830:		LD	C,(HL)
 		AND	$1F
 		LD	(IX+$00),A
 		LD	A,E
-L7842:		ADD	A,C
+BPD2:		ADD	A,C
 		LD	(IY+$00),A
 		INC	HL
 		INC	IX
 		INC	IY
-		DJNZ	L7830
+		DJNZ	BPD1
 	;; Do this bit twice:
-		LD		B,$02
-L784F:		LD		A,(IX-$02)
-		ADD		A,A
-		ADD		A,A
-		ADD		A,A
-		ADD		A,(HL)
-		LD		(IY+$00),A
-		INC		IY
-		INC		IX
-		INC		HL
-		DJNZ		L784F
+		LD	B,$02
+BPD3:		LD	A,(IX-$02)
+		ADD	A,A
+		ADD	A,A
+		ADD	A,A
+		ADD	A,(HL)
+		LD	(IY+$00),A
+		INC	IY
+		INC	IX
+		INC	HL
+		DJNZ	BPD3
 	;; Now update some stuff off FetchData:
 		LD	B,$03
 		CALL	FetchData
@@ -516,53 +518,56 @@ L784F:		LD		A,(IX-$02)
 		LD	B,$03
 		CALL	FetchData
 		LD	(WorldId),A 		; Fetch the current world identifier
-		CALL	C7934
+		CALL	BPDSubB
 		LD	B,$03
 		CALL	FetchData
 		LD	(FloorCode),A 		; And the floor pattern to use
 		CALL	SetFloorAddr
 	;; FIXME
-L787E:		CALL	C78D4
-		JR		NC,L787E
+BPD4:		CALL	ProcData
+		JR		NC,BPD4
 		POP		BC
-		JP		L8778
-C7887:	BIT		2,A
-		JR		Z,L788D
-		OR		$F8
-L788D:	ADD		A,(HL)
-		RET
-L788F:	EX		AF,AF'
-		CALL	C7AF3
-		LD		HL,(L76DE)
-		PUSH	AF
-		LD		A,B
-		CALL	C7887
-		LD		B,A
-		INC		HL
-		LD		A,C
-		CALL	C7887
-		LD		C,A
-		INC		HL
-		POP		AF
-		SUB		$07
-		ADD		A,(HL)
-		INC		HL
-		LD		(L76DE),HL
-		LD		(HL),B
-		INC		HL
-		LD		(HL),C
-		INC		HL
-		LD		(HL),A
+		JP		BPDEnd 		; NB: Tail call.
 
+;; Add a signed 3-bit value in A to (HL), result in A
+Add3Bit:        BIT     2,A
+                JR      Z,A3B
+                OR      $F8
+A3B:            ADD     A,(HL)
+                RET
+
+;; Recursively do ProcData
+RecProcData:	EX	AF,AF'
+		CALL	FetchData333
+		LD	HL,(L76DE)
+		PUSH	AF
+		LD	A,B
+		CALL	Add3Bit
+		LD	B,A
+		INC	HL
+		LD	A,C
+		CALL	Add3Bit
+		LD	C,A
+		INC	HL
+		POP	AF
+		SUB	$07
+		ADD	A,(HL)
+		INC	HL
+		LD	(L76DE),HL
+		LD	(HL),B
+		INC	HL
+		LD	(HL),C
+		INC	HL
+		LD	(HL),A
 	;; Save the current data pointer, do some stuff, restore.
 		LD	A,(CurrData)
 		LD	HL,(DataPtr)
 		PUSH	AF
 		PUSH	HL
-		CALL	C7A1C
+		CALL	GetDataPtr
 		LD	(DataPtr),HL
-L78BE:		CALL	C78D4
-		JR	NC,L78BE
+RPD1:		CALL	ProcData
+		JR	NC,RPD1
 		LD	HL,(L76DE)
 		DEC	HL
 		DEC	HL
@@ -572,59 +577,66 @@ L78BE:		CALL	C78D4
 		POP	AF
 		LD	(DataPtr),HL
 		LD	(CurrData),A
-	;; NB: Fall through.
-	
-C78D4:		LD	B,$08
+	;; NB: Fall through, carrying on.
+
+;; TODO: Processes some fetched data.
+ProcData:	LD	B,$08
 		CALL	FetchData
+        ;; Return if we hit $FF with carry set.
 		CP	$FF
 		SCF
 		RET	Z
+        ;; Code >= $C0 means recurse.
 		CP	$C0
-		JR	NC,L788F
+		JR	NC,RecProcData
+        ;; Otherwise do FIXME
 		PUSH	IY
 		LD	IY,L76EE
-		CALL	C8232
+		CALL	ProcDataStart
 		POP	IY
+        ;; A few bits set up L7700
 		LD	B,$02
 		CALL	FetchData
 		BIT	1,A
-		JR	NZ,L78F9
+		JR	NZ,PD1
 		LD	A,$01
-		JR	L7903
-L78F9:		PUSH	AF
+		JR	PD2
+PD1:		PUSH	AF
 		LD	B,$01
 		CALL	FetchData
 		POP	BC
 		RLCA
 		RLCA
 		OR	B
-L7903:		LD	(L7700),A
-L7906:		CALL	C7A8D
-		CALL	C7AC1
+PD2:		LD	(L7700),A
+        ;; And then some processing loops thing...
+PD3:		CALL	ProcDataEltA
+		CALL	ProcDataEltB
 		LD	A,(L7700)
 		RRA
-		JR	NC,L791D
+		JR	NC,PD4
 		LD	A,(L7704)
 		INC	A
 		AND	A
 		RET	Z
-		CALL	C7922
-		JR		L7906
-L791D:		CALL	C7922
+		CALL	ProcDataEnd
+		JR	PD3
+PD4:		CALL	ProcDataEnd
 		AND	A
 		RET
 
-	
-C7922:	LD		HL,L76EE
-		LD		BC,L0012
+;; TODO: Some thing we do at the end of ProcData.
+;; And elsewhere. Not a great name, but we're giving it a name...
+ProcDataEnd:	LD	HL,L76EE
+		LD	BC,L0012
 		PUSH	IY
-		LD		A,(L7713)
-		AND		A
-		CALL	Z,LAFC6
-		POP		IY
+		LD	A,(L7713)
+		AND	A
+		CALL	Z,ProcDataObj
+		POP	IY
 		RET
 
-C7934:		LD	B,$03
+BPDSubB:	LD	B,$03
 		CALL	FetchData
 		CALL	C7358
 		ADD	A,A
@@ -654,7 +666,7 @@ C7934:		LD	B,$03
 		SUB	$04
 		JP	C79A5		; Tail call
 	
-C7977:	LD		B,$03
+C7977:		LD		B,$03
 		CALL	FetchData
 		LD		HL,L7716
 		SUB		$02
@@ -675,22 +687,27 @@ C7977:	LD		B,$03
 		EXX
 		LD		(HL),A
 		RET
-L799A:	CP		$FF
+
+L799A:		CP	$FF
 		CCF
-		RL		(HL)
-		AND		A
-		INC		HL
-		RL		(HL)
-		AND		A
+		RL	(HL)
+		AND	A
+		INC	HL
+		RL	(HL)
+		AND	A
 		RET
-C79A5:	LD		(L76F3),A
-		LD		HL,L76F4
-		LD		A,(L76E1)
-		JP		L79BA
-C79B1:	LD		(L76F4),A
-		LD		HL,L76F3
-		LD		A,(L76E0)
-L79BA:	ADD		A,A
+
+C79A5:		LD	(L76F3),A
+		LD	HL,L76F4
+		LD	A,(L76E1)
+		JP	L79BA   	; NB: Tail call
+
+C79B1:		LD	(L76F4),A
+		LD	HL,L76F3
+		LD	A,(L76E0)
+        ;; NB: Fall through
+
+L79BA:		ADD		A,A
 		ADD		A,A
 		ADD		A,A
 		PUSH	AF
@@ -698,7 +715,7 @@ L79BA:	ADD		A,A
 		LD		(HL),A
 		PUSH	HL
 		CALL	C7977
-		JR		NC,L7A15
+		JR		NC,L7A15 	; NB: Tail call
 		LD		A,(IX+$00)
 		LD		(L76F2),A
 		INC		IX
@@ -714,7 +731,9 @@ L79BA:	ADD		A,A
 		POP		AF
 		ADD		A,$2C
 		LD		(HL),A
-C79EB:	CALL	C7922
+        ;; NB: Fall through
+
+C79EB:		CALL	ProcDataEnd
 		LD		A,(L76F2)
 		LD		C,A
 		AND		$30
@@ -730,31 +749,34 @@ C79EB:	CALL	C7922
 		LD		(L76F5),A
 		LD		A,$54
 		LD		(L76F6),A
-		CALL	C7922
+		CALL	ProcDataEnd
 		POP		AF
 		LD		(L76F5),A
 		RET
-L7A15:	POP		HL
-		POP		AF
-		INC		IX
-		INC		IX
+
+L7A15:		POP	HL
+		POP	AF
+		INC	IX
+		INC	IX
 		RET
 
-	
-C7A1C:		LD		A,$80
+;; Clears CurrData and returns a value in HL to be used as DataPtr
+GetDataPtr:	LD		A,$80
 		LD		(CurrData),A 	; Clear buffered byte.
 	;; Get the size of some buffer thing: Start at L5B00, just after attributes.
 	;; Take first byte as step size, then scan at that step size until we find a zero.
 	;; Return in HL.
+        ;;
+        ;; NB: Unless data is changed, this is after 67C6?
 		LD		HL,L5B00
 		EX		AF,AF'
 		LD		D,$00
-L7A27:		LD		E,(HL)
+GDP1:		LD		E,(HL)
 		INC		HL
 		CP		(HL)
 		RET		Z
 		ADD		HL,DE
-		JR		L7A27
+		JR		GDP1
 
 	
 C7A2E:	LD		BC,(L703B)
@@ -774,7 +796,7 @@ C7A2E:	LD		BC,(L703B)
 		SCF
 		RET
 	
-C7A45:	CALL	C7A4E
+BPDSubA:	CALL	C7A4E
 		EXX
 		LD		A,C
 		OR		(HL)
@@ -826,82 +848,93 @@ L7A77:		INC		HL
 		LD		B,$04
 		JP		FetchData
 
-C7A8D:		LD		A,(L7700)
+;; Called from inside the ProcData loop...
+ProcDataEltA:	LD	A,(L7700)
 		RRA
 		RRA
-		JR		C,L7A99
-		LD		B,$01
+		JR	C,PDEA1
+		LD	B,$01
 		CALL	FetchData
-L7A99:	AND		$01
+PDEA1:		AND	$01
 		RLCA
 		RLCA
 		RLCA
 		RLCA
-		AND		$10
-		LD		C,A
-		LD		A,(L76ED)
-		XOR		C
-		LD		(L76F2),A
-		LD		BC,(L76EC)
-		BIT		4,A
-		JR		Z,L7ABC
-		BIT		1,A
-		JR		Z,L7ABA
-		XOR		$01
-		LD		(L76F2),A
-L7ABA:	DEC		C
-		DEC		C
-L7ABC:	LD		A,C
-		LD		(L76FE),A
+		AND	$10
+		LD	C,A
+		LD	A,(L76ED)
+		XOR	C
+		LD	(L76F2),A
+		LD	BC,(L76EC)
+		BIT	4,A
+		JR	Z,PDEA3
+		BIT	1,A
+		JR	Z,PDEA2
+		XOR	$01
+		LD	(L76F2),A
+PDEA2:		DEC	C
+		DEC	C
+PDEA3:		LD	A,C
+		LD	(L76FE),A
 		RET
-C7AC1:	CALL	C7AF3
-C7AC4:	EX		AF,AF'
-		LD		HL,(L76DE)
-		LD		DE,L76F3
-C7ACB:	LD		A,B
-		CALL	C7AEB
-		LD		(DE),A
-		LD		A,C
-		CALL	C7AEB
-		INC		DE
-		LD		(DE),A
-		EX		AF,AF'
+
+;; Called from inside the ProcData loop...
+ProcDataEltB:	CALL	FetchData333
+        ;; NB: Fall through
+
+ProcDataEltC:	EX	AF,AF'
+		LD	HL,(L76DE)
+		LD	DE,L76F3
+        ;; NB: Fall through
+
+ProcDataEltD:	LD	A,B
+		CALL	TwiddleHL
+		LD	(DE),A
+		LD	A,C
+		CALL	TwiddleHL
+		INC	DE
+		LD	(DE),A
+		EX	AF,AF'
 		PUSH	AF
-		ADD		A,(HL)
-		LD		L,A
-		ADD		A,A
-		ADD		A,L
-		ADD		A,A
-		ADD		A,$96
-		INC		DE
-		LD		(DE),A
-		POP		AF
+		ADD	A,(HL)
+		LD	L,A
+		ADD	A,A
+		ADD	A,L
+		ADD	A,A
+		ADD	A,$96
+		INC	DE
+		LD	(DE),A
+		POP	AF
 		CPL
-		AND		C
-		AND		B
-		OR		$F8
-		LD		(L7704),A
+		AND	C
+		AND	B
+		OR	$F8
+		LD	(L7704),A
 		RET
-C7AEB:	ADD		A,(HL)
-		INC		HL
+
+;; Read a value from (HL), increment HL, return value * 8 + 12 ?!
+TwiddleHL:	ADD	A,(HL)
+		INC	HL
 		RLCA
 		RLCA
 		RLCA
-		ADD		A,$0C
+		ADD	A,$0C
 		RET
-C7AF3:	LD		B,$03
-		CALL	FetchData
-		PUSH	AF
-		LD		B,$03
-		CALL	FetchData
-		PUSH	AF
-		LD		B,$03
-		CALL	FetchData
-		POP		HL
-		POP		BC
-		LD		C,H
-		RET
-	
+
+;; Fetch 3 lots of 3 bits to C, B and A.
+FetchData333:   LD      B,$03
+                CALL    FetchData
+                PUSH    AF
+                LD      B,$03
+                CALL    FetchData
+                PUSH    AF
+                LD      B,$03
+                CALL    FetchData
+                POP     HL
+                POP     BC
+                LD      C,H
+                RET
+
 InitStuff:	CALL	IrqInstall
 		JP	InitRevTbl
 
@@ -1209,7 +1242,7 @@ ODW3:		DJNZ	ODW2
 CurrObject:	DEFW $0000
 ObjDir: 	DEFB $FF
 L822E:	DEFW $3D00,$3D8E
-C8232:	LD		(IY+$09),$00
+ProcDataStart:	LD		(IY+$09),$00
 		LD		L,A
 		LD		E,A
 		LD		D,$00
@@ -1671,20 +1704,21 @@ C8764:	INC		HL
 		LD		C,A
 		RLD
 		RET
-L8778:	PUSH	BC
+
+BPDEnd:		PUSH	BC
 		LD		HL,L8728
 		LD		A,(L866B)
 		CPL
 		LD		B,$05
 		LD		DE,L0004
-L8785:	RR		(HL)
+BPDE1:		RR		(HL)
 		RRA
 		RL		(HL)
 		ADD		HL,DE
-		DJNZ	L8785
+		DJNZ	BPDE1
 		POP		BC
 		CALL	C874F
-L8791:	RET		NZ
+BPDE2:		RET		NZ
 		PUSH	HL
 		PUSH	DE
 		PUSH	BC
@@ -1694,9 +1728,9 @@ L8791:	RET		NZ
 		LD		A,D
 		CP		$0E
 		LD		A,$60
-		JR		NZ,L87A6
+		JR		NZ,BPDE3
 		XOR		A
-L87A6:	LD		(IY+$04),A
+BPDE3:		LD		(IY+$04),A
 		LD		(IY+$11),D
 		LD		(IY+$0A),$1A
 		LD		A,D
@@ -1713,13 +1747,14 @@ L87A6:	LD		(IY+$04),A
 		POP		BC
 		POP		IY
 		LD		A,E
-		CALL	C7AC4
-		CALL	C7922
+		CALL	ProcDataEltC
+		CALL	ProcDataEnd
 		POP		BC
 		POP		DE
 		POP		HL
 		CALL	C875C
-		JR		L8791
+		JR		BPDE2
+
 InitNewGame2:	LD		HL,L866C
 		LD		DE,L0004
 		LD		B,$34
@@ -2914,8 +2949,9 @@ CAFAB:	LD		HL,L0012
 		LDI
 LAFC4:	POP		HL
 		RET
-        ;; HL points to an object
-LAFC6:		PUSH	HL
+
+;; HL points to an object. Called during the ProcData loop
+ProcDataObj:	PUSH	HL
 		PUSH	BC
 		INC		HL
 		INC		HL
