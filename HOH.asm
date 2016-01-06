@@ -554,10 +554,10 @@ L7BDC:		CALL	C728C
 		CALL	C72A3
 		CALL	C774D
 		LD	HL,HeelsObj
-		CALL	GetUpdatedCoords
+		CALL	GetNewCoords
 		EXX
 		LD	HL,HeadObj
-		CALL	GetUpdatedCoords
+		CALL	GetNewCoords
 		CALL	CheckOverlap
 		JR	NC,L7C0C
 		LD	A,(Character)
