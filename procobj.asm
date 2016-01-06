@@ -133,21 +133,29 @@ LB07D:		EXX
 		EX	AF,AF'
 		CALL	CAF96
 LB082:	        LD	HL,(LAF7A)
-LB085:	        LD	(LAF94),HL
-LB088:	        LD	A,(HL)
-		INC	HL
-		LD	H,(HL)
-		LD	L,A
-		OR	H
-		JR	Z,LB09C
-		PUSH	HL
-		CALL	GetUVZExtents2
-		CALL	DepthCmp 		; TODO: Implies depth-sorting here?
-		POP	HL
-		JR	NC,LB085
-		AND	A
-		JR	NZ,LB088
-LB09C:	LD		HL,(LAF94)
+
+        ;; Object extents in alt registers, obj+2 in HL.
+        ;;
+        ;; I believe this traverses a list sorted far-to-near, and
+        ;; loads up HL with the nearest object further away from our
+        ;; object.
+LB085:          LD      (SortObj),HL
+LB088:          LD      A,(HL)          ; Load next object into HL...
+                INC     HL
+                LD      H,(HL)
+                LD      L,A
+                OR      H
+                JR      Z,LB09C         ; Zero? Done!
+                PUSH    HL
+                CALL    GetUVZExtents2
+                CALL    DepthCmp
+                POP     HL
+                JR      NC,LB085        ; Update SortObj if current HL is far away
+                AND     A
+                JR      NZ,LB088        ; Break out of loop if past point of caring
+LB09C:          LD      HL,(SortObj)
+
+        ;; TODO: I assume this updates the object pointers?
 		POP	DE
 		LD	A,(HL)
 		LDI
@@ -165,53 +173,53 @@ LB09C:	LD		HL,(LAF94)
 		LD	HL,(LAF7C)
 		INC	HL
 		INC	HL
-LB0B4:	DEC		HL
+LB0B4:		DEC	HL
 		DEC	DE
 		LDD
-		LD		A,(HL)
-		LD		(DE),A
-		LD		(HL),E
-		INC		HL
-		LD		(HL),D
+		LD	A,(HL)
+		LD	(DE),A
+		LD	(HL),E
+		INC	HL
+		LD	(HL),D
 		RET
-CB0BE:	PUSH	HL
+CB0BE:		PUSH	HL
 		CALL	CB0C6
-		POP		HL
-		JP		CB03B
-CB0C6:	BIT		3,(IY+$04)
-		JR		Z,CB0D5
+		POP	HL
+		JP	CB03B
+CB0C6:		BIT	3,(IY+$04)
+		JR	Z,CB0D5
 		PUSH	HL
 		CALL	CB0D5
-		POP		DE
-		LD		HL,L0012
-		ADD		HL,DE
-CB0D5:	LD		E,(HL)
-		INC		HL
-		LD		D,(HL)
-		INC		HL
+		POP	DE
+		LD	HL,L0012
+		ADD	HL,DE
+CB0D5:		LD	E,(HL)
+		INC	HL
+		LD	D,(HL)
+		INC	HL
 		PUSH	DE
-		LD		A,D
-		OR		E
-		INC		DE
-		INC		DE
-		JR		NZ,LB0E4
-		LD		DE,(LAF7A)
-LB0E4:	LD		A,(HL)
+		LD	A,D
+		OR	E
+		INC	DE
+		INC	DE
+		JR	NZ,LB0E4
+		LD	DE,(LAF7A)
+LB0E4:		LD	A,(HL)
 		LDI
-		LD		C,A
-		LD		A,(HL)
-		LD		(DE),A
-		LD		H,A
-		LD		L,C
-		OR		C
-		DEC		HL
-		JR		NZ,LB0F4
-		LD		HL,(LAF7C)
-		INC		HL
-LB0F4:	POP		DE
-		LD		(HL),D
-		DEC		HL
-		LD		(HL),E
+		LD	C,A
+		LD	A,(HL)
+		LD	(DE),A
+		LD	H,A
+		LD	L,C
+		OR	C
+		DEC	HL
+		JR	NZ,LB0F4
+		LD	HL,(LAF7C)
+		INC	HL
+LB0F4:		POP	DE
+		LD	(HL),D
+		DEC	HL
+		LD	(HL),E
 		RET
 
 ;; Like GetUVZExtents, but applies extra height adjustment -

@@ -11,9 +11,11 @@
 ;; Two set of UVZ extents (as returned from GetUVZExtents), in main
 ;; and EXX'd registers.
 ;;
-;; Returns with carry set if EXX'd registers represent a further-away object.
+;; Returns:
+;;  Carry set if EXX'd registers represent a further-away object.
+;;  A = 0 if there's an overlap in 2 dimensions, $FF otherwise
 DepthCmp:
-        ;; L < H' && H > L' -> UOverlap
+        ;; L < H' && H > L' -> U Overlap
                 LD      A,L
                 EXX
                 CP      H
@@ -23,27 +25,26 @@ DepthCmp:
                 CP      H
                 JR      C,UOverlap
 NoUOverlap:
-        ;; E < D' && D > E' -> VOverlap
+        ;; E < D' && D > E' -> V Overlap
                 LD      A,E
                 EXX
                 CP      D
                 LD      A,E
                 EXX
-                JR      NC,NoVOverlap
+                JR      NC,NoUVOverlap
                 CP      D
-                JR      C,VOverlap
-NoVOverlap:
-        ;; C < B' && B > C' -> ZOverlap
+                JR      C,VNoUOverlap
+NoUVOverlap:
+        ;; C < B' && B > C' -> Z Overlap
                 LD      A,C
                 EXX
                 CP      B
                 LD      A,C
                 EXX
-                JR      NC,NoZOverlap
+                JR      NC,NoUVZOverlap
                 CP      B
-                JR      C,ZOverlap
-
-NoZOverlap:
+                JR      C,ZNoUVOverlap
+NoUVZOverlap:
         ;; No overlaps at all - simple depth comparison
         ;; HL = U + V + Z (lower coords)
                 LD      A,L
@@ -67,7 +68,8 @@ NoZOverlap:
                 SBC     HL,DE
                 LD      A,$FF
                 RET
-ZOverlap:
+
+ZNoUVOverlap:
         ;; Overlaps in Z, not U or V. In this case, we compare on U + V
                 LD      A,L
                 ADD     A,E
@@ -82,7 +84,7 @@ ZOverlap:
                 RET
 
 UOverlap:
-        ;; E < D' && D > E' -> UVOverlap
+        ;; E < D' && D > E' -> V Overlap
                 LD      A,E
                 EXX
                 CP      D
@@ -92,7 +94,7 @@ UOverlap:
                 CP      D
                 JR      C,UVOverlap
 UNoVOverlap:
-        ;; C < B' && B > C' -> ZOverlap
+        ;; C < B' && B > C' -> Z Overlap
                 LD      A,C
                 EXX
                 CP      B
@@ -139,17 +141,17 @@ UVOverlap:
                 LD      A,$00
                 RET
 
-VOverlap:
-        ;; C < B' && B > C' -> ZOverlap
+VNoUOverlap:
+        ;; C < B' && B > C' -> Z Overlap
                 LD      A,C
                 EXX
                 CP      B
                 LD      A,C
                 EXX
-                JR      NC,VNoZOverlap
+                JR      NC,VNoUZOverlap
                 CP      B
-                JR      C,VZOverlap
-VNoZOverlap:
+                JR      C,VZNoUOverlap
+VNoUZOverlap:
         ;; Compare on U + Z
                 EXX
                 ADD     A,L
@@ -168,8 +170,9 @@ VNoZOverlap:
                 LD      A,$FF
                 RET
 
+VZNoUOverlap:
         ;; Compare on U
-VZOverlap:      LD      A,L
+                LD      A,L
                 EXX
                 CP      L
                 EXX
