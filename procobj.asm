@@ -11,7 +11,7 @@
 ;;  * CB0C6
 ;;  * CB03B
 ;;  * CB0BE
-;;  * CB0F9
+;;  * GetUVZExtents2
 
 ;; Called during the ProcData loop to copy an object into the dest
 ;; buffer and process it.
@@ -142,7 +142,7 @@ LB088:	        LD	A,(HL)
 		JR	Z,LB09C
 		PUSH	HL
 		CALL	GetUVZExtents2
-		CALL	CB17A
+		CALL	DepthCmp 		; TODO: Implies depth-sorting here?
 		POP	HL
 		JR	NC,LB085
 		AND	A
@@ -214,14 +214,15 @@ LB0F4:	POP		DE
 		LD		(HL),E
 		RET
 
-	;; Have a suspicion this places X/Y extents in DE/HL and Z coords in BC
-CB0F9:		CALL	GetUVZExtents
-		AND		$08
-		RET		Z
-		LD		A,C
-		SUB		$06
-		LD		C,A
-		RET
+;; Like GetUVZExtents, but applies extra height adjustment -
+;; increases height by 6 if flag bit 3 is set.
+GetUVZExtentsE: CALL    GetUVZExtents
+                AND     $08
+                RET     Z
+                LD      A,C
+                SUB     $06
+                LD      C,A
+                RET
 
 ;; Given an object in HL, returns its U, V and Z extents.
 ;; moves in a particular direction:
@@ -271,7 +272,7 @@ GetUVZExtents2: INC     HL
                 LD      A,(HL)          ; Load V co-ord
                 INC     HL
                 ADD     A,B
-                LD      B,(HL)
+                LD      B,(HL)          ; Load Z co-ord for later
                 LD      H,A             ; Store 2nd added co-ord in H
                 SUB     C
                 LD      L,A             ; And 2nd subtracted co-ored in L

@@ -1960,7 +1960,7 @@ LAB0B:		LD	BC,L0000
 		JR	Z,FloorThing2
 		INC	A
 		JR	Z,FloorThing1
-		CALL	CB0F9
+		CALL	GetUVZExtentsE
 		LD	C,B
 		INC	C
 		EXX
@@ -2092,7 +2092,7 @@ LAC0E:	XOR		A
 	;; Loop through all items, finding ones which match on B or C
 	;; Then call CheckWeOverlap to see if ok candidate. Return it
 	;; in HL if it is.
-GetStoodUpon:	CALL	CB0F9		; Perhaps getting height as a filter?
+GetStoodUpon:	CALL	GetUVZExtentsE		; Perhaps getting height as a filter?
 		LD	A,B
 		ADD	A,$06
 		LD	B,A
@@ -2125,7 +2125,7 @@ GSU_2:		EXX
 		RET
 
 	;; FIXME: Looks suspiciously like we're checking contact with objects.
-CAC41:		CALL	CB0F9
+CAC41:		CALL	GetUVZExtentsE
 		LD	B,C
 		DEC	B
 		EXX
@@ -2470,136 +2470,9 @@ LAFC4:	POP		HL
 		RET
 
 #include "procobj.asm"
-	
-CB17A:	LD		A,L
-		EXX
-		CP		H
-		LD		A,L
-		EXX
-		JR		NC,LB184
-		CP		H
-		JR		C,LB1BB
-LB184:	LD		A,E
-		EXX
-		CP		D
-		LD		A,E
-		EXX
-		JR		NC,LB18E
-		CP		D
-		JR		C,LB1F2
-LB18E:	LD		A,C
-		EXX
-		CP		B
-		LD		A,C
-		EXX
-		JR		NC,LB198
-		CP		B
-		JR		C,LB1AF
-LB198:	LD		A,L
-		ADD		A,E
-		ADD		A,C
-		LD		L,A
-		ADC		A,$00
-		SUB		L
-		LD		H,A
-		EXX
-		LD		A,L
-		ADD		A,E
-		ADD		A,C
-		EXX
-		LD		E,A
-		ADC		A,$00
-		SUB		E
-		LD		D,A
-		SBC		HL,DE
-		LD		A,$FF
-		RET
-LB1AF:	LD		A,L
-		ADD		A,E
-		LD		L,A
-		EXX
-		LD		A,L
-		ADD		A,E
-		EXX
-		CP		L
-		CCF
-		LD		A,$FF
-		RET
-LB1BB:	LD		A,E
-		EXX
-		CP		D
-		LD		A,E
-		EXX
-		JR		NC,LB1C5
-		CP		D
-		JR		C,LB1EB
-LB1C5:	LD		A,C
-		EXX
-		CP		B
-		LD		A,C
-		EXX
-		JR		NC,LB1CF
-		CP		B
-		JR		C,LB1E4
-LB1CF:	EXX
-		ADD		A,E
-		EXX
-		LD		L,A
-		ADC		A,$00
-		SUB		L
-		LD		H,A
-		LD		A,C
-		ADD		A,E
-		LD		E,A
-		ADC		A,$00
-		SUB		E
-		LD		D,A
-		SBC		HL,DE
-		CCF
-		LD		A,$FF
-		RET
-LB1E4:	LD		A,E
-		EXX
-		CP		E
-		EXX
-		LD		A,$00
-		RET
-LB1EB:	LD		A,C
-		EXX
-		CP		C
-		EXX
-		LD		A,$00
-		RET
-LB1F2:	LD		A,C
-		EXX
-		CP		B
-		LD		A,C
-		EXX
-		JR		NC,LB1FC
-		CP		B
-		JR		C,LB210
-LB1FC:	EXX
-		ADD		A,L
-		EXX
-		LD		E,A
-		ADC		A,$00
-		SUB		E
-		LD		D,A
-		LD		A,C
-		ADD		A,L
-		LD		L,A
-		ADC		A,$00
-		SUB		L
-		LD		H,A
-		SBC		HL,DE
-		LD		A,$FF
-		RET
-LB210:	LD		A,L
-		EXX
-		CP		L
-		EXX
-		LD		A,$00
-		RET
+
+#include "depthcmp.asm"
+
 LB217:	DEFB $00
 LB218:	DEFB $00
 LB219:	DEFB $00
@@ -2607,7 +2480,7 @@ LB21A:	DEFB $00
 LB21B:	DEFB $00
 	
 TableCall:	PUSH	AF
-		CALL	CB0F9
+		CALL	GetUVZExtentsE
 		EXX
 		POP	AF
 		LD	(LB21B),A
