@@ -6,7 +6,7 @@
 
 ;; Exported functions:
 ;;  * ProcDataObj
-;;  * GetNewCoords
+;;  * GetUVZExtents
 ;;  * CB010
 ;;  * CB0C6
 ;;  * CB03B
@@ -77,7 +77,7 @@ CB010:		LD	A,(LAF77)
 		POP	DE
 		CALL	CAFAB
 		PUSH	HL
-		CALL	GetNewCoords2
+		CALL	GetUVZExtents2
 		EXX
 		PUSH	IY
 		POP	HL
@@ -85,7 +85,7 @@ CB010:		LD	A,(LAF77)
 		INC	HL
 		JR	LB085
 CB034:		PUSH	HL
-		CALL	GetNewCoords2
+		CALL	GetUVZExtents2
 		EXX
 		JR	LB082
 
@@ -99,7 +99,7 @@ CB03B:		INC	HL
 		POP	DE
 		CALL	CAFAB
 		PUSH	HL
-		CALL	GetNewCoords2
+		CALL	GetUVZExtents2
 		EXX
 		PUSH	IY
 		POP	HL
@@ -108,7 +108,7 @@ CB03B:		INC	HL
 		JR	LB085
 
 CB057:		PUSH	HL
-		CALL	GetNewCoords2
+		CALL	GetUVZExtents2
 		LD	A,$03
 		EX	AF,AF'
 		LD	A,(L771A)
@@ -141,7 +141,7 @@ LB088:	        LD	A,(HL)
 		OR	H
 		JR	Z,LB09C
 		PUSH	HL
-		CALL	GetNewCoords2
+		CALL	GetUVZExtents2
 		CALL	CB17A
 		POP	HL
 		JR	NC,LB085
@@ -215,7 +215,7 @@ LB0F4:	POP		DE
 		RET
 
 	;; Have a suspicion this places X/Y extents in DE/HL and Z coords in BC
-CB0F9:		CALL	GetNewCoords
+CB0F9:		CALL	GetUVZExtents
 		AND		$08
 		RET		Z
 		LD		A,C
@@ -223,32 +223,30 @@ CB0F9:		CALL	GetNewCoords
 		LD		C,A
 		RET
 
-	;; FIXME: Some object-processing thing...
-	;; FIXME: Seems to calculate speeds to move in particular directions
-        
-;; Given an object in HL, returns new U, V and Z coordinates for if it
+;; Given an object in HL, returns its U, V and Z extents.
 ;; moves in a particular direction:
 ;;
-;; D = increased U, E = decreased U
-;; H = increased V, L = decreased V
-;; C = increased Z
+;; D = high U, E = low U
+;; H = high V, L = low V
+;; B = high Z, C = low Z
+;; It also returns flags in A.
 ;;
 ;; Values are based on the bottom 3 flag bits
-;; Flag   U      V    Z
-;; 0    +3 -3  +3 -3   -6
-;; 1    +4 -4  +4 -4   -6
-;; 2    +4 -4  +1 -1   -6
-;; 3    +1 -4  +4 -4   -6
-;; 4    +4  0  +4  0  -18
-;; 5     0 -4  +4  0  -18
-;; 4    +4  0   0 -4  -18
-;; 5     0 -4   0 -4  -18
-GetNewCoords:   INC     HL
+;; Flag   U      V      Z
+;; 0    +3 -3  +3 -3  0  -6
+;; 1    +4 -4  +4 -4  0  -6
+;; 2    +4 -4  +1 -1  0  -6
+;; 3    +1 -4  +4 -4  0  -6
+;; 4    +4  0  +4  0  0 -18
+;; 5     0 -4  +4  0  0 -18
+;; 6    +4  0   0 -4  0 -18
+;; 7     0 -4   0 -4  0 -18
+GetUVZExtents:  INC     HL
                 INC     HL
         ;; NB: Fall through!
 
-;; GetNewCoords, except HL has a pointer + 2 to an object.
-GetNewCoords2:  INC     HL
+;; GetUVZExtents, except HL has a pointer + 2 to an object.
+GetUVZExtents2: INC     HL
                 INC     HL
                 LD      A,(HL)          ; Offset 4: Flags
                 INC     HL
@@ -256,9 +254,9 @@ GetNewCoords2:  INC     HL
                 EX      AF,AF'
                 LD      A,C
                 BIT     2,A
-                JR      NZ,GNC5         ; If bit 2 set
+                JR      NZ,GUVZE5       ; If bit 2 set
                 BIT     1,A
-                JR      NZ,GNC3         ; If bit 1 set
+                JR      NZ,GUVZE3       ; If bit 1 set
                 AND     $01
                 ADD     A,$03
                 LD      B,A             ; Bit 0 + 3 in B
@@ -277,15 +275,15 @@ GetNewCoords2:  INC     HL
                 LD      H,A             ; Store 2nd added co-ord in H
                 SUB     C
                 LD      L,A             ; And 2nd subtracted co-ored in L
-GNC2:           LD      A,B
+GUVZE2:         LD      A,B
                 SUB     $06
                 LD      C,A             ; Put Z co-ord - 6 in C
                 EX      AF,AF'
                 RET
 
         ;; Bit 1 was set in the object flags
-GNC3:           RRA
-                JR      C,GNC4
+GUVZE3:         RRA
+                JR      C,GUVZE4
         ;; Bit 1 set, bit 0 not set
                 LD      A,(HL)
                 ADD     A,$04
@@ -300,10 +298,10 @@ GNC3:           RRA
                 LD      L,A             ; H/L given added/subtracted V co-ords of 1
                 INC     H
                 DEC     L
-                JR      GNC2
+                JR      GUVZE2
 
         ;; Bits 1 and 0 were set
-GNC4:           LD      D,(HL)
+GUVZE4:         LD      D,(HL)
                 LD      E,D
                 INC     D
                 DEC     E               ; D/E given added/subtracted U co-ords of 1
@@ -315,37 +313,37 @@ GNC4:           LD      D,(HL)
                 LD      H,A
                 SUB     $08
                 LD      L,A             ; H/L given added/subtracted V co-ords of 4
-                JR      GNC2
+                JR      GUVZE2
 
         ;; Bit 2 was set in the object flags
-GNC5:           LD      A,(HL)          ; Load U co-ord
+GUVZE5:         LD      A,(HL)          ; Load U co-ord
                 RR      C
-                JR      C,GNC5b
+                JR      C,GUVZE5b
         ;; Bit 0 reset
                 LD      E,A
                 ADD     A,$04
                 LD      D,A
-                JR      GNC5c
+                JR      GUVZE5c
         ;; Bit 0 set
-GNC5b:          LD      D,A
+GUVZE5b:        LD      D,A
                 SUB     $04
                 LD      E,A
-GNC5c:          INC     HL
+GUVZE5c:        INC     HL
                 LD      A,(HL)          ; Load V co-ord
                 INC     HL
                 LD      B,(HL)          ; Load Z co-ord
                 RR      C
-                JR      C,GNC5d
+                JR      C,GUVZE5d
         ;; Bit 1 reset
                 LD      L,A
                 ADD     A,$04
                 LD      H,A
-                JR      GNC5e
+                JR      GUVZE5e
         ;; Bit 1 set
-GNC5d:          LD      H,A
+GUVZE5d:        LD      H,A
                 SUB     $04
                 LD      L,A
-GNC5e:          LD      A,B
+GUVZE5e:        LD      A,B
                 SUB     $12
                 LD      C,A
                 EX      AF,AF'

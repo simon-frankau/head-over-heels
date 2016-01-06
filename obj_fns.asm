@@ -12,6 +12,7 @@
 	;; Offset 0: Next item (null == end)
         ;; Offset 2: Another list?
 	;; Offset 4: Some flag - bit 6 and 7 causes skipping. Bit 6 = carryable?
+        ;;           Bits 0-2: ObjectShape (see GetNewCoords)
 	;; Offset 5: U coordinate
 	;; Offset 6: V coordinate
 	;; Offset 7: Z coordinate, C0 = ground
