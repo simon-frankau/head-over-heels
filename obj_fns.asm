@@ -22,7 +22,7 @@
 	;; Offset B: Some form of direction mask?
 	;; Offset C: Some form of direction mask?
 	;; Offset 10: Direction code.
-	;; Hmmm. May be 17 bytes?
+	;; Hmmm. May be 17 bytes? Object-copying code suggests 18 bytes.
 
         ;; U/V coordinates: X/Y coordinates are used for screen space,
         ;; so we'll use U/V/Z coordinates for the isometric space.

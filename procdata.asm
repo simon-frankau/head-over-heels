@@ -17,7 +17,7 @@
 
 ;; FIXME: Called lots. Suspect it forms the backbone of loading a
 ;; screen or something? Reads all the packed data.
-;; Takes something in HL.
+;; Takes something in HL and BC and IY
 BigProcData:	LD	(L76E0),HL
 		XOR	A
 		LD	(L76E2),A
@@ -26,6 +26,7 @@ BigProcData:	LD	(L76E0),HL
 		LD	B,$03
 		CALL	FetchData
 		LD	(L7710),A
+        ;; Load HL with L7724 + 4 * A
 		ADD	A,A
 		ADD	A,A
 		ADD	A,L7724 & $FF
@@ -33,6 +34,7 @@ BigProcData:	LD	(L76E0),HL
 		ADC	A,L7724 >> 8
 		SUB	L
 		LD	H,A
+        ;; Loop twice...
 		LD	B,$02
 		LD	IX,L76E0
 BPD1:		LD	C,(HL)
