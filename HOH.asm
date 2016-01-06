@@ -89,7 +89,7 @@ L72F3:	PUSH	DE
 		POP		DE
 		LDIR
 L7305:		LD		HL,(LAF92) 	; NB: Referenced as data.
-		LD		(LAF78),HL
+		LD		(ObjDest),HL
 		LD		HL,ObjList5
 		LD		BC,L0008
 		JP		FillZero
@@ -294,26 +294,14 @@ L76EA:	DEFB $00
 L76EB:	DEFB $00
 L76EC:	DEFB $00
 L76ED:	DEFB $00
-L76EE:	DEFB $00
-L76EF:	DEFB $00
-L76F0:	DEFB $00
-L76F1:	DEFB $00
-L76F2:	DEFB $00
-L76F3:	DEFB $00
-L76F4:	DEFB $00
-L76F5:	DEFB $00
-L76F6:	DEFB $00
-L76F7:	DEFB $00
-L76F8:	DEFB $00
-L76F9:	DEFB $FF
-L76FA:	DEFB $FF
-L76FB:	DEFB $00
-L76FC:	DEFB $00
-L76FD:	DEFB $00
-L76FE:	DEFB $00
-L76FF:	DEFB $00
+
+        ;; Buffer for an object used during unpacking
+TmpObj:	DEFB $00,$00,$00,$00,$00,$00,$00,$00
+	DEFB $00,$00,$00,$FF,$FF,$00,$00,$00
+        DEFB $00,$00
+
 L7700:	DEFB $00
-	
+
 	;; Current pointer to bit-packed data
 DataPtr:	DEFW $0000
 	;; The remaining bits to read at the current address.
@@ -336,7 +324,8 @@ DoorwayTest:	DEFB $00
 L7710:	DEFB $00
 FloorCode:	DEFB $00
 L7712:	DEFB $00
-L7713:	DEFB $00
+        ;; Do we skip processing the objects?
+SkipObj:	DEFB $00
 AttribScheme:	DEFB $00
 WorldId:	DEFB $00	; Range 0..7 (I think 7 is 'same as last')
 L7716:	DEFB $00
@@ -373,7 +362,7 @@ L774A:	DEFB $00
 L774B:	DEFB $00
 L774C:	DEFB $C0
 C774D:		LD		A,$FF
-		LD		(L7713),A
+		LD		(SkipObj),A
 	;; NB: Fall through
 
 	;; Guess that this is redraw screen, based on setting sprite extend to full screen...
@@ -391,9 +380,9 @@ DrawScreen:	LD	IY,L7718 		; FIXME: ???
 		LD	BC,(L703B)
 		CALL	BigProcData
 		XOR	A
-		LD	(L7713),A
+		LD	(SkipObj),A
 		LD	(L774C),A
-		LD	HL,(LAF78)
+		LD	HL,(ObjDest)
 		LD	(LAF92),HL
 		LD	A,(L7710)
 		LD	(DoorwayTest),A
@@ -1253,7 +1242,7 @@ BPDE2:		RET		NZ
 		PUSH	BC
 		PUSH	IY
 		CALL	C8764
-		LD		IY,L76EE
+		LD		IY,TmpObj
 		LD		A,D
 		CP		$0E
 		LD		A,$60
@@ -1277,7 +1266,7 @@ BPDE3:		LD		(IY+$04),A
 		POP		IY
 		LD		A,E
 		CALL	ProcDataEltC
-		CALL	ProcDataEnd
+		CALL	ProcTmpObj
 		POP		BC
 		POP		DE
 		POP		HL
@@ -2432,7 +2421,8 @@ LAF5B:	DEFB $1B		; Reinitialisation size
 	DEFW $0000,$0000
 
 LAF77:	DEFB $00
-LAF78:	DEFW LBA40
+        ;; Current pointer for where we write objects into
+ObjDest:	DEFW LBA40
 LAF7A:	DEFW ObjList3
 LAF7C:	DEFW ObjectList
 ObjList3:	DEFW $0000

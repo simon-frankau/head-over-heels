@@ -13,30 +13,32 @@
 ;;  * CB0BE
 ;;  * CB0F9
 
+;; Called during the ProcData loop to copy an object into the dest
+;; buffer and process it.
+;;
 ;; HL points to an object.
 ;; BC contains the size of the object (always 18 bytes!).
-;; Called during the ProcData loop
 ProcDataObj:
         ;; First, just return if there's no intersection with the view window.
-                PUSH	HL
-		PUSH	BC
-		INC	HL
-		INC	HL
-		CALL	IntersectObj   ; HL now contains an object + 2
-		POP	BC
-		POP	HL
-		RET	NC
-        ;; Copy BC bytes of object to what LAF78 points at, updates LAF78
-		LD	DE,(LAF78)
-		PUSH	DE
-		LDIR
-		LD	(LAF78),DE
-		POP	HL
+                PUSH    HL
+                PUSH    BC
+                INC     HL
+                INC     HL
+                CALL    IntersectObj   ; HL now contains an object + 2
+                POP     BC
+                POP     HL
+                RET     NC
+        ;; Copy BC bytes of object to what ObjDest pointer, updating ObjDest
+                LD      DE,(ObjDest)
+                PUSH    DE
+                LDIR
+                LD      (ObjDest),DE
+                POP     HL
         ;; HL now points at copied object
-		PUSH	HL
-		POP	IY
-		BIT	3,(IY+$04)      ; Check bit 3 of flags...
-		JR	Z,CB010         ; NB: Tail call if not set
+                PUSH    HL
+                POP     IY
+                BIT     3,(IY+$04)      ; Check bit 3 of flags...
+                JR      Z,CB010         ; NB: Tail call if not set
         ;; Make another copy of the next 9 bytes? FIXME...
 		LD	BC,L0009
 		PUSH	HL
@@ -49,7 +51,7 @@ ProcDataObj:
 		LD	(HL),$00
 		LD	DE,L0008
 		ADD	HL,DE
-		LD	(LAF78),HL
+		LD	(ObjDest),HL
 		BIT	5,(IY+$09)
 		JR	Z,LB00F
 		PUSH	IY
@@ -62,109 +64,109 @@ LB00F:		POP	HL
         ;; NB: Fall through.
 
 ;; HL points at an object, as does IY.
-CB010:		LD		A,(LAF77)
-		DEC		A
-		CP		$02
-		JR		NC,CB03B
-		INC		HL
-		INC		HL
-		BIT		3,(IY+$04)
-		JR		Z,CB034
+CB010:		LD	A,(LAF77)
+		DEC	A
+		CP	$02
+		JR	NC,CB03B
+		INC	HL
+		INC	HL
+		BIT	3,(IY+$04)
+		JR	Z,CB034
 		PUSH	HL
 		CALL	CB034
-		POP		DE
+		POP	DE
 		CALL	CAFAB
 		PUSH	HL
 		CALL	GetUpdatedCoords2
 		EXX
 		PUSH	IY
-		POP		HL
-		INC		HL
-		INC		HL
-		JR		LB085
+		POP	HL
+		INC	HL
+		INC	HL
+		JR	LB085
 CB034:		PUSH	HL
 		CALL	GetUpdatedCoords2
 		EXX
-		JR		LB082
+		JR	LB082
 
 	
-CB03B:		INC		HL
-		INC		HL
-		BIT		3,(IY+$04)
-		JR		Z,CB057
-		PUSH		HL
-		CALL		CB057
-		POP		DE
-		CALL		CAFAB
-		PUSH		HL
-		CALL		GetUpdatedCoords2
+CB03B:		INC	HL
+		INC	HL
+		BIT	3,(IY+$04)
+		JR	Z,CB057
+		PUSH	HL
+		CALL	CB057
+		POP	DE
+		CALL	CAFAB
+		PUSH	HL
+		CALL	GetUpdatedCoords2
 		EXX
-		PUSH		IY
-		POP		HL
-		INC		HL
-		INC		HL
-		JR		LB085
+		PUSH	IY
+		POP	HL
+		INC	HL
+		INC	HL
+		JR	LB085
 
-CB057:		PUSH		HL
-		CALL		GetUpdatedCoords2
-		LD		A,$03
-		EX		AF,AF'
-		LD		A,(L771A)
-		CP		D
-		JR		C,LB07D
-		LD		A,(L771B)
-		CP		H
-		JR		C,LB07D
-		LD		A,$04
-		EX		AF,AF'
-		LD		A,(L7718)
-		DEC		A
-		CP		E
-		JR		NC,LB07D
-		LD		A,(L7719)
-		DEC		A
-		CP		L
-		JR		NC,LB07D
-		XOR		A
-		EX		AF,AF'
+CB057:		PUSH	HL
+		CALL	GetUpdatedCoords2
+		LD	A,$03
+		EX	AF,AF'
+		LD	A,(L771A)
+		CP	D
+		JR	C,LB07D
+		LD	A,(L771B)
+		CP	H
+		JR	C,LB07D
+		LD	A,$04
+		EX	AF,AF'
+		LD	A,(L7718)
+		DEC	A
+		CP	E
+		JR	NC,LB07D
+		LD	A,(L7719)
+		DEC	A
+		CP	L
+		JR	NC,LB07D
+		XOR	A
+		EX	AF,AF'
 LB07D:		EXX
-		EX		AF,AF'
+		EX	AF,AF'
 		CALL	CAF96
-LB082:	        LD		HL,(LAF7A)
-LB085:	        LD		(LAF94),HL
-LB088:	        LD		A,(HL)
-		INC		HL
-		LD		H,(HL)
-		LD		L,A
-		OR		H
-		JR		Z,LB09C
+LB082:	        LD	HL,(LAF7A)
+LB085:	        LD	(LAF94),HL
+LB088:	        LD	A,(HL)
+		INC	HL
+		LD	H,(HL)
+		LD	L,A
+		OR	H
+		JR	Z,LB09C
 		PUSH	HL
 		CALL	GetUpdatedCoords2
 		CALL	CB17A
-		POP		HL
-		JR		NC,LB085
-		AND		A
-		JR		NZ,LB088
+		POP	HL
+		JR	NC,LB085
+		AND	A
+		JR	NZ,LB088
 LB09C:	LD		HL,(LAF94)
-		POP		DE
-		LD		A,(HL)
+		POP	DE
+		LD	A,(HL)
 		LDI
-		LD		C,A
-		LD		A,(HL)
-		LD		(DE),A
-		DEC		DE
-		LD		(HL),D
-		DEC		HL
-		LD		(HL),E
-		LD		L,C
-		LD		H,A
-		OR		C
-		JR		NZ,LB0B4
-		LD		HL,(LAF7C)
-		INC		HL
-		INC		HL
+		LD	C,A
+		LD	A,(HL)
+		LD	(DE),A
+		DEC	DE
+		LD	(HL),D
+		DEC	HL
+		LD	(HL),E
+		LD	L,C
+		LD	H,A
+		OR	C
+		JR	NZ,LB0B4
+		LD	HL,(LAF7C)
+		INC	HL
+		INC	HL
 LB0B4:	DEC		HL
-		DEC		DE
+		DEC	DE
 		LDD
 		LD		A,(HL)
 		LD		(DE),A

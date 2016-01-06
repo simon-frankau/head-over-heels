@@ -8,7 +8,7 @@
 ;;  * BigProcData
 ;;  * ProcDataEltC
 ;;  * ProcDataEltD
-;;  * ProcDataEnd
+;;  * ProcTmpObj
 ;;  * SomeExport
 
 ;; Calls into:
@@ -147,7 +147,7 @@ ProcData:	LD	B,$08
 		JR	NC,RecProcData
         ;; Otherwise do FIXME
 		PUSH	IY
-		LD	IY,L76EE
+		LD	IY,TmpObj
 		CALL	ProcDataStart
 		POP	IY
         ;; A few bits set up L7700
@@ -175,18 +175,18 @@ PD3:		CALL	ProcDataEltA
 		INC	A
 		AND	A
 		RET	Z
-		CALL	ProcDataEnd
+		CALL	ProcTmpObj
 		JR	PD3
-PD4:		CALL	ProcDataEnd
+PD4:		CALL	ProcTmpObj
 		AND	A
 		RET
 
 ;; TODO: Some thing we do at the end of ProcData.
 ;; And elsewhere. Not a great name, but we're giving it a name...
-ProcDataEnd:	LD	HL,L76EE
+ProcTmpObj:	LD	HL,TmpObj
 		LD	BC,L0012
 		PUSH	IY
-		LD	A,(L7713)
+		LD	A,(SkipObj)
 		AND	A
 		CALL	Z,ProcDataObj
 		POP	IY
@@ -233,12 +233,13 @@ ThingA:		LD	B,$03
 		RL	(HL)
 		SUB	$07
 		NEG
+        ;; Z coordinate set to 6 * A + 0x96
 		LD	C,A
 		ADD	A,A
 		ADD	A,C
 		ADD	A,A
 		ADD	A,$96
-		LD	(L76F5),A
+		LD	(TmpObj+7),A
 		SCF
 		EXX
 		LD	(HL),A
@@ -253,61 +254,61 @@ ThingB:		CP	$FF
 		AND	A
 		RET
 
-YetAnotherB:	LD	(L76F3),A
-		LD	HL,L76F4
+YetAnotherB:	LD	(TmpObj+5),A
+		LD	HL,TmpObj+6
 		LD	A,(L76E1)
 		JP	YetAnotherCore   	; NB: Tail call
 
-YetAnotherA:	LD	(L76F4),A
-		LD	HL,L76F3
+YetAnotherA:	LD	(TmpObj+6),A
+		LD	HL,TmpObj+5
 		LD	A,(L76E0)
         ;; NB: Fall through
 
-YetAnotherCore:	ADD		A,A
-		ADD		A,A
-		ADD		A,A
+YetAnotherCore:	ADD	A,A
+		ADD	A,A
+		ADD	A,A
 		PUSH	AF
-		ADD		A,$24
-		LD		(HL),A
+		ADD	A,$24
+		LD	(HL),A
 		PUSH	HL
 		CALL	ThingA
-		JR		NC,ThingD 	; NB: Tail call
-		LD		A,(IX+$00)
-		LD		(L76F2),A
-		INC		IX
-		LD		A,(L7705)
-		LD		(L76F6),A
+		JR	NC,ThingD 	; NB: Tail call
+		LD	A,(IX+$00)
+		LD	(TmpObj+4),A
+		INC	IX
+		LD	A,(L7705)
+		LD	(TmpObj+8),A
 		CALL	ThingC
-		LD		A,(IX+$00)
-		LD		(L76F2),A
-		INC		IX
-		LD		A,(L7706)
-		LD		(L76F6),A
-		POP		HL
-		POP		AF
-		ADD		A,$2C
-		LD		(HL),A
+		LD	A,(IX+$00)
+		LD	(TmpObj+4),A
+		INC	IX
+		LD	A,(L7706)
+		LD	(TmpObj+8),A
+		POP	HL
+		POP	AF
+		ADD	A,$2C
+		LD	(HL),A
         ;; NB: Fall through
 
-ThingC:		CALL	ProcDataEnd
-		LD		A,(L76F2)
-		LD		C,A
-		AND		$30
-		RET		PO
-		AND		$10
-		OR		$01
-		LD		(L76F2),A
-		LD		A,(L76F5)
-		CP		$C0
-		RET		Z
+ThingC:		CALL	ProcTmpObj
+		LD	A,(TmpObj+4)
+		LD	C,A
+		AND	$30
+		RET	PO
+		AND	$10
+		OR	$01
+		LD	(TmpObj+4),A
+		LD	A,(TmpObj+7)
+		CP	$C0
+		RET	Z
 		PUSH	AF
-		ADD		A,$06
-		LD		(L76F5),A
-		LD		A,$54
-		LD		(L76F6),A
-		CALL	ProcDataEnd
-		POP		AF
-		LD		(L76F5),A
+		ADD	A,$06
+		LD	(TmpObj+7),A
+		LD	A,$54
+		LD	(TmpObj+8),A
+		CALL	ProcTmpObj
+		POP	AF
+		LD	(TmpObj+7),A
 		RET
 
 ThingD:		POP	HL
@@ -419,18 +420,18 @@ PDEA1:		AND	$01
 		LD	C,A
 		LD	A,(L76ED)
 		XOR	C
-		LD	(L76F2),A
+		LD	(TmpObj+4),A
 		LD	BC,(L76EC)
 		BIT	4,A
 		JR	Z,PDEA3
 		BIT	1,A
 		JR	Z,PDEA2
 		XOR	$01
-		LD	(L76F2),A
+		LD	(TmpObj+4),A
 PDEA2:		DEC	C
 		DEC	C
 PDEA3:		LD	A,C
-		LD	(L76FE),A
+		LD	(TmpObj+16),A
 		RET
 
 ;; Called from inside the ProcData loop...
@@ -439,7 +440,7 @@ ProcDataEltB:	CALL	FetchData333
 
 ProcDataEltC:	EX	AF,AF'
 		LD	HL,(L76DE)
-		LD	DE,L76F3
+		LD	DE,TmpObj+5
         ;; NB: Fall through
 
 ProcDataEltD:	LD	A,B
