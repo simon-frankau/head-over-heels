@@ -576,7 +576,7 @@ C92B7:	LD		(IY+$0C),$FF
 		RET		Z
 		CALL	C92A6
 		LD		HL,(CurrObject)
-		CALL	CB0BE
+		CALL	ProcObjUnk4
 		LD		HL,(CurrObject)
 		JP		UnionAndDraw
 C92CF:	CALL	C937E

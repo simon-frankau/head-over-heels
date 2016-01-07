@@ -24,10 +24,10 @@
 	;; CAA74
 	;; CAC41
 	;; CAF96
-	;; CB010
-	;; CB03B
-	;; CB0BE
-	;; CB0C6
+	;; ProcObjUnk1
+	;; ProcObjUnk2
+	;; ProcObjUnk4
+	;; ProcObjUnk5
 	;; LB21C
 	
 	
@@ -140,7 +140,7 @@ DoFire:		LD	A,(FirePressed)
 		LD	(FiredObj+$0B),A
 		LD	(IY+$0C),$FF
 		LD	(IY+$0F),$20
-		CALL	CB03B
+		CALL	ProcObjUnk2
 	;; Use up a donut
 		LD	A,$06
 		CALL	DecCount
@@ -170,7 +170,7 @@ EPIC_9:		LD	A,(LA295)
 		CALL	GetCharObj
 		PUSH	HL
 		POP	IY
-		CALL	CB0C6
+		CALL	ProcObjUnk5
 		LD	A,(Character)
 		CP	$03
 		JR	Z,EPIC_12
@@ -457,7 +457,7 @@ EPIC_52:	LD	A,(Character)
 CharThing26:	LD	A,(LA2BF)
 		LD	(IY+$0C),A
 		CALL	GetCharObj
-		CALL	CB0BE
+		CALL	ProcObjUnk4
 		CALL	CharThing16
 		XOR	A
 		CALL	CAF96
@@ -902,7 +902,7 @@ EPIC_97:	LD	A,$80
 		LD	(IY+$0B),$FF
 		LD	(IY+$0C),$FF
 		POP	HL
-		CALL	CB010
+		CALL	ProcObjUnk1
 		CALL	CharThing16
 		XOR	A
 		LD	(LB219),A

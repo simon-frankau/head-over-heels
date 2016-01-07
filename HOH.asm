@@ -1575,7 +1575,7 @@ RemoveObject:	PUSH	HL
 		PUSH	IY
 		PUSH	HL
 		POP	IY
-		CALL	CB0C6
+		CALL	ProcObjUnk5
 		POP	IY
 		POP	HL
 		CALL	C8D6F
@@ -1606,7 +1606,7 @@ InsertObject:	PUSH	HL
 		PUSH	IY
 		PUSH	HL
 		POP	IY
-		CALL	CB03B
+		CALL	ProcObjUnk2
 		POP	IY
 		POP	HL
 		CALL	C8D6F

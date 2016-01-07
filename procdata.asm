@@ -192,6 +192,7 @@ ProcTmpObj:	LD	HL,TmpObj
 		POP	IY
 		RET
 
+        ;; Could this perhaps be setting some kind of boundary - 4 calls, etc?
 BPDSubB:	LD	B,$03
 		CALL	FetchData
 		CALL	C7358   ; Looks suspiciously like self-modifying code
@@ -254,6 +255,7 @@ ThingB:		CP	$FF
 		AND	A
 		RET
 
+        ;; These two seem to take a thing in HL' and A.
 YetAnotherB:	LD	(TmpObj+5),A
 		LD	HL,TmpObj+6
 		LD	A,(L76E1)

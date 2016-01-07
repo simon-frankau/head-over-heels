@@ -7,10 +7,10 @@
 ;; Exported functions:
 ;;  * ProcDataObj
 ;;  * GetUVZExtents
-;;  * CB010
-;;  * CB0C6
-;;  * CB03B
-;;  * CB0BE
+;;  * ProcObjUnk1
+;;  * ProcObjUnk5
+;;  * ProcObjUnk2
+;;  * ProcObjUnk4
 ;;  * GetUVZExtents2
 
 ;; Called during the ProcData loop to copy an object into the dest
@@ -38,7 +38,7 @@ ProcDataObj:
                 PUSH    HL
                 POP     IY
                 BIT     3,(IY+$04)      ; Check bit 3 of flags...
-                JR      Z,CB010         ; NB: Tail call if not set
+                JR      Z,ProcObjUnk1   ; NB: Tail call if not set
         ;; Make another copy of the next 9 bytes? FIXME...
 		LD	BC,L0009
 		PUSH	HL
@@ -53,21 +53,21 @@ ProcDataObj:
 		ADD	HL,DE
 		LD	(ObjDest),HL
 		BIT	5,(IY+$09)
-		JR	Z,LB00F
+		JR	Z,PDO2
 		PUSH	IY
 		LD	DE,L0012
 		ADD	IY,DE
 		LD	A,(L822E)
 		CALL	C828B
 		POP	IY
-LB00F:		POP	HL
+PDO2:		POP	HL
         ;; NB: Fall through.
 
 ;; HL points at an object, as does IY.
-CB010:		LD	A,(LAF77)
+ProcObjUnk1:	LD	A,(LAF77)
 		DEC	A
 		CP	$02
-		JR	NC,CB03B
+		JR	NC,ProcObjUnk2 	; NB: Tail call
 		INC	HL
 		INC	HL
 		BIT	3,(IY+$04)
@@ -83,19 +83,20 @@ CB010:		LD	A,(LAF77)
 		POP	HL
 		INC	HL
 		INC	HL
-		JR	LB085
+		JR	DepthInsert
 CB034:		PUSH	HL
 		CALL	GetUVZExtents2
 		EXX
 		JR	LB082
+        ;; NB: Fall through
 
-	
-CB03B:		INC	HL
+;; TODO
+ProcObjUnk2:	INC	HL
 		INC	HL
 		BIT	3,(IY+$04)
-		JR	Z,CB057
+		JR	Z,ProcObjUnk3 	; NB: Tail call
 		PUSH	HL
-		CALL	CB057
+		CALL	ProcObjUnk3
 		POP	DE
 		CALL	CAFAB
 		PUSH	HL
@@ -105,9 +106,10 @@ CB03B:		INC	HL
 		POP	HL
 		INC	HL
 		INC	HL
-		JR	LB085
+		JR	DepthInsert   	; NB: Tail call
 
-CB057:		PUSH	HL
+        ;; TODO
+ProcObjUnk3:	PUSH	HL
 		CALL	GetUVZExtents2
 		LD	A,$03
 		EX	AF,AF'
@@ -132,48 +134,56 @@ CB057:		PUSH	HL
 LB07D:		EXX
 		EX	AF,AF'
 		CALL	CAF96
+        ;; NB: Fall through
+
 LB082:	        LD	HL,(LAF7A)
+        ;; NB: Fall through
 
         ;; Object extents in alt registers, obj+2 in HL.
         ;;
         ;; I believe this traverses a list sorted far-to-near, and
         ;; loads up HL with the nearest object further away from our
         ;; object.
-LB085:          LD      (SortObj),HL
-LB088:          LD      A,(HL)          ; Load next object into HL...
+DepthInsert:    LD      (SortObj),HL
+DepIns2:        LD      A,(HL)          ; Load next object into HL...
                 INC     HL
                 LD      H,(HL)
                 LD      L,A
                 OR      H
-                JR      Z,LB09C         ; Zero? Done!
+                JR      Z,DepIns3         ; Zero? Done!
                 PUSH    HL
                 CALL    GetUVZExtents2
                 CALL    DepthCmp
                 POP     HL
-                JR      NC,LB085        ; Update SortObj if current HL is far away
+                JR      NC,DepthInsert  ; Update SortObj if current HL is far away
                 AND     A
-                JR      NZ,LB088        ; Break out of loop if past point of caring
-LB09C:          LD      HL,(SortObj)
-
+                JR      NZ,DepIns2      ; Break out of loop if past point of caring
+DepIns3:        LD      HL,(SortObj)
         ;; TODO: I assume this updates the object pointers?
+        ;; Load our object in DE, HL contains object to chain after.
 		POP	DE
+        ;; Copy HL obj's 'next' pointer into DE obj's.
 		LD	A,(HL)
 		LDI
 		LD	C,A
 		LD	A,(HL)
 		LD	(DE),A
+        ;; Now copy address of DE into HL's 'next' pointer.
 		DEC	DE
 		LD	(HL),D
 		DEC	HL
 		LD	(HL),E
+        ;; Put DE's 'next' pointer into HL.
 		LD	L,C
 		LD	H,A
+        ;; And if it's zero, load HL with object referred to at LAF7C
 		OR	C
-		JR	NZ,LB0B4
+		JR	NZ,DepIns4
 		LD	HL,(LAF7C)
 		INC	HL
 		INC	HL
-LB0B4:		DEC	HL
+        ;; FIXME... and then some final pointer update stuff? What?
+DepIns4:	DEC	HL
 		DEC	DE
 		LDD
 		LD	A,(HL)
@@ -182,17 +192,22 @@ LB0B4:		DEC	HL
 		INC	HL
 		LD	(HL),D
 		RET
-CB0BE:		PUSH	HL
-		CALL	CB0C6
+
+        ;; FIXME: Other functions!
+ProcObjUnk4:	PUSH	HL
+		CALL	ProcObjUnk5
 		POP	HL
-		JP	CB03B
-CB0C6:		BIT	3,(IY+$04)
+		JP	ProcObjUnk2
+
+ProcObjUnk5:	BIT	3,(IY+$04)
 		JR	Z,CB0D5
 		PUSH	HL
 		CALL	CB0D5
 		POP	DE
 		LD	HL,L0012
 		ADD	HL,DE
+        ;; NB: Fall through.
+
 CB0D5:		LD	E,(HL)
 		INC	HL
 		LD	D,(HL)
