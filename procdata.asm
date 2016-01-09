@@ -343,7 +343,7 @@ SomeExport:	LD		BC,(L703B)
 		DEC		A
 		AND		$F0
 		LD		C,A
-		CALL	ThingE
+		CALL	FindRoom
 		RET		C
 		INC		DE
 		INC		DE
@@ -355,7 +355,7 @@ SomeExport:	LD		BC,(L703B)
 		SCF
 		RET
 	
-BPDSubA:	CALL	ThingE
+BPDSubA:	CALL	FindRoom
 		EXX
 		LD		A,C
 		OR		(HL)
@@ -363,54 +363,76 @@ BPDSubA:	CALL	ThingE
 		EXX
 		RET
 
-ThingE:	LD		D,$00
-		LD		HL,L5C71
-		CALL	ThingF
-		RET		NC
-		LD	HL,L6B16
-		JR	ThingG ; NB: Tail call
-	
-ThingF:		EXX
-		LD		HL,RoomMask
-		LD		C,$01
-		EXX
+;; Find a room. Takes room id in BC. Returns first field in A, and
+;; room bit mask location in HL' and C'.
+FindRoom:       LD      D,$00
+                LD      HL,RoomList1
+                CALL    FindRoom2
+                RET     NC
+                LD      HL,RoomList2
+                JR      FindRoomInner ; NB: Tail call
+
+        ;; Set up the room bit field thing, and do the first run.
+FindRoom2:      EXX
+                LD      HL,RoomMask
+                LD      C,$01
+                EXX
         ;; NB: Fall through
 
-        ;; TODO: Takes something in HL, and B... and DE and C'?!
-        ;; TODO: Is it trying to set the visited bit in the room mask?
-ThingG:
+;; Finds an entry in a room list. The list consists of packed entries.
+;;
+;; The entry structure is:
+;; 1 byte size (excludes this byte)
+;; 2 bytes id (top bit ignored for matching)
+;; Data
+;;
+;; A size of zero terminates the list.
+;;
+;; This is called with:
+;;  HL pointing to the start of the tagged list
+;;  D should be zero - DE will be the entry size
+;;  BC should be the id we're looking for
+;;  HL' and C' are incremented as the address and bit mask for a bitfield
+;;   associated with the nth entry.
+;;
+;; The carry flag is set if nothing's returned. Otherwise, it returns the
+;; first four bits of the bit-packed data.
+FindRoomInner:
         ;; Return with carry set if *HL is 0
-		LD		E,(HL)
-		INC		E
-		DEC		E
-		SCF
-		RET		Z
-        ;; 
-		INC		HL
-		LD		A,B
-		CP		(HL)
-		JR		Z,TG4
-TG2:		ADD		HL,DE
-		EXX
-		RLC		C
-		JR		NC,TG3
-		INC		HL
-TG3:		EXX
-		JR		ThingG ; NB: Loop back to top
-TG4:		INC		HL
-		DEC		E
-		LD		A,(HL)
-		AND		$F0
-		CP		C
-		JR		NZ,TG2
-		DEC		HL
-	;; Initialise DataPtr and CurrData for new data.
-        ;; TODO: I think this is the mechanism to switch rooms.
-		LD		(DataPtr),HL
-		LD		A,$80
-		LD		(CurrData),A
-		LD		B,$04
-		JP		FetchData ; NB: Tail call
+                LD      E,(HL)
+                INC     E
+                DEC     E
+                SCF
+                RET     Z
+        ;; If HL+1 equals B, go to FR4
+                INC     HL
+                LD      A,B
+                CP      (HL)
+                JR      Z,FR4
+        ;; Otherwise, increment HL by DE, move the bit pointer in C',
+        ;; and increment HL' every time the bit wraps round. Then loop.
+FR2:            ADD     HL,DE
+                EXX
+                RLC     C
+                JR      NC,FR3
+                INC     HL
+FR3:            EXX
+                JR      FindRoomInner
+        ;; Second check: Does HL+2 & 0xF0 equal C?
+FR4:            INC     HL
+                DEC     E       ; Incremented HL, so decrement DE.
+                LD      A,(HL)
+                AND     $F0
+                CP      C
+                JR      NZ,FR2
+        ;; Found item. Step back to start of item.
+                DEC             HL
+        ;; Initialise DataPtr and CurrData for new data.
+                LD      (DataPtr),HL
+                LD      A,$80
+                LD      (CurrData),A
+                LD      B,$04
+                JP      FetchData ; NB: Tail call
 
 ;; Called from inside the ProcData loop...
 ProcDataEltA:	LD	A,(L7700)
