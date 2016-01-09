@@ -367,20 +367,25 @@ ThingE:	LD		D,$00
 		LD		HL,L5C71
 		CALL	ThingF
 		RET		NC
-		LD		HL,L6B16
-		JR		ThingG ; NB: Tail call
+		LD	HL,L6B16
+		JR	ThingG ; NB: Tail call
 	
 ThingF:		EXX
-		LD		HL,L8AE2
+		LD		HL,RoomMask
 		LD		C,$01
 		EXX
         ;; NB: Fall through
 
-ThingG:		LD		E,(HL)
+        ;; TODO: Takes something in HL, and B... and DE and C'?!
+        ;; TODO: Is it trying to set the visited bit in the room mask?
+ThingG:
+        ;; Return with carry set if *HL is 0
+		LD		E,(HL)
 		INC		E
 		DEC		E
 		SCF
 		RET		Z
+        ;; 
 		INC		HL
 		LD		A,B
 		CP		(HL)
@@ -400,6 +405,7 @@ TG4:		INC		HL
 		JR		NZ,TG2
 		DEC		HL
 	;; Initialise DataPtr and CurrData for new data.
+        ;; TODO: I think this is the mechanism to switch rooms.
 		LD		(DataPtr),HL
 		LD		A,$80
 		LD		(CurrData),A

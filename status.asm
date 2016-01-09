@@ -73,7 +73,7 @@ SN_1:		CALL	PrintChar
 	;; NB: Not directly called from any code I've seen!
 EndThing:	LD	A,D
 		SUB	$09
-		LD	HL,L866B
+		LD	HL,WorldMask
 		CALL	SetBit
 		LD	B,$C1
 		CALL	PlaySound
@@ -136,7 +136,7 @@ DoContinue:	LD	HL,Continues
 		RRA
 		RRA
 		AND	$1F
-		LD	(L866B),A
+		LD	(WorldMask),A
 		PUSH	HL
 		POP	IX
 		LD	HL,L866C

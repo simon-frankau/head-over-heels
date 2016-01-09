@@ -456,7 +456,7 @@ InitStuff:	CALL	IrqInstall
 		JP	InitRevTbl
 
 InitNewGame:	XOR	A
-		LD	(L866B),A
+		LD	(WorldMask),A
 		LD	(LB218),A
 		LD	(Continues),A
 		LD	A,$18
@@ -1024,17 +1024,17 @@ L8521:		RRA
 		SUB	L
 		LD	H,A
 		LD	(PanelFlipsPtr),HL
-	;; Update DataPtr etc. for FetchData.
+	;; We use the FetchData mechanism to unpack the WorldData. Set it up.
 		LD	A,B
 		ADD	A,A
 		LD	B,A 		; B updated to 2x
 		ADD	A,A
 		ADD	A,A   		; A is 8x
-		ADD	A,$2A
+		ADD	A,+((WorldData - 1) & $FF)
 		LD	L,A
-		ADC	A,$86
+		ADC	A,+((WorldData - 1) >> 8)
 		SUB	L
-		LD	H,A   		; HL is $862A + 8xWorldId (data starts at $862B=WorldData)
+		LD	H,A   		; HL is WorldData - 1 + 8xWorldId
 		LD	(DataPtr),HL
 		LD	A,$80
 		LD	(CurrData),A
@@ -1166,6 +1166,7 @@ C8603:	LD		A,(IY-$02)
 
 PanelBases:	DEFW $C050,$C1A0,$C2F0,$C3D0,$C4B0,$C670,$C750,$C8A0
 	;; 8-byte chunks referenced by setting DataPtr etc.
+        ;; Consists of packed 2-bit values.
 WorldData:	DEFB $46,$91,$65,$94,$A1,$69,$69,$AA
 		DEFB $49,$24,$51,$49,$12,$44,$92,$A4
 		DEFB $04,$10,$10,$41,$04,$00,$44,$00
@@ -1174,7 +1175,8 @@ WorldData:	DEFB $46,$91,$65,$94,$A1,$69,$69,$AA
 		DEFB $45,$51,$50,$51,$54,$55,$55,$55
 		DEFB $64,$19,$65,$11,$A4,$41,$28,$55
 		DEFB $00,$00,$00,$00,$00,$00,$00,$00
-L866B:	DEFB $00
+        ;; Bit mask of worlds visited.
+WorldMask:	DEFB $00
 L866C:	DEFB $70,$14,$00,$72,$60,$30,$01,$40,$B0,$2E,$09,$34,$B0,$00,$1A
 L867B:	DEFB $00,$F0,$9A,$0B,$70,$40,$A7,$1C,$44,$30,$37,$7D,$37,$70,$15,$68
 L868B:	DEFB $34,$60,$89,$48,$47,$60,$C5,$68,$76,$80,$1B,$68,$76,$D0,$BC,$28
@@ -1225,7 +1227,7 @@ C8764:	INC		HL
 
 BPDEnd:		PUSH	BC
 		LD		HL,L8728
-		LD		A,(L866B)
+		LD		A,(WorldMask)
 		CPL
 		LD		B,$05
 		LD		DE,L0004
@@ -1348,69 +1350,67 @@ PickUp:		LD	HL,Inventory
 L8ADC:	DEFB $00,$00
 L8ADE:	DEFB $00
 L8ADF:	DEFB $00,$00,$00
-L8AE2:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8AEE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8AFE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8B0E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8B1E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8B2E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8B3E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8B4E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8B5E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8B6E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8B7E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8B8E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8B9E:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8BAE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8BBE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8BCE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8BDE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8BEE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8BFE:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-L8C0E:	DEFB $00
 
-	;; FIXME: Run out of donuts
-C8C0F:		LD		HL,Inventory
-		RES		2,(HL)
-L8C14:	EXX
-		LD		BC,L0001
-		JR		L8C26
-C8C1A:	LD		HL,L866B
-		JR		L8C14
-C8C1F:	LD		HL,L8AE2
-		EXX
-		LD		BC,L012D
-L8C26:	EXX
-		LD		DE,L0000
-		EXX
-L8C2B:	EXX
-		LD		C,(HL)
-		SCF
-		RL		C
-L8C30:	LD		A,E
-		ADC		A,$00
-		DAA
-		LD		E,A
-		LD		A,D
-		ADC		A,$00
-		DAA
-		LD		D,A
-		SLA		C
-		JR		NZ,L8C30
-		INC		HL
-		EXX
-		DEC		BC
-		LD		A,B
-		OR		C
-		JR		NZ,L8C2B
-		EXX
-		RET
-InitNewGame1:	LD		HL,L8AE2
-		LD		BC,L012D
+NUM_ROOMS:      EQU 301
+RoomMask:       DEFS NUM_ROOMS, $00
+
+;; Clear donut count and then count number of inventory items we have
+EmptyDonuts:    LD      HL,Inventory
+                RES     2,(HL)
+ED1:            EXX
+                LD      BC,L0001
+                JR      CountBits
+
+WorldCount:     LD      HL,WorldMask ; FIXME: Possibly actually crowns...
+                JR      ED1
+
+RoomCount:      LD      HL,RoomMask
+                EXX
+                LD      BC,301
+        ;; NB: Fall through
+
+;; Counts #bits set in BC bytes starting at HL', returning them in DE.
+;; Count is given in BCD.
+CountBits:      EXX
+                LD      DE,L0000
+                EXX
+        ;; Outer loop
+CB1:            EXX
+                LD      C,(HL)
+        ;; Run inner loop 8 times?
+                SCF
+                RL      C
+CB2:
+        ;; BCD-normalise E
+                LD      A,E
+                ADC     A,$00
+                DAA
+                LD      E,A
+        ;; BCD-normalise D
+                LD      A,D
+                ADC     A,$00
+                DAA
+                LD      D,A
+        ;; And loop...
+                SLA     C
+                JR      NZ,CB2
+        ;; So, I think we just added bit population of (HL') into DE'.
+                INC     HL
+                EXX
+                DEC     BC
+                LD      A,B
+                OR      C
+                JR      NZ,CB1
+        ;; And do the same for the rest of the BC entries...
+                EXX
+                RET
+
+InitNewGame1:	LD		HL,RoomMask
+		LD		BC,NUM_ROOMS
 		JP		FillZero
 C8C50:	CALL	C708B
 		PUSH	AF
-		CALL	C8C1F
+		CALL	RoomCount
 		POP		AF
 		LD		HL,L0000
 		JR		NZ,L8C69
@@ -1422,12 +1422,12 @@ C8C50:	CALL	C708B
 L8C69:	LD		BC,L0010
 		CALL	C8C82
 		PUSH	HL
-		CALL	C8C0F
+		CALL	EmptyDonuts ; Alternatively, score inventory minus donuts?
 		POP		HL
 		LD		BC,L01F4
 		CALL	C8C82
 		PUSH	HL
-		CALL	C8C1A
+		CALL	WorldCount
 		POP		HL
 		LD		BC,L027C
 C8C82:	LD		A,E
@@ -2636,7 +2636,7 @@ LB313:		LD		A,B
 		LD		A,(HL)
 		AND		A
 		RET		NZ
-		LD		A,(L866B)
+		LD		A,(WorldMask)
 		CP		$1F
 		RET		Z
 		LD		(HL),$0C

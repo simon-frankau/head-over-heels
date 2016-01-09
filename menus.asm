@@ -159,7 +159,7 @@ GameOverScreen:	CALL	AltPlaySound
 		CALL	DrawHnH
 		CALL	C8C50		; FIXME: ?
 		PUSH	HL
-		LD	A,(L866B) 	; FIXME: ?
+		LD	A,(WorldMask) 	; FIXME: ?
 		OR	$E0
 		INC	A
 		LD	A,$C4
@@ -176,7 +176,7 @@ GOS_1:		RLCA
 GOS_2:		CALL	PrintChar
 		LD	A,STR_EXPLORED
 		CALL	PrintChar
-		CALL	C8C1F
+		CALL	RoomCount
 		CALL	Print4DigitsL
 		LD	A,STR_ROOMS_SCORE
 		CALL	PrintChar
@@ -184,7 +184,7 @@ GOS_2:		CALL	PrintChar
 		CALL	Print4DigitsL
 		LD	A,STR_LIBERATED
 		CALL	PrintChar
-		CALL	C8C1A
+		CALL	WorldCount
 		LD	A,E
 		CALL	Print2DigitsL
 		LD	A,STR_PLANETS

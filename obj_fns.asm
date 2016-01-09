@@ -331,7 +331,7 @@ ObjFn9:		LD		HL,L91F1
 ObjFn15:	LD		HL,HomeIn
 		JR		L9141
 
-ObjFn37:	LD		A,(L866B)
+ObjFn37:	LD		A,(WorldMask)
 		OR		$F0
 		INC		A
 		LD		HL,MoveAway

@@ -12,7 +12,7 @@
 ;;  * Draw3x24
 ;;  * Clear3x24
 
-EndScreen:      LD      A,(L866B)
+EndScreen:      LD      A,(WorldMask)
                 CP      $1F
                 JR      NZ,ES_1
                 LD      A,STR_WIN_SCREEN
@@ -33,7 +33,7 @@ CrownScreen:    LD      A,STR_EMPIRE_BLURB
                 LD      DE,L05FF
                 CALL    DrawFromList
                 LD      HL,CrownsSpriteList
-                LD      DE,(L866B)
+                LD      DE,(WorldMask)
                 LD      D,$05
                 CALL    DrawFromList
         ;; NB: Fall through
