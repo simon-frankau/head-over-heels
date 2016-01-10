@@ -17,7 +17,7 @@
 ;;  * L70E6
 
 ;; Exported variables:
-;;  * L703B
+;;  * RoomId
 ;;  * Phase
 ;;  * CurrDir
 ;;  * CarryPressed
@@ -31,8 +31,7 @@ Entry:		LD	SP,$FFF4
 		CALL	InitStick
 		JR	Main
 
-L703B:		DEFB $00
-L703C:		DEFB $00
+RoomId:		DEFW $00
 Phase:		DEFB $00	; Top bit toggles every DoObjects loop.
 LastDir:	DEFB $EF
 CurrDir:	DEFB $FF
@@ -78,7 +77,7 @@ MainLoop:	CALL	WaitFrame
 		JR	MainLoop
 
 	;; FIXME: ???
-C708B:		LD	HL,(L703B)
+C708B:		LD	HL,(RoomId)
 		LD	BC,$8D30 ; TODO
 		XOR	A
 		SBC	HL,BC
@@ -106,7 +105,7 @@ MainLoop2:	CALL	C708B
 		RET
 
 	;; FIXME: ???
-L70BA:		LD	HL,L703C
+L70BA:		LD	HL,RoomId+1
 		LD	A,(LB218)
 		DEC	A
 		CP	$06
@@ -374,7 +373,7 @@ SCF_2:		RES	1,(IY+$1B)
 		SET	1,(IY+$1B)
 		RET
 
-C728C:		LD	HL,(L703B)
+C728C:		LD	HL,(RoomId)
 		LD	DE,(LFB28)
 		AND	A
 		SBC	HL,DE

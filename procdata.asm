@@ -18,11 +18,13 @@
 ;; FIXME: Called lots. Suspect it forms the backbone of loading a
 ;; screen or something? Reads all the packed data.
 ;; Takes something in HL and BC and IY
+
+;; Takes room id in BC
 BigProcData:	LD	(L76E0),HL
 		XOR	A
 		LD	(L76E2),A
 		PUSH	BC
-		CALL	BPDSubA
+		CALL	FindVisitRoom
 		LD	B,$03
 		CALL	FetchData
 		LD	(L7710),A
@@ -81,9 +83,9 @@ BPD3:		LD	A,(IX-$02)
 		CALL	SetFloorAddr
 	;; FIXME
 BPD4:		CALL	ProcData
-		JR		NC,BPD4
-		POP		BC
-		JP		BPDEnd 		; NB: Tail call.
+		JR	NC,BPD4
+		POP	BC
+		JP	BPDEnd 		; NB: Tail call.
 
 ;; Add a signed 3-bit value in A to (HL), result in A
 Add3Bit:        BIT     2,A
@@ -138,39 +140,49 @@ RPD1:		CALL	ProcData
 ;; TODO: Processes some fetched data.
 ProcData:	LD	B,$08
 		CALL	FetchData
-        ;; Return if we hit $FF with carry set.
+        ;; Return with carry set if we hit $FF.
 		CP	$FF
 		SCF
 		RET	Z
         ;; Code >= $C0 means recurse.
 		CP	$C0
-		JR	NC,RecProcData
+		JR	NC,RecProcData 	; NB: Tail call (falls through back)
         ;; Otherwise do FIXME
 		PUSH	IY
 		LD	IY,TmpObj
 		CALL	ProcDataStart
 		POP	IY
-        ;; A few bits set up L7700
+        ;; Read two bits XY. If top bit is not set, A = 1.
+        ;; Otherwise, read another bit Z, and use ZXY.
+        ;; 00 -> 001, 01 -> 001, 010 -> 010, 110 -> 110
+
+        ;; Read two bits. Bottom bit is "should loop".
+        ;; Top bit is "read one bit for all loops?".
 		LD	B,$02
 		CALL	FetchData
 		BIT	1,A
 		JR	NZ,PD1
+        ;; We will read per loop. Set "should loop" bit.
 		LD	A,$01
 		JR	PD2
-PD1:		PUSH	AF
+PD1:
+        ;; Not reading per-loop. Read once and store in 0x04 position.
+		PUSH	AF
 		LD	B,$01
 		CALL	FetchData
 		POP	BC
 		RLCA
 		RLCA
 		OR	B
-PD2:		LD	(L7700),A
+PD2:		LD	(UnpackFlags),A
         ;; And then some processing loops thing...
-PD3:		CALL	ProcDataEltA
+PD3:		CALL	BuildTmpObjA
 		CALL	ProcDataEltB
-		LD	A,(L7700)
+		LD	A,(UnpackFlags)
 		RRA
+        ;; Only loop if loop bit (bottom bit) is set.
 		JR	NC,PD4
+        ;; Although we break out if (L7704) is 0xFF.
 		LD	A,(L7704)
 		INC	A
 		AND	A
@@ -338,30 +350,33 @@ GDP1:		LD		E,(HL)
 		JR		GDP1
 
 	
-SomeExport:	LD		BC,(L703B)
-		LD		A,C
-		DEC		A
-		AND		$F0
-		LD		C,A
+SomeExport:	LD	BC,(RoomId)
+		LD	A,C
+		DEC	A
+		AND	$F0
+		LD	C,A
 		CALL	FindRoom
-		RET		C
-		INC		DE
-		INC		DE
-		INC		DE
-		LD		A,(DE)
-		OR		$F1
-		INC		A
-		RET		Z
+		RET	C
+        ;; Not found? Let's carry on...
+        ;; FIXME: ???
+		INC	DE
+		INC	DE
+		INC	DE
+		LD	A,(DE)
+		OR	$F1
+		INC	A
+		RET	Z
 		SCF
 		RET
-	
-BPDSubA:	CALL	FindRoom
-		EXX
-		LD		A,C
-		OR		(HL)
-		LD		(HL),A
-		EXX
-		RET
+
+;; Like FindRoom, but set the "visited" bit. Assumes HL' and C' set.
+FindVisitRoom:  CALL    FindRoom
+                EXX
+                LD      A,C
+                OR      (HL)
+                LD      (HL),A
+                EXX
+                RET
 
 ;; Find a room. Takes room id in BC. Returns first field in A, and
 ;; room bit mask location in HL' and C'.
@@ -398,7 +413,7 @@ FindRoom2:      EXX
 ;; The carry flag is set if nothing's returned. Otherwise, it returns the
 ;; first four bits of the bit-packed data.
 FindRoomInner:
-        ;; Return with carry set if *HL is 0
+        ;; Return with carry set if (HL) is 0 - not found.
                 LD      E,(HL)
                 INC     E
                 DEC     E
@@ -435,32 +450,36 @@ FR4:            INC     HL
                 JP      FetchData ; NB: Tail call
 
 ;; Called from inside the ProcData loop...
-ProcDataEltA:	LD	A,(L7700)
+BuildTmpObjA:	LD	A,(UnpackFlags)
 		RRA
 		RRA
-		JR	C,PDEA1
+        ;; If the 'read once' bit is set, use the read-once value.
+        ;; Otherwise, read another bit.
+		JR	C,BTOA1
 		LD	B,$01
 		CALL	FetchData
-PDEA1:		AND	$01
+BTOA1:		AND	$01
+        ;; Flag goes into 0x10 position of the object flag.
 		RLCA
 		RLCA
 		RLCA
 		RLCA
 		AND	$10
+        ;; Set fields of TmpObj
 		LD	C,A
 		LD	A,(L76ED)
 		XOR	C
 		LD	(TmpObj+4),A
 		LD	BC,(L76EC)
 		BIT	4,A
-		JR	Z,PDEA3
+		JR	Z,BTOA3
 		BIT	1,A
-		JR	Z,PDEA2
+		JR	Z,BTOA2
 		XOR	$01
 		LD	(TmpObj+4),A
-PDEA2:		DEC	C
+BTOA2:		DEC	C
 		DEC	C
-PDEA3:		LD	A,C
+BTOA3:		LD	A,C
 		LD	(TmpObj+16),A
 		RET
 
@@ -473,6 +492,7 @@ ProcDataEltC:	EX	AF,AF'
 		LD	DE,TmpObj+5
         ;; NB: Fall through
 
+        ;; TODO: Takes HL, DE, B, C, A'
 ProcDataEltD:	LD	A,B
 		CALL	TwiddleHL
 		LD	(DE),A

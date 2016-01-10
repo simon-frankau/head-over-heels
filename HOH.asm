@@ -300,7 +300,7 @@ TmpObj:	DEFB $00,$00,$00,$00,$00,$00,$00,$00
 	DEFB $00,$00,$00,$FF,$FF,$00,$00,$00
         DEFB $00,$00
 
-L7700:	DEFB $00
+UnpackFlags:	DEFB $00
 
 	;; Current pointer to bit-packed data
 DataPtr:	DEFW $0000
@@ -377,7 +377,7 @@ DrawScreen:	LD	IY,L7718 		; FIXME: ???
 		LD	(L7748),HL
 		LD	(L774A),HL
 		LD	HL,L0000
-		LD	BC,(L703B)
+		LD	BC,(RoomId)
 		CALL	BigProcData
 		XOR	A
 		LD	(SkipObj),A
@@ -407,7 +407,7 @@ DrawScreen:	LD	IY,L7718 		; FIXME: ???
 		JR		Z,L77D0
 		LD		A,$01
 		CALL	CAF96
-		LD		BC,(L703B)
+		LD		BC,(RoomId)
 		LD		A,B
 		INC		A
 		XOR		B
@@ -427,7 +427,7 @@ L77D0:	LD		IY,L7720
 		JR		Z,L77F8
 		LD		A,$02
 		CALL	CAF96
-		LD		BC,(L703B)
+		LD		BC,(RoomId)
 		LD		A,B
 		ADD		A,$10
 		XOR		B
@@ -468,11 +468,11 @@ InitNewGame:	XOR	A
 		DEFW	StatusReinit
 		CALL	InitNewGame2
 		LD	HL,L8940
-		LD	(L703B),HL
+		LD	(RoomId),HL
 		LD	A,$01
 		CALL	C7B43
 		LD	HL,L8A40
-		LD	(L703B),HL
+		LD	(RoomId),HL
 		XOR	A
 		LD	(LB218),A
 		RET
@@ -792,7 +792,7 @@ ProcDataStart:	LD		(IY+$09),$00
 		LD		C,B
 		LD		B,A
 		LD		A,C
-L8264:	LD		(L822E),A
+L8264:		LD		(L822E),A
 		LD		A,B
 		CALL	C828B
 		LD		A,(HL)
@@ -802,7 +802,7 @@ L8264:	LD		(L822E),A
 		JR		NZ,L8278
 		SET		7,(IY+$09)
 		AND		$BF
-L8278:	AND		$FB
+L8278:		AND		$FB
 		CP		$80
 		RES		7,A
 		LD		(IY-$01),A
@@ -810,7 +810,7 @@ L8278:	AND		$FB
 		RET		C
 		SET		4,(IY+$09)
 		RET
-C828B:	LD		(IY+$0F),$00
+C828B:		LD		(IY+$0F),$00
 		LD		(IY+$08),A
 		CP		$80
 		RET		C
@@ -865,7 +865,7 @@ C82C9:		BIT		5,(IY+$09)
 		EX		AF,AF'
 		RET
 	
-C82E8:	LD		C,(IY+$0F)
+C82E8:		LD		C,(IY+$0F)
 		LD		A,C
 		AND		$F8
 		CP		$08
@@ -898,7 +898,7 @@ C82E8:	LD		C,(IY+$0F)
 		LD		L,(HL)
 		LD		H,A
 		LD		A,(HL)
-L8313:	LD		(IY+$08),A
+L8313:		LD		(IY+$08),A
 		LD		A,B
 		XOR		C
 		AND		$07
@@ -911,7 +911,7 @@ L8313:	LD		(IY+$08),A
 		CP		$90
 		LD		C,$01
 L832A:		LD		A,C
-		CALL	Z,SetSound
+		CALL		Z,SetSound
 		SCF
 		RET
 L8330:	DEFB $6E,$83,$73,$83,$75,$83,$77,$83,$77,$83,$7C,$83,$7C,$83,$81,$83
@@ -1193,7 +1193,7 @@ L8728:	DEFB $30,$8D,$7E
 L872B:	DEFB $47,$30,$8D,$6E,$17,$30,$8D,$7E,$07,$30,$8D,$6E,$37,$30,$8D,$3E
 L873B:	DEFB $27,$27,$28,$29,$2A,$2A,$2A,$2A,$00,$86,$2F,$2F,$2F,$2F,$2F,$2F
 
-C874B:	LD		BC,(L703B)
+C874B:	LD		BC,(RoomId)
 C874F:	LD		HL,L866C
 		LD		E,$34
 L8754:	LD		A,C
@@ -2277,34 +2277,43 @@ LAD16:	LD		A,(IX+$06)
 		INC		D
 		DEC		E
 		RET
-CAD26:	LD		BC,(L703B)
-		LD		HL,LAD4C
+
+CAD26:		LD	BC,(RoomId)
+		LD	HL,LAD4C
 		CALL	CAD35
-		LD		(L703B),DE
+		LD	(RoomId),DE
 		RET
-CAD35:	CALL	CAD42
-		JR		Z,CAD42
+
+;; Scans array from HL, looking for BC, scanning in pairs. If the
+;; first is equal, it returns the second. If the second is equal,
+;; it returns it.
+
+CAD35:		CALL	CmpBCHL
+		JR	Z,CmpBCHL
 		PUSH	DE
-		CALL	CAD42
-		POP		DE
-		JR		NZ,CAD35
+		CALL	CmpBCHL
+		POP	DE
+		JR	NZ,CAD35
 		RET
-CAD42:	LD		A,C
-		LD		E,(HL)
-		INC		HL
-		LD		D,(HL)
-		INC		HL
-		CP		E
-		RET		NZ
-		LD		A,B
-		CP		D
-		RET
-LAD4C:	DEFB $40,$8A,$50,$71,$40,$89,$80,$04,$70,$BA,$00,$13,$00,$41,$80,$29
-LAD5C:	DEFB $00,$A1,$00,$26,$00,$81,$80,$E9,$00,$84,$00,$B1,$00,$85,$20,$EF
-LAD6C:	DEFB $00,$A4,$F0,$00,$00,$A5,$D0,$88,$D0,$BC,$D0,$DE,$B0,$2D,$D0,$8B
-LAD7C:	DEFB $90,$11,$C0,$E1,$B0,$00,$C0,$E2,$B0,$10,$00,$C1,$F0,$8B,$F0,$00
-LAD8C:	DEFB $30,$97,$20,$EF,$00,$1D,$00,$A8,$70,$BA,$00,$4E,$00,$88,$30,$1B
-LAD9C:	DEFB $00,$4C,$30,$39,$30,$8B,$30,$8D
+
+;; Loads (HL) into DE, incrementing HL. Compares BC with DE, sets Z if equal.
+CmpBCHL:        LD      A,C
+                LD      E,(HL)
+                INC     HL
+                LD      D,(HL)
+                INC     HL
+                CP      E
+                RET     NZ
+                LD      A,B
+                CP      D
+                RET
+
+LAD4C:	DEFW $8A40,$7150,$8940,$0480,$BA70,$1300,$4100,$2980
+	DEFW $A100,$2600,$8100,$E980,$8400,$B100,$8500,$EF20
+	DEFW $A400,$00F0,$A500,$88D0,$BCD0,$DED0,$2DB0,$8BD0
+	DEFW $1190,$E1C0,$00B0,$E2C0,$10B0,$C100,$8BF0,$00F0
+	DEFW $9730,$EF20,$1D00,$A800,$BA70,$4E00,$8800,$1B30
+	DEFW $4C00,$3930,$8B30,$8D30
 
 ;; Width of sprite in bytes.
 SpriteWidth:    DEFB $04
