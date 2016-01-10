@@ -178,9 +178,9 @@ PD2:		LD	(UnpackFlags),A
         ;; And then some processing loops thing...
 PD3:		CALL	BuildTmpObjA
 		CALL	BuildTmpObjUVZ
+        ;; Only loop if loop bit (bottom bit) is set.
 		LD	A,(UnpackFlags)
 		RRA
-        ;; Only loop if loop bit (bottom bit) is set.
 		JR	NC,PD4
         ;; Although we break out if (ExpandDone) is 0xFF.
 		LD	A,(ExpandDone)
@@ -337,8 +337,7 @@ GetDataPtr:	LD		A,$80
 	;; Get the size of some buffer thing: Start at L5B00, just after attributes.
 	;; Take first byte as step size, then scan at that step size until we find a zero.
 	;; Return in HL.
-        ;;
-        ;; NB: Unless data is changed, this is after 67C6?
+
 		LD		HL,L5B00
 		EX		AF,AF'
 		LD		D,$00
@@ -398,7 +397,7 @@ FindRoom2:      EXX
 ;;
 ;; The entry structure is:
 ;; 1 byte size (excludes this byte)
-;; 2 bytes id (top bit ignored for matching)
+;; 1.5 bytes id (bottom nibble ignored for matching)
 ;; Data
 ;;
 ;; A size of zero terminates the list.
@@ -441,11 +440,12 @@ FR4:            INC     HL
                 CP      C
                 JR      NZ,FR2
         ;; Found item. Step back to start of item.
-                DEC             HL
+                DEC     HL
         ;; Initialise DataPtr and CurrData for new data.
                 LD      (DataPtr),HL
                 LD      A,$80
                 LD      (CurrData),A
+        ;; Skip that top nibble of id.
                 LD      B,$04
                 JP      FetchData ; NB: Tail call
 
