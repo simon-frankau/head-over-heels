@@ -6,8 +6,8 @@
 
 ;; Exported functions:
 ;;  * BigProcData
-;;  * ProcDataEltC
-;;  * ProcDataEltD
+;;  * SetTmpObjUVZ
+;;  * SetUVZ
 ;;  * ProcTmpObj
 ;;  * SomeExport
 
@@ -177,13 +177,13 @@ PD1:
 PD2:		LD	(UnpackFlags),A
         ;; And then some processing loops thing...
 PD3:		CALL	BuildTmpObjA
-		CALL	ProcDataEltB
+		CALL	BuildTmpObjUVZ
 		LD	A,(UnpackFlags)
 		RRA
         ;; Only loop if loop bit (bottom bit) is set.
 		JR	NC,PD4
-        ;; Although we break out if (L7704) is 0xFF.
-		LD	A,(L7704)
+        ;; Although we break out if (ExpandDone) is 0xFF.
+		LD	A,(ExpandDone)
 		INC	A
 		AND	A
 		RET	Z
@@ -483,51 +483,61 @@ BTOA3:		LD	A,C
 		LD	(TmpObj+16),A
 		RET
 
-;; Called from inside the ProcData loop...
-ProcDataEltB:	CALL	FetchData333
+;; Read U, V, Z coords (3 bits each), and set TmpObj's location
+BuildTmpObjUVZ: CALL    FetchData333
         ;; NB: Fall through
 
-ProcDataEltC:	EX	AF,AF'
-		LD	HL,(L76DE)
-		LD	DE,TmpObj+5
+;; Put B = U coord, C = V coord, A = Z coord
+;; Set's TmpObj's location
+SetTmpObjUVZ:   EX      AF,AF'
+                LD      HL,(L76DE)
+                LD      DE,TmpObj+5
         ;; NB: Fall through
 
-        ;; TODO: Takes HL, DE, B, C, A'
-ProcDataEltD:	LD	A,B
-		CALL	TwiddleHL
-		LD	(DE),A
-		LD	A,C
-		CALL	TwiddleHL
-		INC	DE
-		LD	(DE),A
-		EX	AF,AF'
-		PUSH	AF
-		ADD	A,(HL)
-		LD	L,A
-		ADD	A,A
-		ADD	A,L
-		ADD	A,A
-		ADD	A,$96
-		INC	DE
-		LD	(DE),A
-		POP	AF
-		CPL
-		AND	C
-		AND	B
-		OR	$F8
-		LD	(L7704),A
-		RET
+;; Calculates U, V and Z coordinates
+;;  DE points to where we will write the U, V and Z coordinates
+;;  HL points to the origin which we add our coordinates to.
+;;  B contains U, C contains V, A' contains Z
+;;  U/V coordinates are built on a grid of * 8 + 12
+;;  Z coordinate is built on a grid of * 6 + 0x96
+;;  Sets ExpandDone to 0xFF (done) if B = 7, C = 7, A' = 0
+SetUVZ:         LD      A,B
+                CALL    TwiddleHL
+                LD      (DE),A          ; Set U coordinate
+                LD      A,C
+                CALL    TwiddleHL
+                INC     DE
+                LD      (DE),A          ; Set V coordinate
+                EX      AF,AF'
+                PUSH    AF
+                ADD     A,(HL)
+        ;; Take value * 6 + 0x96
+                LD      L,A
+                ADD     A,A
+                ADD     A,L
+                ADD     A,A
+                ADD     A,$96
+                INC     DE
+                LD      (DE),A          ; Set Z coordinate
+                POP     AF
+        ;; Set ExpandDone to 0xFF if Z coord is 0, U and V are 7.
+                CPL
+                AND     C
+                AND     B
+                OR      $F8
+                LD      (ExpandDone),A
+                RET
 
-;; Read a value from (HL), increment HL, return value * 8 + 12 ?!
-TwiddleHL:	ADD	A,(HL)
-		INC	HL
-		RLCA
-		RLCA
-		RLCA
-		ADD	A,$0C
-		RET
+;; Read a value from (HL), increment HL, return value * 8 + 12
+TwiddleHL:      ADD     A,(HL)
+                INC     HL
+                RLCA
+                RLCA
+                RLCA
+                ADD     A,$0C
+                RET
 
-;; Fetch 3 lots of 3 bits to C, B and A.
+;; Fetch 3 lots of 3 bits to B, C and A.
 FetchData333:   LD      B,$03
                 CALL    FetchData
                 PUSH    AF

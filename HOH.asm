@@ -309,7 +309,7 @@ CurrData:	DEFB $00
 
 	;; FIXME: Decode remaining DataPtr/CurrData references...
 	
-L7704:	DEFB $00
+ExpandDone:	DEFB $00
 L7705:	DEFB $00
 L7706:	DEFB $00
 L7707:	DEFB $27
@@ -1267,7 +1267,7 @@ BPDE3:		LD		(IY+$04),A
 		POP		BC
 		POP		IY
 		LD		A,E
-		CALL	ProcDataEltC
+		CALL	SetTmpObjUVZ
 		CALL	ProcTmpObj
 		POP		BC
 		POP		DE

@@ -196,7 +196,7 @@ DC_5:		LD	DE,RoomId
 		EX	AF,AF'
 		LD	DE,L8ADF
 		LD	HL,L8ADC
-		CALL	ProcDataEltD
+		CALL	SetUVZ
 		LD	A,$08
 		LD	(LB218),A
 		LD	(LA297),A
