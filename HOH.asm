@@ -378,7 +378,7 @@ DrawScreen:	LD	IY,L7718 		; FIXME: ???
 		LD	(L774A),HL
 		LD	HL,L0000
 		LD	BC,(RoomId)
-		CALL	BigProcData
+		CALL	EnterRoom
 		XOR	A
 		LD	(SkipObj),A
 		LD	(L774C),A
@@ -417,7 +417,7 @@ DrawScreen:	LD	IY,L7718 		; FIXME: ???
 		LD		A,(L771B)
 		LD		H,A
 		LD		L,$00
-		CALL	BigProcData
+		CALL	EnterRoom
 		CALL	CA260
 L77D0:	LD		IY,L7720
 		POP		HL
@@ -437,7 +437,7 @@ L77D0:	LD		IY,L7720
 		LD		A,(L771A)
 		LD		L,A
 		LD		H,$00
-		CALL	BigProcData
+		CALL	EnterRoom
 		CALL	CA260
 L77F8:		LD	A,(L774C)
 		LD	HL,(L7705)

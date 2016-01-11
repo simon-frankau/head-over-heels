@@ -9,7 +9,7 @@
 	;; something useful by accident, when all we're trying to do is
 	;; give you an idea of the addresses.
 
-X5B00:	DEFB $0C,$C0,$02,$CE,$77,$33,$96,$4F,$26,$92,$FE,$3F,$C0,$07,$C1,$C0
+RoomMacros:	DEFB $0C,$C0,$02,$CE,$77,$33,$96,$4F,$26,$92,$FE,$3F,$C0,$07,$C1,$C0
 X5B10:	DEFB $43,$E0,$01,$FF,$C0,$12,$C2,$16,$D2,$FB,$3C,$7D,$CF,$27,$FC,$0A
 X5B20:	DEFB $69,$75,$9A,$3C,$E6,$FC,$7F,$80,$08,$C3,$16,$CA,$77,$3C,$9F,$F1
 X5B30:	DEFB $FE,$0B,$C4,$C3,$23,$E1,$E1,$C5,$B6,$9F,$CF,$F8,$FF,$0C,$C5,$0E

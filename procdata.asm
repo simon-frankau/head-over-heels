@@ -5,7 +5,7 @@
 ;;
 
 ;; Exported functions:
-;;  * BigProcData
+;;  * EnterRoom
 ;;  * SetTmpObjUVZ
 ;;  * SetUVZ
 ;;  * ProcTmpObj
@@ -20,7 +20,7 @@
 ;; Takes something in HL and BC and IY
 
 ;; Takes room id in BC
-BigProcData:	LD	(L76E0),HL
+EnterRoom:	LD	(L76E0),HL
 		XOR	A
 		LD	(L76E2),A
 		PUSH	BC
@@ -39,10 +39,10 @@ BigProcData:	LD	(L76E0),HL
         ;; Loop twice...
 		LD	B,$02
 		LD	IX,L76E0
-BPD1:		LD	C,(HL)
+ER1:		LD	C,(HL)
 		LD	A,(IX+$00)
 		AND	A
-		JR	Z,BPD2
+		JR	Z,ER2
 		SUB	C
 		LD	E,A
 		RRA
@@ -51,15 +51,15 @@ BPD1:		LD	C,(HL)
 		AND	$1F
 		LD	(IX+$00),A
 		LD	A,E
-BPD2:		ADD	A,C
+ER2:		ADD	A,C
 		LD	(IY+$00),A
 		INC	HL
 		INC	IX
 		INC	IY
-		DJNZ	BPD1
+		DJNZ	ER1
 	;; Do this bit twice:
 		LD	B,$02
-BPD3:		LD	A,(IX-$02)
+ER3:		LD	A,(IX-$02)
 		ADD	A,A
 		ADD	A,A
 		ADD	A,A
@@ -68,7 +68,7 @@ BPD3:		LD	A,(IX-$02)
 		INC	IY
 		INC	IX
 		INC	HL
-		DJNZ	BPD3
+		DJNZ	ER3
 	;; Now update some stuff off FetchData:
 		LD	B,$03
 		CALL	FetchData
@@ -82,8 +82,8 @@ BPD3:		LD	A,(IX-$02)
 		LD	(FloorCode),A 		; And the floor pattern to use
 		CALL	SetFloorAddr
 	;; FIXME
-BPD4:		CALL	ProcData
-		JR	NC,BPD4
+ER4:		CALL	ProcEntry
+		JR	NC,ER4
 		POP	BC
 		JP	BPDEnd 		; NB: Tail call.
 
@@ -94,8 +94,8 @@ Add3Bit:        BIT     2,A
 A3B:            ADD     A,(HL)
                 RET
 
-;; Recursively do ProcData
-RecProcData:	EX	AF,AF'
+;; Recursively do ProcEntry
+RecProcEntry:	EX	AF,AF'
 		CALL	FetchData333
 		LD	HL,(L76DE)
 		PUSH	AF
@@ -122,10 +122,10 @@ RecProcData:	EX	AF,AF'
 		LD	HL,(DataPtr)
 		PUSH	AF
 		PUSH	HL
-		CALL	GetDataPtr
+		CALL	FindMacro
 		LD	(DataPtr),HL
-RPD1:		CALL	ProcData
-		JR	NC,RPD1
+RPE1:		CALL	ProcEntry
+		JR	NC,RPE1
 		LD	HL,(L76DE)
 		DEC	HL
 		DEC	HL
@@ -137,63 +137,59 @@ RPD1:		CALL	ProcData
 		LD	(CurrData),A
 	;; NB: Fall through, carrying on.
 
-;; TODO: Processes some fetched data.
-ProcData:	LD	B,$08
-		CALL	FetchData
+;; Process one entry in the description array. Returns carry when done.
+ProcEntry:      LD      B,$08
+                CALL    FetchData
         ;; Return with carry set if we hit $FF.
-		CP	$FF
-		SCF
-		RET	Z
+                CP      $FF
+                SCF
+                RET     Z
         ;; Code >= $C0 means recurse.
-		CP	$C0
-		JR	NC,RecProcData 	; NB: Tail call (falls through back)
-        ;; Otherwise do FIXME
-		PUSH	IY
-		LD	IY,TmpObj
-		CALL	ProcDataStart
-		POP	IY
-        ;; Read two bits XY. If top bit is not set, A = 1.
-        ;; Otherwise, read another bit Z, and use ZXY.
-        ;; 00 -> 001, 01 -> 001, 010 -> 010, 110 -> 110
-
+                CP      $C0
+                JR      NC,RecProcEntry         ; NB: Tail call (falls through back)
+        ;; Otherwise, deal with an object.
+                PUSH    IY
+                LD      IY,TmpObj
+                CALL    ProcDataStart
+                POP     IY
         ;; Read two bits. Bottom bit is "should loop".
-        ;; Top bit is "read one bit for all loops?".
-		LD	B,$02
-		CALL	FetchData
-		BIT	1,A
-		JR	NZ,PD1
+        ;; Top bit is "read flag bit once for all loops?".
+                LD      B,$02
+                CALL    FetchData
+                BIT     1,A
+                JR      NZ,PE1
         ;; We will read per loop. Set "should loop" bit.
-		LD	A,$01
-		JR	PD2
-PD1:
-        ;; Not reading per-loop. Read once and store in 0x04 position.
-		PUSH	AF
-		LD	B,$01
-		CALL	FetchData
-		POP	BC
-		RLCA
-		RLCA
-		OR	B
-PD2:		LD	(UnpackFlags),A
+                LD      A,$01
+                JR      PE2
+PE1:
+        ;; Not reading per-loop. Read once and store in the 0x04 bit position.
+                PUSH    AF
+                LD      B,$01
+                CALL    FetchData
+                POP     BC
+                RLCA
+                RLCA
+                OR      B
+PE2:            LD      (UnpackFlags),A
         ;; And then some processing loops thing...
-PD3:		CALL	BuildTmpObjA
-		CALL	BuildTmpObjUVZ
+PE3:            CALL    BuildTmpObjA
+                CALL    BuildTmpObjUVZ
         ;; Only loop if loop bit (bottom bit) is set.
-		LD	A,(UnpackFlags)
-		RRA
-		JR	NC,PD4
+                LD      A,(UnpackFlags)
+                RRA
+                JR      NC,PE4
         ;; Although we break out if (ExpandDone) is 0xFF.
-		LD	A,(ExpandDone)
-		INC	A
-		AND	A
-		RET	Z
-		CALL	ProcTmpObj
-		JR	PD3
-PD4:		CALL	ProcTmpObj
-		AND	A
-		RET
+                LD      A,(ExpandDone)
+                INC     A
+                AND     A
+                RET     Z
+                CALL    ProcTmpObj
+                JR      PE3
+PE4:            CALL    ProcTmpObj
+                AND     A
+                RET
 
-;; TODO: Some thing we do at the end of ProcData.
+;; TODO: Some thing we do at the end of ProcEntry.
 ;; And elsewhere. Not a great name, but we're giving it a name...
 ProcTmpObj:	LD	HL,TmpObj
 		LD	BC,L0012
@@ -331,24 +327,19 @@ ThingD:		POP	HL
 		INC	IX
 		RET
 
-;; Clears CurrData and returns a value in HL to be used as DataPtr
-GetDataPtr:	LD		A,$80
-		LD		(CurrData),A 	; Clear buffered byte.
-	;; Get the size of some buffer thing: Start at L5B00, just after attributes.
-	;; Take first byte as step size, then scan at that step size until we find a zero.
-	;; Return in HL.
+;; Clears CurrData and returns a pointer to a specific room description macro
+FindMacro:      LD      A,$80
+                LD      (CurrData),A    ; Clear buffered byte.
+                LD      HL,RoomMacros
+                EX      AF,AF'
+                LD      D,$00
+FM1:            LD      E,(HL)
+                INC     HL
+                CP      (HL)
+                RET     Z
+                ADD     HL,DE
+                JR      FM1
 
-		LD		HL,L5B00
-		EX		AF,AF'
-		LD		D,$00
-GDP1:		LD		E,(HL)
-		INC		HL
-		CP		(HL)
-		RET		Z
-		ADD		HL,DE
-		JR		GDP1
-
-	
 SomeExport:	LD	BC,(RoomId)
 		LD	A,C
 		DEC	A
@@ -449,7 +440,7 @@ FR4:            INC     HL
                 LD      B,$04
                 JP      FetchData ; NB: Tail call
 
-;; Called from inside the ProcData loop...
+;; Called from inside the ProcEntry loop...
 BuildTmpObjA:	LD	A,(UnpackFlags)
 		RRA
 		RRA
