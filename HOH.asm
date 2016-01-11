@@ -11,8 +11,8 @@
 	defs $4000, $00
 
 #insert "screen.scr"
-	
-#include "data_header.asm"
+
+#include "room_data.asm"
 
 	;; Hack, should be removed.
 #include "equs.asm"
