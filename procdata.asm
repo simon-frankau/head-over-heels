@@ -11,14 +11,10 @@
 ;;  * ProcTmpObj
 ;;  * SomeExport
 
-;; Calls into:
-;;  * C7358
-;; (and maybe some more)
-
 ;; FIXME: Called lots. Suspect it forms the backbone of loading a
 ;; screen or something? Reads all the packed data.
 ;; Takes something in HL and BC and IY
-
+;;
 ;; Takes room id in BC
 EnterRoom:	LD	(L76E0),HL
 		XOR	A
@@ -69,22 +65,22 @@ ER3:		LD	A,(IX-$02)
 		INC	IX
 		INC	HL
 		DJNZ	ER3
-	;; Now update some stuff off FetchData:
-		LD	B,$03
-		CALL	FetchData
-		LD	(AttribScheme),A	; Fetch the attribute scheme to use.
-		LD	B,$03
-		CALL	FetchData
-		LD	(WorldId),A 		; Fetch the current world identifier
-		CALL	BPDSubB
-		LD	B,$03
-		CALL	FetchData
-		LD	(FloorCode),A 		; And the floor pattern to use
-		CALL	SetFloorAddr
-	;; FIXME
-ER4:		CALL	ProcEntry
-		JR	NC,ER4
-		POP	BC
+        ;; Now read the room configuration
+                LD      B,$03
+                CALL    FetchData
+                LD      (AttribScheme),A        ; Fetch the attribute scheme to use.
+                LD      B,$03
+                CALL    FetchData
+                LD      (WorldId),A             ; Fetch the current world identifier
+                CALL    ProcDoors
+                LD      B,$03
+                CALL    FetchData
+                LD      (FloorCode),A           ; And the floor pattern to use
+                CALL    SetFloorAddr
+        ;; Then we have a loop to process objects in the room.
+ER4:            CALL    ProcEntry
+                JR      NC,ER4
+                POP     BC
 		JP	BPDEnd 		; NB: Tail call.
 
 ;; Add a signed 3-bit value in A to (HL), result in A
@@ -208,15 +204,19 @@ ProcTmpObj:     LD      HL,TmpObj
                 POP     IY
                 RET
 
-        ;; Could this perhaps be setting some kind of boundary - 4 calls, etc?
-BPDSubB:	LD	B,$03
-		CALL	FetchData
-		CALL	C7358   ; Looks suspiciously like self-modifying code
-		ADD	A,A
-		LD	L,A
-		LD	H,A
-		INC	H
-		LD	(L7705),HL
+;; Initialise the doors
+ProcDoors:
+        ;; Read the door type? Looks like dead functionality.
+                LD      B,$03
+                CALL    FetchData
+                CALL    ToDoorId
+        ;; A contains door number - load in A*2 and A*2 + 1 into (DoorType).
+                ADD     A,A
+                LD      L,A
+                LD      H,A
+                INC     H
+                LD      (DoorType),HL
+        ;; FIXME: Each of the doors?
 		LD	IX,L7707
 		LD	HL,L7748
 		EXX
@@ -238,53 +238,59 @@ BPDSubB:	LD	B,$03
 		LD	A,(IY-$04)
 		SUB	$04
 		JP	YetAnotherB		; Tail call
-	
-ThingA:		LD	B,$03
-		CALL	FetchData
-		LD	HL,L7716
-		SUB	$02
+
+;; Reads the code for the kind of door.
+;;
+;; It rotates flags into the door flags, and sets the door height in
+;; TmpObj.
+;;
+;; TODO: Door stuff is currently only a theory...
+FetchDoor:      LD      B,$03
+                CALL    FetchData
+                LD      HL,DoorFlags1
+                SUB     $02
         ;; Jump for the fetched-a-0-or-1 case
-		JR	C,ThingA2
-        ;; Rotate a zero into (HL)
-		RL	(HL)
-        ;; And rotate a one bit into (HL+1)
-		INC	HL
-		SCF
-		RL	(HL)
+                JR      C,FD2
+        ;; Rotate a zero into DoorFlags1
+                RL      (HL)
+        ;; And rotate a one bit into DoorFlags2
+                INC     HL
+                SCF
+                RL      (HL)
         ;; Set A = 9 - fetched data
-		SUB	$07
-		NEG
+                SUB     $07
+                NEG
         ;; Z coordinate set to 6 * A + 0x96
-		LD	C,A
-		ADD	A,A
-		ADD	A,C
-		ADD	A,A
-		ADD	A,$96
-		LD	(TmpObj+7),A
+                LD      C,A
+                ADD     A,A
+                ADD     A,C
+                ADD     A,A
+                ADD     A,$96
+                LD      (TmpObj+7),A
         ;; Set carry flag, switch reg set and save Z coord
-		SCF
-		EXX
-		LD	(HL),A
-		RET
-ThingA2:
-        ;; Set flag if fetched value was 1.
-		CP	$FF
-		CCF
-        ;; Rotate it into (HL)
-		RL	(HL)
-        ;; And rotate a zero bit into (HL+1)
-		AND	A
-		INC	HL
-		RL	(HL)
+                SCF
+                EXX
+                LD      (HL),A
+                RET
+FD2:
+        ;; Set flag if fetched value was 0.
+                CP      $FF
+                CCF
+        ;; Rotate it into DoorFlags1
+                RL      (HL)
+        ;; And rotate a zero bit into DoorFlags2
+                AND     A
+                INC     HL
+                RL      (HL)
         ;; Return with no carry
-		AND	A
-		RET
+                AND     A
+                RET
 
         ;; These two seem to take a thing in HL' and A.
 YetAnotherB:	LD	(TmpObj+5),A
 		LD	HL,TmpObj+6
 		LD	A,(L76E1)
-		JP	YetAnotherCore   	; NB: Tail call
+		JP	DoDoorInner   	; NB: Tail call
 
 YetAnotherA:	LD	(TmpObj+6),A
 		LD	HL,TmpObj+5
@@ -293,7 +299,7 @@ YetAnotherA:	LD	(TmpObj+6),A
 
         ;; Takes things in A, HL and HL'
         ;; HL points to a place to put a coordinate
-YetAnotherCore:
+DoDoorInner:
         ;; Multiply A by 8
 		ADD	A,A
 		ADD	A,A
@@ -303,26 +309,33 @@ YetAnotherCore:
 		ADD	A,$24
 		LD	(HL),A
 		PUSH	HL
-		CALL	ThingA
-		JR	NC,ThingD 	; NB: Tail call
+        ;; Get the door Z coordinate set up, return if no object to add.
+		CALL	FetchDoor
+		JR	NC,NoDoorRet 	; NB: Tail call
+        ;; Draw one half
 		LD	A,(IX+$00)
 		LD	(TmpObj+4),A
 		INC	IX
-		LD	A,(L7705)
+		LD	A,(DoorType)
 		LD	(TmpObj+8),A
-		CALL	ThingC
+        	CALL	DoHalfDoor
+        ;; Draw the other (NB: Call deferred to tail call)
 		LD	A,(IX+$00)
 		LD	(TmpObj+4),A
 		INC	IX
-		LD	A,(L7706)
+		LD	A,(DoorType+1)
 		LD	(TmpObj+8),A
+        ;; ???
 		POP	HL
 		POP	AF
 		ADD	A,$2C
 		LD	(HL),A
         ;; NB: Fall through
 
-ThingC:		CALL	ProcTmpObj
+DoHalfDoor:
+        ;; Add current object.
+		CALL	ProcTmpObj
+        ;; Do some flags craziness, returning early if necessary...
 		LD	A,(TmpObj+4)
 		LD	C,A
 		AND	$30
@@ -330,9 +343,11 @@ ThingC:		CALL	ProcTmpObj
 		AND	$10
 		OR	$01
 		LD	(TmpObj+4),A
+        ;; Give up at $C0
 		LD	A,(TmpObj+7)
 		CP	$C0
 		RET	Z
+        ;; Put a step ($54) under the doorway?
 		PUSH	AF
 		ADD	A,$06
 		LD	(TmpObj+7),A
@@ -343,7 +358,8 @@ ThingC:		CALL	ProcTmpObj
 		LD	(TmpObj+7),A
 		RET
 
-ThingD:		POP	HL
+;; No door case - unwind variables and return
+NoDoorRet:	POP	HL
 		POP	AF
 		INC	IX
 		INC	IX

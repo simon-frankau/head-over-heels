@@ -129,8 +129,12 @@ L734B:	LD		A,(DE)
 		RET
 L7355:	LDIR
 		RET
-C7358:	XOR		A
-		RET
+
+;; Given a fetched 3-bit value in A... returns 0 in A. I assume there
+;; was support for multiple door sprites, that got nixed at some
+;; point.
+ToDoorId:       XOR     A
+                RET
 
 	;; Installs the interrupt hook
 IrqInstall:	DI
@@ -311,8 +315,7 @@ CurrData:	DEFB $00
 	;; FIXME: Decode remaining DataPtr/CurrData references...
 	
 ExpandDone:	DEFB $00
-L7705:	DEFB $00
-L7706:	DEFB $00
+DoorType:	DEFB $00,$00
 L7707:	DEFB $27
 L7708:	DEFB $26
 L7709:	DEFB $17
@@ -329,8 +332,8 @@ L7712:	DEFB $00
 SkipObj:	DEFB $00
 AttribScheme:	DEFB $00
 WorldId:	DEFB $00	; Range 0..7 (I think 7 is 'same as last')
-L7716:	DEFB $00
-L7717:	DEFB $00
+DoorFlags1:	DEFB $00
+DoorFlags2:	DEFB $00
 L7718:	DEFB $00
 L7719:	DEFB $00
 L771A:	DEFB $00
@@ -401,7 +404,7 @@ DrawScreen:	LD	IY,L7718 		; FIXME: ???
 		RLA
 		LD		(L7712),A
 		CALL	C84CB
-		LD		HL,(L7716)
+		LD		HL,(DoorFlags1)
 		PUSH	HL
 		LD		A,L
 		AND		$08
@@ -441,13 +444,13 @@ L77D0:	LD		IY,L7720
 		CALL	EnterRoom
 		CALL	CA260
 L77F8:		LD	A,(L774C)
-		LD	HL,(L7705)
+		LD	HL,(DoorType)
 		PUSH	AF
 		CALL	OccludeDoorway
 		POP	AF
 		CALL	SetColHeight
 		POP	HL
-		LD	(L7716),HL
+		LD	(DoorFlags1),HL
 		XOR	A
 		JP	CAF96
 
@@ -586,7 +589,7 @@ L7C14:		LD	(LA295),A
 	;; H     L
 	
 C7C1A:		LD	HL,(L7718)
-		LD	A,(L7717)
+		LD	A,(DoorFlags2)
 		PUSH	AF
 		BIT	1,A
 		JR	Z,L7C29
@@ -975,7 +978,7 @@ C84CB:	CALL	C8603
 	
 L84E4:		LD	(L84CA),A
 		CALL	C8506
-		LD	A,(L7716)
+		LD	A,(DoorFlags1)
 		AND	$04
 		RET	NZ
 		LD	B,$04
@@ -987,7 +990,7 @@ L84E4:		LD	(L84CA),A
 		LD	A,(IY-$01)
 		SUB	(IY-$03)
 		JR	L8521
-C8506:		LD	A,(L7716)
+C8506:		LD	A,(DoorFlags1)
 		AND	$08
 		RET	NZ
 		LD	B,$08
@@ -1011,7 +1014,7 @@ L8521:		RRA
 		POP	IX
 		EXX
 		LD	C,A
-		LD	A,(L7717)
+		LD	A,(DoorFlags2)
 		AND	B
 		CP	$01
 		EX	AF,AF'

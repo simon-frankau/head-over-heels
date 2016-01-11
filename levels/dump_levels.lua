@@ -98,9 +98,9 @@ function print_header()
   io.write(string.format("Mystery field (BPD): %01x\n", fetchn(3)))
   io.write(string.format("Attrib scheme: %01x\n", fetchn(3)))
   io.write(string.format("World id: %01x\n", fetchn(3)))
-  io.write(string.format("Mystery field (BPDSubB): %01x\n", fetchn(3)))
+  io.write(string.format("Door style: %01x\n", fetchn(3)))
   for i=1,4 do
-    io.write(string.format("Mystery field (ThingA): %01x\n", fetchn(3)))
+    io.write(string.format("Door: %01x\n", fetchn(3)))
   end
   io.write(string.format("Floor code: %01x\n", fetchn(3)))
 end

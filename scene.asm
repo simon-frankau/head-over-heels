@@ -120,7 +120,7 @@ CheckYAndDraw2: LD      A,D
 ;; TODO: Work out what all these flag variables are about...
 DrawCore:       LD      (ViewYExtent),DE
                 CALL    DrawBkgnd
-                LD      A,(L7716)
+                LD      A,(DoorFlags1)
                 AND     $0C
                 JR      Z,DrC_2
                 LD      E,A

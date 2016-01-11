@@ -310,15 +310,15 @@ FloorFn:        LD              HL,(FloorAddr)
                 LD              BC,2*5
                 ADD             HL,BC           ; Move 5 rows into the tile
                 LD              C,2*8
-                LD              A,(L7717)
+                LD              A,(DoorFlags2)
                 RRA
                 PUSH            HL              ; Push this address.
-                JR              NC,FF_1         ; If bottom bit of L7717 is set...
+                JR              NC,FF_1         ; If bottom bit of DoorFlags2 is set...
                 ADD             HL,BC
                 EX              (SP),HL         ; Move 8 rows further on the stack-saved pointer
 FF_1:           ADD             HL,BC           ; In any case, move 8 rows on HL...
                 RRA
-                JR              NC,FF_2         ; Unless the next bit of L7717 was set
+                JR              NC,FF_2         ; Unless the next bit of DoorFlags2 was set
                 AND             A
                 SBC             HL,BC
 FF_2:           LD              DE,RightEdge    ; Call once...
