@@ -1,7 +1,7 @@
 ;;
 ;; procdata.asm
 ;;
-;; Mystery set of functions that process the bit-packed data
+;; Functions that largely decode the packed room data
 ;;
 
 ;; Exported functions:
@@ -95,47 +95,56 @@ A3B:            ADD     A,(HL)
                 RET
 
 ;; Recursively do ProcEntry
-RecProcEntry:	EX	AF,AF'
-		CALL	FetchData333
-		LD	HL,(L76DE)
-		PUSH	AF
-		LD	A,B
-		CALL	Add3Bit
-		LD	B,A
-		INC	HL
-		LD	A,C
-		CALL	Add3Bit
-		LD	C,A
-		INC	HL
-		POP	AF
-		SUB	$07
-		ADD	A,(HL)
-		INC	HL
-		LD	(L76DE),HL
-		LD	(HL),B
-		INC	HL
-		LD	(HL),C
-		INC	HL
-		LD	(HL),A
-	;; Save the current data pointer, do some stuff, restore.
-		LD	A,(CurrData)
-		LD	HL,(DataPtr)
-		PUSH	AF
-		PUSH	HL
-		CALL	FindMacro
-		LD	(DataPtr),HL
-RPE1:		CALL	ProcEntry
-		JR	NC,RPE1
-		LD	HL,(L76DE)
-		DEC	HL
-		DEC	HL
-		DEC	HL
-		LD	(L76DE),HL
-		POP	HL
-		POP	AF
-		LD	(DataPtr),HL
-		LD	(CurrData),A
-	;; NB: Fall through, carrying on.
+RecProcEntry:   EX      AF,AF'
+        ;; When processing recursively, we read 3 values to adjust the
+        ;; origin for the macro-expanded processing, so it can be played
+        ;; at whatever offset you like.
+        ;;
+        ;; Read values into B, C, A
+                CALL    FetchData333
+                LD      HL,(DecodeOrgPtr)
+                PUSH    AF
+                LD      A,B             ; Adjust U value
+                CALL    Add3Bit
+                LD      B,A
+                INC     HL
+                LD      A,C             ; Adjust V value
+                CALL    Add3Bit
+                LD      C,A
+                INC     HL
+                POP     AF
+                SUB     $07
+                ADD     A,(HL)          ; Adjust Z value (slightly different)
+                INC     HL
+        ;; Write out origin values, update pointer
+                LD      (DecodeOrgPtr),HL
+                LD      (HL),B
+                INC     HL
+                LD      (HL),C
+                INC     HL
+                LD      (HL),A
+        ;; Origin updated, save the current read pointer.
+                LD      A,(CurrData)
+                LD      HL,(DataPtr)
+                PUSH    AF
+                PUSH    HL
+        ;; Run the macro.
+                CALL    FindMacro
+                LD      (DataPtr),HL
+RPE1:           CALL    ProcEntry
+                JR      NC,RPE1
+        ;; Pop the decode origin stack...
+                LD      HL,(DecodeOrgPtr)
+                DEC     HL
+                DEC     HL
+                DEC     HL
+                LD      (DecodeOrgPtr),HL
+        ;; And restore the read pointer.
+                POP     HL
+                POP     AF
+                LD      (DataPtr),HL
+                LD      (CurrData),A
+        ;; NB: Fall through, carrying on.
 
 ;; Process one entry in the description array. Returns carry when done.
 ProcEntry:      LD      B,$08
@@ -172,8 +181,8 @@ PE1:
                 OR      B
 PE2:            LD      (UnpackFlags),A
         ;; And then some processing loops thing...
-PE3:            CALL    BuildTmpObjA
-                CALL    BuildTmpObjUVZ
+PE3:            CALL    SetTmpObjFlags
+                CALL    SetTmpObjUVZEx
         ;; Only loop if loop bit (bottom bit) is set.
                 LD      A,(UnpackFlags)
                 RRA
@@ -189,16 +198,15 @@ PE4:            CALL    ProcTmpObj
                 AND     A
                 RET
 
-;; TODO: Some thing we do at the end of ProcEntry.
-;; And elsewhere. Not a great name, but we're giving it a name...
-ProcTmpObj:	LD	HL,TmpObj
-		LD	BC,L0012
-		PUSH	IY
-		LD	A,(SkipObj)
-		AND	A
-		CALL	Z,ProcDataObj
-		POP	IY
-		RET
+;; Once we've built TmpObj, process it...
+ProcTmpObj:     LD      HL,TmpObj
+                LD      BC,L0012
+                PUSH    IY
+                LD      A,(SkipObj)
+                AND     A
+                CALL    Z,ProcDataObj
+                POP     IY
+                RET
 
         ;; Could this perhaps be setting some kind of boundary - 4 calls, etc?
 BPDSubB:	LD	B,$03
@@ -235,11 +243,15 @@ ThingA:		LD	B,$03
 		CALL	FetchData
 		LD	HL,L7716
 		SUB	$02
-		JR	C,ThingB
+        ;; Jump for the fetched-a-0-or-1 case
+		JR	C,ThingA2
+        ;; Rotate a zero into (HL)
 		RL	(HL)
+        ;; And rotate a one bit into (HL+1)
 		INC	HL
 		SCF
 		RL	(HL)
+        ;; Set A = 9 - fetched data
 		SUB	$07
 		NEG
         ;; Z coordinate set to 6 * A + 0x96
@@ -249,17 +261,22 @@ ThingA:		LD	B,$03
 		ADD	A,A
 		ADD	A,$96
 		LD	(TmpObj+7),A
+        ;; Set carry flag, switch reg set and save Z coord
 		SCF
 		EXX
 		LD	(HL),A
 		RET
-
-ThingB:		CP	$FF
+ThingA2:
+        ;; Set flag if fetched value was 1.
+		CP	$FF
 		CCF
+        ;; Rotate it into (HL)
 		RL	(HL)
+        ;; And rotate a zero bit into (HL+1)
 		AND	A
 		INC	HL
 		RL	(HL)
+        ;; Return with no carry
 		AND	A
 		RET
 
@@ -274,10 +291,15 @@ YetAnotherA:	LD	(TmpObj+6),A
 		LD	A,(L76E0)
         ;; NB: Fall through
 
-YetAnotherCore:	ADD	A,A
+        ;; Takes things in A, HL and HL'
+        ;; HL points to a place to put a coordinate
+YetAnotherCore:
+        ;; Multiply A by 8
+		ADD	A,A
 		ADD	A,A
 		ADD	A,A
 		PUSH	AF
+        ;; Stash A + $24 in the coordinate
 		ADD	A,$24
 		LD	(HL),A
 		PUSH	HL
@@ -441,7 +463,7 @@ FR4:            INC     HL
                 JP      FetchData ; NB: Tail call
 
 ;; Called from inside the ProcEntry loop...
-BuildTmpObjA:	LD	A,(UnpackFlags)
+SetTmpObjFlags:	LD	A,(UnpackFlags)
 		RRA
 		RRA
         ;; If the 'read once' bit is set, use the read-once value.
@@ -475,19 +497,19 @@ BTOA3:		LD	A,C
 		RET
 
 ;; Read U, V, Z coords (3 bits each), and set TmpObj's location
-BuildTmpObjUVZ: CALL    FetchData333
+SetTmpObjUVZEx: CALL    FetchData333
         ;; NB: Fall through
 
 ;; Put B = U coord, C = V coord, A = Z coord
 ;; Set's TmpObj's location
 SetTmpObjUVZ:   EX      AF,AF'
-                LD      HL,(L76DE)
+                LD      HL,(DecodeOrgPtr)
                 LD      DE,TmpObj+5
         ;; NB: Fall through
 
 ;; Calculates U, V and Z coordinates
 ;;  DE points to where we will write the U, V and Z coordinates
-;;  HL points to the origin which we add our coordinates to.
+;;  HL points to the address of the origin which we add our coordinates to.
 ;;  B contains U, C contains V, A' contains Z
 ;;  U/V coordinates are built on a grid of * 8 + 12
 ;;  Z coordinate is built on a grid of * 6 + 0x96

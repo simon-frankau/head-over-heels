@@ -279,7 +279,8 @@ DrawColBottom:	LD	HL,IMG_ColBottom + $0F - MAGIC_OFFSET
 DrawColLDDR:	LDDR
 		RET
 
-L76DE:	DEFW L76E0
+        ;; Pointer into stack for current origin coordinates
+DecodeOrgPtr:	DEFW L76E0
 L76E0:	DEFB $00
 L76E1:	DEFB $00
 L76E2:	DEFB $00
