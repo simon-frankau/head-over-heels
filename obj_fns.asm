@@ -35,7 +35,7 @@
         ;;    |
         ;;    Z
         
-ObjFn30:	LD	A,(IY+$0C)
+ObjFnJoystick:	LD	A,(IY+$0C)
 		LD	(IY+$0C),$FF
 		OR	$F0
 		CP	$FF
@@ -111,10 +111,10 @@ ObjFnFire:	CALL		C92D2
 		CALL		C8F97
 		JR		C,OFF2
 		CALL		C8F97
-OFF2:		JP		C,Fn17ify
+OFF2:		JP		C,Fadeify
 		JR		L8F88
 
-ObjFn10:	LD		A,(ObjDir)
+ObjFnBall:	LD		A,(ObjDir)
 		INC		A
 		JR		NZ,L8F82
 		LD		A,(IY+$0C)
@@ -126,7 +126,7 @@ L8F82:		CALL		C9319
 		CALL		C8F97
 L8F88:		JP		C92B7
 L8F8B:		PUSH		IY
-		CALL		ObjFn1
+		CALL		ObjFnPushable
 		POP		IY
 		LD		(IY+$0B),$FF
 		RET
@@ -156,13 +156,14 @@ C8F97:		LD		A,(ObjDir)
 
 C8FC0:	LD		HL,(CurrObject)
 		JP		TableCall
-ObjFn14:	LD		A,(IY+$0C)
+
+ObjFnSwitch:	LD		A,(IY+$0C)
 		OR		$C0
 		INC		A
 		JR		NZ,L8FD2
 		LD		(IY+$11),A
 		RET
-L8FD2:	LD		A,(IY+$11)
+L8FD2:		LD		A,(IY+$11)
 		AND		A
 		JR		Z,L8FDD
 		LD		(IY+$0C),$FF
@@ -218,57 +219,57 @@ ObjFn19:	BIT		5,(IY+$0C)
 		CALL	C931F
 		JP		C92B7
 	
-ObjFn2:		LD		A,$FE
+ObjFnRollers1:  LD		A,$FE
 		JR		Write0B
 
-ObjFn3:		LD		A,$FD
+ObjFnRollers2:	LD		A,$FD
 		JR		Write0B
 
-ObjFn4:		LD		A,$F7
+ObjFnRollers3:	LD		A,$F7
 		JR		Write0B
 
-ObjFn5:		LD		A,$FB
+ObjFnRollers4:	LD		A,$FB
 	;; Fall through
 	
 Write0B:	LD		(IY+$0B),A
 		LD		(IY+$0A),$00
 		RET
 
-	;; Suspect these are hush puppies...
-ObjFn31:	LD	A,(Character)
+ObjFnHushPuppy:	LD	A,(Character)
 		AND	$02			; Test if we have Head (returns early if not)
-		JR	L905C
+		JR	TestAndFade
 
-ObjFn24:	LD	A,$C0
+        ;; FIXME: Theory is this is for the dissolving wall grating next to the hooter
+ObjFnDissolve:	LD	A,$C0
 		DEFB	$01			; LD BC,nn , NOPs next instruction!
-ObjFn20		LD	A,$CF
+ObjFnDissolve2: LD	A,$CF
 		OR	A,(IY+$0C)
 		INC	A
 	;; NB: Fall through
 
-L905C:		RET	Z
+TestAndFade:	RET	Z
 	;; NB: Fall through
 
-        ;; Set to use ObjFn17
-Fn17ify:	LD	A,$05
+        ;; Set to use ObjFnFade
+Fadeify:	LD	A,$05
 		CALL	SetSound
 		LD	A,(IY+$0A)
 		AND	$80
-		OR	$11     ; ObjFn17
+		OR	OBJFN_FADE
 		LD	(IY+$0A),A
 		LD	(IY+$0F),$08
         ;; NB: Fall through
 
-ObjFn17:	LD	(IY+$04),$80
+ObjFnFade:	LD	(IY+$04),$80
 		CALL	C92A6
 		CALL	C92D2
 		LD	A,(IY+$0F)
 		AND	$07
 		JP	NZ,C92B7
-ObjFn34:	LD	HL,(CurrObject)
+ObjFnDisappear:	LD	HL,(CurrObject)
 		JP	RemoveObject
 
-ObjFn28:	LD		B,(IY+$08)
+ObjFnSpring:	LD		B,(IY+$08)
 		BIT		5,(IY+$0C)
 		SET		5,(IY+$0C)
 		LD		A,$2C
@@ -278,27 +279,28 @@ ObjFn28:	LD		B,(IY+$08)
 		JR		NZ,L90AD
 		LD		A,$2C
 		CP		B
-		JR		NZ,ObjFn1
+		JR		NZ,ObjFnPushable
 		LD		(IY+$0F),$50
 		LD		A,$04
 		CALL	SetSound
 		JR		L90C6
+
 L90AD:	AND		$07
 		JR		NZ,L90C6
 		LD		A,$2B
 L90B3:	LD		(IY+$08),A
 		LD		(IY+$0F),$00
 		CP		B
-		JR		Z,ObjFn1
+		JR		Z,ObjFnPushable
 		JR		L90C6
 
 ObjFn26:	LD		A,(IY+$0F)
 		AND		$F0
-		JR		Z,ObjFn1
-L90C6:	CALL	C92A6
+		JR		Z,ObjFnPushable
+L90C6:		CALL	C92A6
 		CALL	C92D2
-ObjFn1:	CALL	C9319
-		LD		A,$FF
+ObjFnPushable:	CALL	C9319
+		LD	A,$FF
 		CALL	C92DF
 		JP		C92B7
 ObjFn22:	LD		HL,L921F

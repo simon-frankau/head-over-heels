@@ -78,8 +78,8 @@ L6088:	EQU $6088
 L7FFD:	EQU $7FFD 		; Numeric constant
 
 	;; References into code area.
-L8940:	EQU $8940		; Numeric constant?
-L8A40:	EQU $8A40		; Numeric constant?
+L8940:	EQU $8940		; Numeric constant? Tail start room?
+L8A40:	EQU $8A40		; Numeric constant? Head start room?
 LA800:	EQU $A800		; Numeric constant?
 
 LAF80:	EQU $AF80		; Numeric constant?

@@ -764,67 +764,80 @@ CurrObject:	DEFW $0000
 ObjDir: 	DEFB $FF
 L822E:	DEFW $3D00,$3D8E
 
-ProcDataStart:	LD		(IY+$09),$00
-		LD		L,A
-		LD		E,A
-		LD		D,$00
-		LD		H,D
-		ADD		HL,HL
-		ADD		HL,DE
-		LD		DE,L8406
-		ADD		HL,DE
-		LD		B,(HL)
-		INC		HL
-		LD		A,(HL)
-		AND		$3F
-		LD		(IY+$0A),A
-		LD		A,(HL)
-		INC		HL
+;; Takes an object pointer in IY, an object code in A, and initialises it.
+;; Doesn't set flags, direction code, or coordinates.
+;; Call ProcDataObj when you're done to copy it into the room.
+InitObj:	LD	(IY+$09),$00 	; TODO: Not sure of this field.
+        ;; Look up A in the ObjDefns table.
+		LD	L,A
+		LD	E,A
+		LD	D,$00
+		LD	H,D
+		ADD	HL,HL
+		ADD	HL,DE
+		LD	DE,ObjDefns
+		ADD	HL,DE
+        ;; Stash first byte in B
+		LD	B,(HL)
+        ;; Bottom 6 bits of second byte are the 'object function'
+		INC	HL
+		LD	A,(HL)
+		AND	$3F
+		LD	(IY+$0A),A
+        ;; Grab top 2 bits...
+		LD	A,(HL)
+		INC	HL
 		RLCA
 		RLCA
-		AND		$03
-		JR		Z,L8264
-		ADD		A,L822E & $FF
-		LD		E,A
-		ADC		A,L822E >> 8
-		SUB		E
-		LD		D,A
-		LD		A,(DE)
-		SET		5,(IY+$09)
-		BIT		2,(HL)
-		JR		Z,L8264
-		LD		C,B
-		LD		B,A
-		LD		A,C
-L8264:		LD		(L822E),A
-		LD		A,B
+		AND	$03
+		JR	Z,L8264
+        ;; If non-zero, do some stuff. FIXME. NB: Modifies B.
+		ADD	A,L822E & $FF
+		LD	E,A
+		ADC	A,L822E >> 8
+		SUB	E
+		LD	D,A
+		LD	A,(DE)
+		SET	5,(IY+$09)
+		BIT	2,(HL)
+		JR	Z,L8264
+		LD	C,B
+		LD	B,A
+		LD	A,C
+L8264:		LD	(L822E),A
+		LD	A,B
 		CALL	C828B
-		LD		A,(HL)
-		OR		$9F
-		INC		A
-		LD		A,(HL)
-		JR		NZ,L8278
-		SET		7,(IY+$09)
-		AND		$BF
-L8278:		AND		$FB
-		CP		$80
-		RES		7,A
-		LD		(IY-$01),A
-		LD		(IY-$02),$02
-		RET		C
-		SET		4,(IY+$09)
+        ;; Load third byte of the object definition. FIXME
+		LD	A,(HL)
+		OR	$9F
+		INC	A
+		LD	A,(HL)
+		JR	NZ,L8278
+		SET	7,(IY+$09)
+		AND	$BF
+L8278:		AND	$FB
+		CP	$80
+		RES	7,A
+		LD	(IY-$01),A 	; TODO: ???
+		LD	(IY-$02),$02
+		RET	C
+		SET	4,(IY+$09)
 		RET
-C828B:		LD		(IY+$0F),$00
-		LD		(IY+$08),A
-		CP		$80
-		RET		C
-		ADD		A,A
-		ADD		A,A
-		ADD		A,A
-		LD		(IY+$0F),A
+
+;; Object pointer in IY, sprite code in A
+C828B:		LD	(IY+$0F),$00
+		LD	(IY+$08),A
+        ;; Sprite code > $80?
+		CP	$80
+		RET	C
+        ;; Then... FIXME
+		ADD	A,A
+		ADD	A,A
+		ADD	A,A
+		LD	(IY+$0F),A
 		PUSH	HL
 		CALL	C82E8
-		POP		HL
+		POP	HL
 		RET
 
 	;; Takes an object pointer in DE, and index thing in A
@@ -930,30 +943,139 @@ L83B0:	DEFB $00,$41,$00,$42,$00,$43,$00,$44,$45,$C5,$C4,$00
 
 	;; Table has base index of 1 in CallObjFn
 ObjFnTbl:
-	DEFW ObjFn1, ObjFn2, ObjFn3, ObjFn4
-	DEFW ObjFn5, ObjFn6, ObjFn7, ObjFn8
-	DEFW ObjFn9, ObjFn10,ObjFn11,ObjFn12
-	DEFW ObjFn13,ObjFn14,ObjFn15,ObjFn16
-	DEFW ObjFn17,ObjFn18,ObjFn19,ObjFn20
-	DEFW ObjFn21,ObjFn22,ObjFn23,ObjFn24
-	DEFW ObjFnFire,ObjFn26,ObjFn27,ObjFn28
-	DEFW ObjFn29,ObjFn30,ObjFn31,ObjFn32
-	DEFW ObjFn33,ObjFn34,ObjFn35,ObjFn36
+OBJFN_PUSHABLE: EQU 1
+	DEFW ObjFnPushable
+OBJFN_ROLLERS1: EQU 2
+        DEFW ObjFnRollers1
+OBJFN_ROLLERS2: EQU 3
+        DEFW ObjFnRollers2
+OBJFN_ROLLERS3: EQU 4
+        DEFW ObjFnRollers3
+OBJFN_ROLLERS4: EQU 5
+	DEFW ObjFnRollers4
+	DEFW ObjFn6
+	DEFW ObjFn7
+	DEFW ObjFn8
+	DEFW ObjFn9
+OBJFN_BALL:     EQU 10
+	DEFW ObjFnBall
+	DEFW ObjFn11
+	DEFW ObjFn12
+	DEFW ObjFn13
+OBJFN_SWITCH:   EQU 14
+	DEFW ObjFnSwitch
+	DEFW ObjFn15
+	DEFW ObjFn16
+OBJFN_FADE:     EQU 17
+	DEFW ObjFnFade
+	DEFW ObjFn18
+	DEFW ObjFn19
+OBJFN_DISSOLVE2:        EQU 20
+	DEFW ObjFnDissolve2
+	DEFW ObjFn21
+	DEFW ObjFn22
+	DEFW ObjFn23
+OBJFN_DISSOLVE: EQU 24
+	DEFW ObjFnDissolve
+OBJFN_FIRE:     EQU 25
+	DEFW ObjFnFire
+	DEFW ObjFn26
+	DEFW ObjFn27
+OBJFN_SPRING:   EQU 28
+	DEFW ObjFnSpring
+	DEFW ObjFn29
+OBJFN_JOYSTICK: EQU 30
+        DEFW ObjFnJoystick
+OBJFN_HUSHPUPPY:        EQU 31
+        DEFW ObjFnHushPuppy
+	DEFW ObjFn32
+	DEFW ObjFn33
+OBJFN_DISAPPEAR:        EQU 34
+	DEFW ObjFnDisappear
+	DEFW ObjFn35
+	DEFW ObjFn36
 	DEFW ObjFn37
 
-L8406:	DEFB $88,$1B,$01,$2B,$1C,$40,$31,$00,$02,$4A
-L8410:	DEFB $01,$40,$9E,$17,$00,$5D,$00,$01,$56,$02,$11,$56,$03,$11,$56,$04
-L8420:	DEFB $01,$56,$05,$01,$46,$01,$40,$4B,$01,$40,$90,$8F,$6C,$4C,$0A,$00
-L8430:	DEFB $58,$00,$21,$5E,$00,$21,$30,$0E,$00,$94,$09,$60,$96,$4F,$6C,$9A
-L8440:	DEFB $DD,$0C,$49,$1E,$00,$5A,$01,$01,$5F,$00,$01,$5F,$14,$01,$48,$00
-L8450:	DEFB $00,$92,$0B,$60,$31,$18,$02,$82,$06,$68,$84,$CC,$6C,$47,$0A,$20
-L8460:	DEFB $5C,$1F,$01,$55,$15,$01,$96,$CD,$6C,$5B,$00,$21,$5D,$14,$01,$59
-L8470:	DEFB $14,$01,$59,$00,$01,$3D,$20,$60,$92,$21,$60,$9E,$12,$00,$55,$01
-L8480:	DEFB $01,$5F,$13,$01,$8C,$07,$60,$5A,$16,$01,$5D,$08,$01,$55,$23,$01
-L8490:	DEFB $9C,$CD,$6C,$42,$00,$20,$47,$0A,$00,$2D,$00,$20,$56,$14,$01,$5D
-L84A0:	DEFB $0A,$01,$5D,$01,$01,$98,$4F,$6C,$98,$CD,$6C,$82,$08,$68,$36,$00
-L84B0:	DEFB $20,$37,$00,$20,$1E,$00,$00,$18,$00,$00,$4C,$24,$00,$4C,$A5,$2C
-L84C0:	DEFB $84,$21,$60
+        ;; FIXME: Guessing the flags...
+DEADLY:         EQU $20
+PORTABLE:       EQU $40
+
+        ;; Define the objects that can appear in a room definition
+ObjDefns:
+OBJ_FIXME0:     EQU $00
+                DEFB $88,            $1B,$01
+OBJ_SPRING:     EQU $01
+                DEFB SPR_SPRING,     OBJFN_SPRING,PORTABLE
+OBJ_GRATING:    EQU $02
+                DEFB SPR_GRATING,    $00,$02
+OBJ_FIXME:      EQU $03
+                DEFB SPR_TRUNKS,     OBJFN_PUSHABLE,PORTABLE
+OBJ_FIXME2:     EQU $04
+                DEFB $9E,            $17,$00
+OBJ_FIXME3:     EQU $05
+                DEFB SPR_BOOK,       $00,$01
+OBJ_ROLLERS1:   EQU $06
+                DEFB SPR_ROLLERS,    OBJFN_ROLLERS1,$11
+OBJ_ROLLERS2:   EQU $07
+                DEFB SPR_ROLLERS,    OBJFN_ROLLERS2,$11
+OBJ_ROLLERS3:   EQU $08
+                DEFB SPR_ROLLERS,    OBJFN_ROLLERS3,$01
+OBJ_ROLLERS4:   EQU $09
+                DEFB SPR_ROLLERS,    OBJFN_ROLLERS4,$01
+                DEFB SPR_BONGO,      OBJFN_PUSHABLE,PORTABLE
+                DEFB SPR_DECK,       OBJFN_PUSHABLE,PORTABLE
+                DEFB $90,            $80 | $0F,$6C
+                DEFB SPR_BALL,       OBJFN_BALL,$00
+                DEFB SPR_VAPORISE,   $00,$21
+                DEFB SPR_TOASTER,    $00,$21
+                DEFB SPR_SWITCH,     OBJFN_SWITCH,$00
+                DEFB $94,            $09,$60
+                DEFB $96,            $40 | $4F,$6C
+                DEFB $9A,            $C0 | $1D,$0C
+                DEFB SPR_STICK,      OBJFN_JOYSTICK,$00
+                DEFB SPR_ANVIL,      OBJFN_PUSHABLE,$01
+                DEFB SPR_CUSHION,    $00,$01
+                DEFB SPR_CUSHION,    OBJFN_DISSOLVE2,$01
+                DEFB SPR_WELL,       $00,$00
+                DEFB $92,            $0B,$60
+                DEFB SPR_GRATING,    $18,$02
+                DEFB $82,            $06,$68
+                DEFB $84,            $C0 | $0C,$6C
+                DEFB SPR_DRUM,       $0A,DEADLY
+                DEFB SPR_HUSHPUPPY,  OBJFN_HUSHPUPPY,$01
+                DEFB SPR_SANDWICH,   $15,$01
+                DEFB $96,            $C0 | $0D,$6C
+                DEFB SPR_SPIKES,     $00,$21
+                DEFB SPR_BOOK,       OBJFN_DISSOLVE2,$01
+                DEFB SPR_PAD,        OBJFN_DISSOLVE2,$01
+                DEFB SPR_PAD,        $00,$01
+                DEFB SPR_TAP,        $20,$60
+                DEFB $92,            $21,$60
+                DEFB $9E,            $12,$00
+                DEFB SPR_SANDWICH,   OBJFN_PUSHABLE,$01
+                DEFB SPR_CUSHION,    $13,$01
+                DEFB $8C,            $07,$60
+                DEFB SPR_ANVIL,      $16,$01
+                DEFB SPR_BOOK,       $08,$01
+                DEFB SPR_SANDWICH,   $23,$01
+                DEFB $9C,            $C0 | $0D,$6C
+                DEFB SPR_TRUNK,      $00,DEADLY
+                DEFB SPR_DRUM,       $0A,$00
+                DEFB SPR_FISH1,      $00,DEADLY
+                DEFB SPR_ROLLERS,    OBJFN_DISSOLVE2,$01
+                DEFB SPR_BOOK,       $0A,$01
+                DEFB SPR_BOOK,       OBJFN_PUSHABLE,$01
+                DEFB $98,            $40 | $0F,$6C
+                DEFB $98,            $C0 | $0D,$6C
+                DEFB $82,            $08,$68
+                DEFB SPR_ROBOMOUSE,  $00,DEADLY
+                DEFB SPR_ROBOMOUSEB, $00,DEADLY
+                DEFB SPR_HEAD1,      $00,$00
+                DEFB SPR_HEELS1,     $00,$00
+                DEFB SPR_BALL,       $24,$00
+                DEFB SPR_BALL,       $80 | $25,$2C
+                DEFB $84,            $21,$60
+
 PanelBase:	DEFW $0000
 PanelFlipsPtr:	DEFW $0000	; Pointer to byte full of whether panels need to flip
 L84C7:	DEFB $00

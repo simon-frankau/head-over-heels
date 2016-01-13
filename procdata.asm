@@ -16,6 +16,7 @@
 ;; Takes something in HL and BC and IY
 ;;
 ;; Takes room id in BC
+;; L76E0 is room size?
 EnterRoom:	LD	(L76E0),HL
 		XOR	A
 		LD	(L76E2),A
@@ -155,7 +156,7 @@ ProcEntry:      LD      B,$08
         ;; Otherwise, deal with an object.
                 PUSH    IY
                 LD      IY,TmpObj
-                CALL    ProcDataStart
+                CALL    InitObj
                 POP     IY
         ;; Read two bits. Bottom bit is "should loop".
         ;; Top bit is "read flag bit once for all loops?".

@@ -13,7 +13,7 @@
 ;;  * ProcObjUnk4
 ;;  * GetUVZExtents2
 
-;; Called during the ProcData loop to copy an object into the dest
+;; Called during the ProcEntry loop to copy an object into the dest
 ;; buffer and process it.
 ;;
 ;; HL points to an object.
