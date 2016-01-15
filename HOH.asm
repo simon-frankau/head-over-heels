@@ -973,35 +973,35 @@ ANIM_VAPE3B:    EQU $8F
                 DEFW AnimVape3
 ANIM_ROBOMOUSE: EQU $90
                 DEFW AnimRobomouse
-ANIM_ROBOMOUSEB:EQU $9A
+ANIM_ROBOMOUSEB:EQU $91
                 DEFW AnimRobomouseB
-ANIM_BEE:       EQU $9B
+ANIM_BEE:       EQU $92
                 DEFW AnimBee
-ANIM_BEEB:      EQU $9C
+ANIM_BEEB:      EQU $93
                 DEFW AnimBee
-ANIM_BEACON:    EQU $9D
+ANIM_BEACON:    EQU $94
                 DEFW AnimBeacon
-ANIM_BEACONB:   EQU $9E
+ANIM_BEACONB:   EQU $95
                 DEFW AnimBeacon
-ANIM_FACE:      EQU $9F
+ANIM_FACE:      EQU $96
                 DEFW AnimFace
-ANIM_FACEB:     EQU $A0
+ANIM_FACEB:     EQU $97
                 DEFW AnimFaceB
-ANIM_CHIMP:     EQU $A1
+ANIM_CHIMP:     EQU $98
                 DEFW AnimChimp
-ANIM_CHIMPB:    EQU $A2
+ANIM_CHIMPB:    EQU $99
                 DEFW AnimChimpB
-ANIM_CHARLES:   EQU $A3
+ANIM_CHARLES:   EQU $9A
                 DEFW AnimCharles
-ANIM_CHARLESB:  EQU $A4
+ANIM_CHARLESB:  EQU $9B
                 DEFW AnimCharlesB
-ANIM_TRUNK:     EQU $A5
+ANIM_TRUNK:     EQU $9C
                 DEFW AnimTrunk
-ANIM_TRUNKB:    EQU $A6
+ANIM_TRUNKB:    EQU $9D
                 DEFW AnimTrunkB
-ANIM_HELIPLAT:  EQU $A7
+ANIM_HELIPLAT:  EQU $9E
                 DEFW AnimHeliplat
-ANIM_HELIPLATB: EQU $A8
+ANIM_HELIPLATB: EQU $9F
                 DEFW AnimHeliplat
 
 AnimVape1:      DEFB $80|SPR_VAPE1,SPR_VAPE1,SPR_VAPE2,SPR_VAPE3,$00
@@ -1091,8 +1091,8 @@ PORTABLE:       EQU $40
 
         ;; Define the objects that can appear in a room definition
 ObjDefns:
-OBJ_FIXME0:     EQU $00
-                DEFB $88,            $1B,$01
+OBJ_TELEPORT:   EQU $00
+                DEFB ANIM_TELEPORT,  $1B,$01
 OBJ_SPRING:     EQU $01
                 DEFB SPR_SPRING,     OBJFN_SPRING,PORTABLE
 OBJ_GRATING:    EQU $02
@@ -1113,57 +1113,57 @@ OBJ_ROLLERS4:   EQU $09
                 DEFB SPR_ROLLERS,    OBJFN_ROLLERS4,$01
                 DEFB SPR_BONGO,      OBJFN_PUSHABLE,PORTABLE
                 DEFB SPR_DECK,       OBJFN_PUSHABLE,PORTABLE
-                DEFB $90,            $80 | $0F,$6C
+                DEFB ANIM_ROBOMOUSE, $80 | $0F,$6C
                 DEFB SPR_BALL,       OBJFN_BALL,$00
                 DEFB SPR_VAPORISE,   $00,$21
                 DEFB SPR_TOASTER,    $00,$21
                 DEFB SPR_SWITCH,     OBJFN_SWITCH,$00
-                DEFB $94,            $09,$60
-                DEFB $96,            $40 | $4F,$6C
-                DEFB $9A,            $C0 | $1D,$0C
+                DEFB ANIM_BEACON,    $09,$60
+                DEFB ANIM_FACE,      $40 | $4F,$6C
+                DEFB ANIM_CHARLES,   $C0 | $1D,$0C
                 DEFB SPR_STICK,      OBJFN_JOYSTICK,$00
                 DEFB SPR_ANVIL,      OBJFN_PUSHABLE,$01
                 DEFB SPR_CUSHION,    $00,$01
                 DEFB SPR_CUSHION,    OBJFN_DISSOLVE2,$01
                 DEFB SPR_WELL,       $00,$00
-                DEFB $92,            $0B,$60
+                DEFB ANIM_BEE,       $0B,$60
                 DEFB SPR_GRATING,    $18,$02
-                DEFB $82,            $06,$68
-                DEFB $84,            $C0 | $0C,$6C
+                DEFB ANIM_VISORO,    $06,$68
+                DEFB ANIM_VAPE2,     $C0 | $0C,$6C
                 DEFB SPR_DRUM,       $0A,DEADLY
                 DEFB SPR_HUSHPUPPY,  OBJFN_HUSHPUPPY,$01
                 DEFB SPR_SANDWICH,   $15,$01
-                DEFB $96,            $C0 | $0D,$6C
+                DEFB ANIM_FACE,      $C0 | $0D,$6C
                 DEFB SPR_SPIKES,     $00,$21
                 DEFB SPR_BOOK,       OBJFN_DISSOLVE2,$01
                 DEFB SPR_PAD,        OBJFN_DISSOLVE2,$01
                 DEFB SPR_PAD,        $00,$01
                 DEFB SPR_TAP,        $20,$60
-                DEFB $92,            $21,$60
-                DEFB $9E,            $12,$00
+                DEFB ANIM_BEE,       $21,$60
+                DEFB ANIM_HELIPLAT,  $12,$00
                 DEFB SPR_SANDWICH,   OBJFN_PUSHABLE,$01
                 DEFB SPR_CUSHION,    $13,$01
-                DEFB $8C,            $07,$60
+                DEFB ANIM_MONOCAT,   $07,$60
                 DEFB SPR_ANVIL,      $16,$01
                 DEFB SPR_BOOK,       $08,$01
                 DEFB SPR_SANDWICH,   $23,$01
-                DEFB $9C,            $C0 | $0D,$6C
+                DEFB ANIM_TRUNK,     $C0 | $0D,$6C
                 DEFB SPR_TRUNK,      $00,DEADLY
                 DEFB SPR_DRUM,       $0A,$00
                 DEFB SPR_FISH1,      $00,DEADLY
                 DEFB SPR_ROLLERS,    OBJFN_DISSOLVE2,$01
                 DEFB SPR_BOOK,       $0A,$01
                 DEFB SPR_BOOK,       OBJFN_PUSHABLE,$01
-                DEFB $98,            $40 | $0F,$6C
-                DEFB $98,            $C0 | $0D,$6C
-                DEFB $82,            $08,$68
+                DEFB ANIM_CHIMP,     $40 | $0F,$6C
+                DEFB ANIM_CHIMP,     $C0 | $0D,$6C
+                DEFB ANIM_VISORO,    $08,$68
                 DEFB SPR_ROBOMOUSE,  $00,DEADLY
                 DEFB SPR_ROBOMOUSEB, $00,DEADLY
                 DEFB SPR_HEAD1,      $00,$00
                 DEFB SPR_HEELS1,     $00,$00
                 DEFB SPR_BALL,       $24,$00
                 DEFB SPR_BALL,       $80 | $25,$2C
-                DEFB $84,            $21,$60
+                DEFB ANIM_VAPE2,     $21,$60
 
 PanelBase:	DEFW $0000
 PanelFlipsPtr:	DEFW $0000	; Pointer to byte full of whether panels need to flip
