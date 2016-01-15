@@ -57,7 +57,7 @@ ObjFn29:	CALL	C9319
 		CALL	C92CF
 		JP	C92B7		; Tail call
 
-ObjFn27:	BIT	5,(IY+$0C)
+ObjFnTeleport:	BIT	5,(IY+$0C)
 		RET	NZ
 		CALL	C92CF
 		CALL	C92B7
@@ -206,10 +206,10 @@ C9005:		LD		A,(IX+$0A)
 		LD		(IX+$09),A
 		RET
 
-ObjFn23:	LD 	A,$90
+ObjFnHeliplat2:	LD 	A,$90
 		DEFB 	$01			; LD BC,nn , NOPs next instruction!
 
-ObjFn18:	LD		A,$52
+ObjFnHeliplat:  LD		A,$52
 		LD		(IY+$11),A
 		LD		(IY+$0A),$10
 		RET
@@ -309,16 +309,16 @@ ObjFn22:	LD		HL,L921F
 ObjFn21:	LD		HL,L920D
 		JP		L911B
 
-ObjFn6:		LD		HL,L921F
+ObjFnVisor1:	LD		HL,L921F
 		JR		L9121
 
-ObjFn7:		LD		HL,L920D
+ObjFnMonocat:	LD		HL,L920D
 		JR		L9121
 	
 ObjFn8:		LD		HL,L9214
 		JR		L9121
 	
-ObjFn11:	LD		HL,L9200
+ObjFnBee:	LD		HL,L9200
 		JR		L9121
 	
 ObjFn12:	LD		HL,L9200
@@ -326,8 +326,9 @@ ObjFn12:	LD		HL,L9200
 	
 ObjFn13:	LD		HL,L91E4
 		JR		L9155
-	
-ObjFn9:		LD		HL,L91F1
+
+        ;; Act like a beacon (?)
+ObjFnBeacon:	LD		HL,L91F1
 		JR		L9155
 	
 ObjFn15:	LD		HL,HomeIn

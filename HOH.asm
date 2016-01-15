@@ -1042,13 +1042,17 @@ OBJFN_ROLLERS3: EQU 4
         DEFW ObjFnRollers3
 OBJFN_ROLLERS4: EQU 5
 	DEFW ObjFnRollers4
-	DEFW ObjFn6
-	DEFW ObjFn7
+OBJFN_VISOR1:   EQU 6
+	DEFW ObjFnVisor1
+OBJFN_MONOCAT:  EQU 7
+	DEFW ObjFnMonocat
 	DEFW ObjFn8
-	DEFW ObjFn9
+OBJFN_BEACON:   EQU 9
+	DEFW ObjFnBeacon
 OBJFN_BALL:     EQU 10
 	DEFW ObjFnBall
-	DEFW ObjFn11
+OBJFN_BEE:      EQU 11
+	DEFW ObjFnBee
 	DEFW ObjFn12
 	DEFW ObjFn13
 OBJFN_SWITCH:   EQU 14
@@ -1057,19 +1061,22 @@ OBJFN_SWITCH:   EQU 14
 	DEFW ObjFn16
 OBJFN_FADE:     EQU 17
 	DEFW ObjFnFade
-	DEFW ObjFn18
+OBJFN_HELIPLAT: EQU 18
+	DEFW ObjFnHeliplat
 	DEFW ObjFn19
 OBJFN_DISSOLVE2:        EQU 20
 	DEFW ObjFnDissolve2
 	DEFW ObjFn21
 	DEFW ObjFn22
-	DEFW ObjFn23
+OBJFN_HELIPLAT2:        EQU 23
+	DEFW ObjFnHeliplat2
 OBJFN_DISSOLVE: EQU 24
 	DEFW ObjFnDissolve
 OBJFN_FIRE:     EQU 25
 	DEFW ObjFnFire
 	DEFW ObjFn26
-	DEFW ObjFn27
+OBJFN_TELEPORT: EQU 27
+	DEFW ObjFnTeleport
 OBJFN_SPRING:   EQU 28
 	DEFW ObjFnSpring
 	DEFW ObjFn29
@@ -1092,7 +1099,7 @@ PORTABLE:       EQU $40
         ;; Define the objects that can appear in a room definition
 ObjDefns:
 OBJ_TELEPORT:   EQU $00
-                DEFB ANIM_TELEPORT,  $1B,$01
+                DEFB ANIM_TELEPORT,  OBJFN_TELEPORT,$01
 OBJ_SPRING:     EQU $01
                 DEFB SPR_SPRING,     OBJFN_SPRING,PORTABLE
 OBJ_GRATING:    EQU $02
@@ -1100,7 +1107,7 @@ OBJ_GRATING:    EQU $02
 OBJ_FIXME:      EQU $03
                 DEFB SPR_TRUNKS,     OBJFN_PUSHABLE,PORTABLE
 OBJ_FIXME2:     EQU $04
-                DEFB $9E,            $17,$00
+                DEFB ANIM_HELIPLAT,  OBJFN_HELIPLAT2,$00
 OBJ_FIXME3:     EQU $05
                 DEFB SPR_BOOK,       $00,$01
 OBJ_ROLLERS1:   EQU $06
@@ -1118,17 +1125,17 @@ OBJ_ROLLERS4:   EQU $09
                 DEFB SPR_VAPORISE,   $00,$21
                 DEFB SPR_TOASTER,    $00,$21
                 DEFB SPR_SWITCH,     OBJFN_SWITCH,$00
-                DEFB ANIM_BEACON,    $09,$60
-                DEFB ANIM_FACE,      $40 | $4F,$6C
+                DEFB ANIM_BEACON,    OBJFN_BEACON,$60
+                DEFB ANIM_FACE,      $40 | $0F,$6C
                 DEFB ANIM_CHARLES,   $C0 | $1D,$0C
                 DEFB SPR_STICK,      OBJFN_JOYSTICK,$00
                 DEFB SPR_ANVIL,      OBJFN_PUSHABLE,$01
                 DEFB SPR_CUSHION,    $00,$01
                 DEFB SPR_CUSHION,    OBJFN_DISSOLVE2,$01
                 DEFB SPR_WELL,       $00,$00
-                DEFB ANIM_BEE,       $0B,$60
-                DEFB SPR_GRATING,    $18,$02
-                DEFB ANIM_VISORO,    $06,$68
+                DEFB ANIM_BEE,       OBJFN_BEE,$60
+                DEFB SPR_GRATING,    OBJFN_DISSOLVE,$02
+                DEFB ANIM_VISORO,    OBJFN_VISOR1,$68
                 DEFB ANIM_VAPE2,     $C0 | $0C,$6C
                 DEFB SPR_DRUM,       $0A,DEADLY
                 DEFB SPR_HUSHPUPPY,  OBJFN_HUSHPUPPY,$01
@@ -1140,10 +1147,10 @@ OBJ_ROLLERS4:   EQU $09
                 DEFB SPR_PAD,        $00,$01
                 DEFB SPR_TAP,        $20,$60
                 DEFB ANIM_BEE,       $21,$60
-                DEFB ANIM_HELIPLAT,  $12,$00
+                DEFB ANIM_HELIPLAT,  OBJFN_HELIPLAT,$00
                 DEFB SPR_SANDWICH,   OBJFN_PUSHABLE,$01
                 DEFB SPR_CUSHION,    $13,$01
-                DEFB ANIM_MONOCAT,   $07,$60
+                DEFB ANIM_MONOCAT,   OBJFN_MONOCAT,$60
                 DEFB SPR_ANVIL,      $16,$01
                 DEFB SPR_BOOK,       $08,$01
                 DEFB SPR_SANDWICH,   $23,$01
@@ -1152,7 +1159,7 @@ OBJ_ROLLERS4:   EQU $09
                 DEFB SPR_DRUM,       $0A,$00
                 DEFB SPR_FISH1,      $00,DEADLY
                 DEFB SPR_ROLLERS,    OBJFN_DISSOLVE2,$01
-                DEFB SPR_BOOK,       $0A,$01
+                DEFB SPR_BOOK,       OBJFN_BALL,$01
                 DEFB SPR_BOOK,       OBJFN_PUSHABLE,$01
                 DEFB ANIM_CHIMP,     $40 | $0F,$6C
                 DEFB ANIM_CHIMP,     $C0 | $0D,$6C
