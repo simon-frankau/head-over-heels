@@ -891,7 +891,7 @@ C82E8:
 		CP		$08
 		CCF
 		RET		NC
-        ;; Take top six bits, and index into FIXME table (1-based)
+        ;; Take top five bits, and index into animations table (1-based)
 		RRCA
 		RRCA
 		SUB		$02
@@ -940,37 +940,69 @@ L832A:		LD		A,C
 		RET
 
 AnimTable:
-        DEFW AnimVape1
-	DEFW AnimVisorO
-	DEFW AnimVisorC
-	DEFW AnimVape2
-	DEFW AnimVape2
-	DEFW AnimFish
-	DEFW AnimFish
-	DEFW AnimTeleport
-	DEFW AnimTeleport
-	DEFW AnimSpring
-	DEFW AnimSpring
-	DEFW AnimMonocat
-	DEFW AnimMonocatB
-	DEFW AnimVape3
-	DEFW AnimVape3
-	DEFW AnimRobomouse
-	DEFW AnimRobomouseB
-	DEFW AnimBee
-	DEFW AnimBee
-	DEFW AnimBeacon
-	DEFW AnimBeacon
-	DEFW AnimFace
-	DEFW AnimFaceB
-	DEFW AnimChimp
-	DEFW AnimChimpB
-	DEFW AnimCharles
-	DEFW AnimCharlesB
-	DEFW AnimTrunk
-	DEFW AnimTrunkB
-	DEFW AnimHeliplat
-	DEFW AnimHeliplat
+        ;; 'B' version is the moving-away-from-viewers version.
+ANIM_VAPE1:     EQU $81
+                DEFW AnimVape1
+ANIM_VISORO:    EQU $82
+                DEFW AnimVisorO
+ANIM_VISORC:    EQU $83
+                DEFW AnimVisorC
+ANIM_VAPE2:     EQU $84
+                DEFW AnimVape2
+ANIM_VAPE2B:    EQU $85
+                DEFW AnimVape2
+ANIM_FISH:      EQU $86
+                DEFW AnimFish
+ANIM_FISHB:     EQU $87
+                DEFW AnimFish
+ANIM_TELEPORT:  EQU $88
+                DEFW AnimTeleport
+ANIM_TELEPORTB: EQU $89
+                DEFW AnimTeleport
+ANIM_SPRING:    EQU $8A
+                DEFW AnimSpring
+ANIM_SPRINGB:   EQU $8B
+                DEFW AnimSpring
+ANIM_MONOCAT:   EQU $8C
+                DEFW AnimMonocat
+ANIM_MONOCATB:  EQU $8D
+                DEFW AnimMonocatB
+ANIM_VAPE3:     EQU $8E
+                DEFW AnimVape3
+ANIM_VAPE3B:    EQU $8F
+                DEFW AnimVape3
+ANIM_ROBOMOUSE: EQU $90
+                DEFW AnimRobomouse
+ANIM_ROBOMOUSEB:EQU $9A
+                DEFW AnimRobomouseB
+ANIM_BEE:       EQU $9B
+                DEFW AnimBee
+ANIM_BEEB:      EQU $9C
+                DEFW AnimBee
+ANIM_BEACON:    EQU $9D
+                DEFW AnimBeacon
+ANIM_BEACONB:   EQU $9E
+                DEFW AnimBeacon
+ANIM_FACE:      EQU $9F
+                DEFW AnimFace
+ANIM_FACEB:     EQU $A0
+                DEFW AnimFaceB
+ANIM_CHIMP:     EQU $A1
+                DEFW AnimChimp
+ANIM_CHIMPB:    EQU $A2
+                DEFW AnimChimpB
+ANIM_CHARLES:   EQU $A3
+                DEFW AnimCharles
+ANIM_CHARLESB:  EQU $A4
+                DEFW AnimCharlesB
+ANIM_TRUNK:     EQU $A5
+                DEFW AnimTrunk
+ANIM_TRUNKB:    EQU $A6
+                DEFW AnimTrunkB
+ANIM_HELIPLAT:  EQU $A7
+                DEFW AnimHeliplat
+ANIM_HELIPLATB: EQU $A8
+                DEFW AnimHeliplat
 
 AnimVape1:      DEFB $80|SPR_VAPE1,SPR_VAPE1,SPR_VAPE2,SPR_VAPE3,$00
 AnimVisorO:     DEFB SPR_VISOROHALF,$00
