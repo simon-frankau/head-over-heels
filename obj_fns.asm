@@ -19,10 +19,12 @@
 	;; Offset 7: Z coordinate, C0 = ground
 	;; Offset 8: Its sprite
 	;; Offset 9: Gets used as a sprite code???
+        ;;           Bit 5 = has another object tacked after (double height?)
 	;; Offset A: Top bit is flag that's checked against Phase, lower bits are object function.
         ;;           Gets loaded into SpriteFlags
 	;; Offset B: Some form of direction mask?
 	;; Offset C: Some form of direction mask?
+        ;; Offset F: Animation code - top 5 bits are the animation, bottom 3 bits are the frame.
 	;; Offset 10: Direction code.
 	;; Hmmm. May be 17 bytes? Object-copying code suggests 18 bytes.
 
@@ -34,6 +36,9 @@
         ;;    *
         ;;    |
         ;;    Z
+
+O_SPRITE:       EQU $08
+O_ANIM: 	EQU $0F
         
 ObjFnJoystick:	LD	A,(IY+$0C)
 		LD	(IY+$0C),$FF
@@ -583,7 +588,7 @@ C92B7:	LD		(IY+$0C),$FF
 		LD		HL,(CurrObject)
 		JP		UnionAndDraw
 C92CF:	CALL	C937E
-C92D2:	CALL	C82C9
+C92D2:	CALL	AnimateObj
 		RET		NC
 C92D6:	LD		A,(L8ED8)
 		OR		$02

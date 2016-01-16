@@ -762,7 +762,7 @@ ODW3:		DJNZ	ODW2
 
 CurrObject:	DEFW $0000
 ObjDir: 	DEFB $FF
-L822E:	DEFW $3D00,$3D8E
+L822E:		DEFW $3D00,$3D8E
 
 ;; Takes an object pointer in IY, an object code in A, and initialises it.
 ;; Doesn't set flags, direction code, or coordinates.
@@ -806,7 +806,7 @@ InitObj:	LD	(IY+$09),$00 	; TODO: Not sure of this field.
 		LD	A,C
 L8264:		LD	(L822E),A
 		LD	A,B
-		CALL	C828B
+		CALL	SetObjSprite
         ;; Load third byte of the object definition. FIXME
 		LD	A,(HL)
 		OR	$9F
@@ -824,19 +824,23 @@ L8278:		AND	$FB
 		SET	4,(IY+$09)
 		RET
 
-;; Object pointer in IY, sprite code in A
-C828B:		LD	(IY+$0F),$00
-		LD	(IY+$08),A
+;; Set the sprite or animation up for an object.
+;; Object pointer in IY, sprite/animation code in A
+SetObjSprite:
+	;; Clear animation code, and set sprite code.
+        	LD	(IY+O_ANIM),$00
+		LD	(IY+O_SPRITE),A
         ;; Sprite code > $80?
 		CP	$80
 		RET	C
-        ;; Then... FIXME
+        ;; Then it's an animation. Left shift by three bits and put
+	;; the code into the animation code.
 		ADD	A,A
 		ADD	A,A
 		ADD	A,A
 		LD	(IY+$0F),A
 		PUSH	HL
-		CALL	C82E8
+		CALL	Animate
 		POP	HL
 		RET
 
@@ -867,77 +871,85 @@ CallObjFn:	LD	(CurrObject),DE
 	;; And function table jump
 		JP	(HL)
 
-C82C9:		BIT		5,(IY+$09)
-		JR		Z,C82E8
-		CALL	C82E8
-		EX		AF,AF'
-		LD		C,(IY+$10)
-		LD		DE,L0012
+AnimateObj:	BIT	5,(IY+$09)
+		JR	Z,Animate
+		CALL	Animate
+		EX	AF,AF'
+		LD	C,(IY+$10)
+		LD	DE,L0012
 		PUSH	IY
-		ADD		IY,DE
+		ADD	IY,DE
 		CALL	C938D
-		CALL	C82E8
-		POP		IY
-		RET		C
-		EX		AF,AF'
+		CALL	Animate
+		POP	IY
+		RET	C
+		EX	AF,AF'
 		RET
 
-        ;; IY points to an object
-C82E8:
-        ;; Return if no high bits ($F8) are set
-		LD		C,(IY+$0F)
-		LD		A,C
-		AND		$F8
-		CP		$08
-		CCF
-		RET		NC
+;; Update the animation. IY points to an object.
+;; Returns with carry flag set if it's an animation.
+Animate:
+        ;; Extract the animation id (top 5 bits)
+                LD      C,(IY+O_ANIM)
+                LD      A,C
+                AND     $F8
+        ;; If it's zero (no animation), return.
+                CP      $08
+                CCF
+                RET     NC
         ;; Take top five bits, and index into animations table (1-based)
-		RRCA
-		RRCA
-		SUB		$02
-		ADD		A,AnimTable & $FF
-		LD		L,A
-		ADC		A,AnimTable >> 8
-		SUB		L
-		LD		H,A
+                RRCA
+                RRCA
+                SUB     $02
+                ADD     A,AnimTable & $FF
+                LD      L,A
+                ADC     A,AnimTable >> 8
+                SUB     L
+                LD      H,A
         ;; Add on bottom 3 bits + 1 to generate index into subtable
-		LD		A,C
-		INC		A
-		AND		$07
-		LD		B,A
-        ;; Load table entry plus sub-index into DE
-		ADD		A,(HL)
-		LD		E,A
-		INC		HL
-		ADC		A,(HL)
-		SUB		E
-		LD		D,A
-		LD		A,(DE)
-        ;; FIXME!
-		AND		A
-		JR		NZ,L8313
-		LD		B,$00
-		LD		A,(HL)
-		DEC		HL
-		LD		L,(HL)
-		LD		H,A
-		LD		A,(HL)
-L8313:		LD		(IY+$08),A
-		LD		A,B
-		XOR		C
-		AND		$07
-		XOR		C
-		LD		(IY+$0F),A
-		AND		$F0
-		CP		$80
-		LD		C,$02
-		JR		Z,L832A
-		CP		$90
-		LD		C,$01
-L832A:		LD		A,C
-		CALL		Z,SetSound
-		SCF
-		RET
+        ;; for next animation step.
+                LD      A,C
+                INC     A
+                AND     $07
+                LD      B,A
+        ;; Dereference next animation step sprite.
+                ADD     A,(HL)
+                LD      E,A
+                INC     HL
+                ADC     A,(HL)
+                SUB     E
+                LD      D,A
+                LD      A,(DE)
+        ;; Check if we've reached a zero (end of animation cycle).
+                AND     A
+                JR      NZ,Anim1
+        ;; We have. Set animation step to 0 and load first sprite in cycle.
+                LD      B,$00
+                LD      A,(HL)
+                DEC     HL
+                LD      L,(HL)
+                LD      H,A
+                LD      A,(HL)
+        ;; Update current sprite and animation step.
+Anim1:          LD      (IY+O_SPRITE),A
+                LD      A,B
+                XOR     C
+                AND     $07
+                XOR     C
+                LD      (IY+O_ANIM),A
+                AND     $F0
+        ;; Set sound for ANIM_ROBOMOUSE
+                CP      $80
+                LD      C,$02
+                JR      Z,Anim2
+        ;; Or ANIM_BEE
+                CP      $90
+                LD      C,$01
+Anim2:          LD      A,C
+        ;; Otherwise, no sound.
+                CALL    Z,SetSound
+                SCF
+                RET
 
 AnimTable:
         ;; 'B' version is the moving-away-from-viewers version.
@@ -1484,7 +1496,7 @@ BPDE3:		LD		(IY+$04),A
 		LD		A,(HL)
 		PUSH	BC
 		PUSH	DE
-		CALL	C828B
+		CALL	SetObjSprite
 		POP		DE
 		POP		BC
 		POP		IY

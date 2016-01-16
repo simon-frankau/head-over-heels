@@ -58,7 +58,7 @@ ProcDataObj:
 		LD	DE,L0012
 		ADD	IY,DE
 		LD	A,(L822E)
-		CALL	C828B
+		CALL	SetObjSprite
 		POP	IY
 PDO2:		POP	HL
         ;; NB: Fall through.
