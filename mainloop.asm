@@ -56,7 +56,7 @@ MainContinue:	CALL	AltPlaySound
 		CALL	InitContinue
 MainStart:	CALL	CrownScreen
 		LD	A,$40
-		LD	(L8F18),A
+		LD	(ObjFn36Val),A
 MainB:		XOR	A
 		LD	(Phase),A
 		CALL	C7B91
@@ -89,7 +89,7 @@ MainLoop2:	CALL	C708B
 		LD	(SwopPressed),A
 		DEC	A
 		LD	(CurrDir),A
-		LD	HL,L8F18
+		LD	HL,ObjFn36Val
 		DEC	(HL)
 		LD	A,(HL)
 		INC	A
