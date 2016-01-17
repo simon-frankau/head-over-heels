@@ -39,19 +39,20 @@ ProcDataObj:
                 POP     IY
                 BIT     3,(IY+$04)      ; Check bit 3 of flags...
                 JR      Z,ProcObjUnk1   ; NB: Tail call if not set
-        ;; Make another copy of the next 9 bytes? FIXME...
+        ;; Bit 3 set = tall object
 		LD	BC,L0009
 		PUSH	HL
 		LDIR
 		EX	DE,HL
-		LD	A,(DE)
+		LD	A,(DE)  	; Load A with offset 10 of original
 		OR	$02
-		LD	(HL),A
+		LD	(HL),A  	; Set bit 1, write out.
 		INC	HL
-		LD	(HL),$00
+		LD	(HL),$00 	; Write 0 to offset 11
 		LD	DE,L0008
 		ADD	HL,DE
-		LD	(ObjDest),HL
+		LD	(ObjDest),HL 	; Update pointer to after new object.
+        ;; If bit 5 of offset 9 set, set the sprite on this second object.
 		BIT	5,(IY+$09)
 		JR	Z,PDO2
 		PUSH	IY
@@ -84,11 +85,11 @@ ProcObjUnk1:	LD	A,(LAF77)
 		INC	HL
 		INC	HL
 		JR	DepthInsert
+
 CB034:		PUSH	HL
 		CALL	GetUVZExtents2
 		EXX
-		JR	LB082
-        ;; NB: Fall through
+		JR	DepthInsertHd
 
 ;; TODO
 ProcObjUnk2:	INC	HL
@@ -136,7 +137,8 @@ LB07D:		EXX
 		CALL	CAF96
         ;; NB: Fall through
 
-LB082:	        LD	HL,(LAF7A)
+;; Does DepthInsert on the list pointed to by ObjListPtr
+DepthInsertHd:	LD	HL,(ObjListPtr)
         ;; NB: Fall through
 
         ;; Object extents in alt registers, obj+2 in HL.
@@ -218,7 +220,7 @@ CB0D5:		LD	E,(HL)
 		INC	DE
 		INC	DE
 		JR	NZ,LB0E4
-		LD	DE,(LAF7A)
+		LD	DE,(ObjListPtr)
 LB0E4:		LD	A,(HL)
 		LDI
 		LD	C,A

@@ -2244,7 +2244,7 @@ LAF5B:	DEFB $1B		; Reinitialisation size
 LAF77:	DEFB $00
         ;; Current pointer for where we write objects into
 ObjDest:	DEFW LBA40
-LAF7A:	DEFW ObjList3
+ObjListPtr:	DEFW ObjList3
 LAF7C:	DEFW ObjectList
 ObjList3:	DEFW $0000
 ObjectList:	DEFW $0000
@@ -2265,7 +2265,7 @@ CAF96:		LD		(LAF77),A
 		SUB		L
 		LD		H,A
 	;; HL = $AF7E + (LAF77) * 4
-		LD		(LAF7A),HL
+		LD		(ObjListPtr),HL
 		INC		HL
 		INC		HL
 		LD		(LAF7C),HL

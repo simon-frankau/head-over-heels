@@ -327,8 +327,8 @@ OBJFN_13:       EQU 13
                 DEFW ObjFn13
 OBJFN_SWITCH:   EQU 14
                 DEFW ObjFnSwitch
-OBJFN_15:       EQU 15
-                DEFW ObjFn15
+OBJFN_HOMEIN:   EQU 15
+                DEFW ObjFnHomeIn
 OBJFN_16:       EQU 16
                 DEFW ObjFn16
 OBJFN_FADE:     EQU 17
@@ -402,13 +402,13 @@ OBJ_ROLLERS4:   EQU $09
                 DEFB SPR_ROLLERS,    OBJFN_ROLLERS4,$01
                 DEFB SPR_BONGO,      OBJFN_PUSHABLE,PORTABLE
                 DEFB SPR_DECK,       OBJFN_PUSHABLE,PORTABLE
-                DEFB ANIM_ROBOMOUSE, $80 | $0F,$6C
+                DEFB ANIM_ROBOMOUSE, $80 | OBJFN_HOMEIN,$6C
                 DEFB SPR_BALL,       OBJFN_BALL,$00
                 DEFB SPR_VAPORISE,   $00,$21
                 DEFB SPR_TOASTER,    $00,$21
                 DEFB SPR_SWITCH,     OBJFN_SWITCH,$00
                 DEFB ANIM_BEACON,    OBJFN_BEACON,$60
-                DEFB ANIM_FACE,      $40 | $0F,$6C
+                DEFB ANIM_FACE,      $40 | OBJFN_HOMEIN,$6C
                 DEFB ANIM_CHARLES,   $C0 | OBJFN_ROBOT,$0C
                 DEFB SPR_STICK,      OBJFN_JOYSTICK,$00
                 DEFB SPR_ANVIL,      OBJFN_PUSHABLE,$01
@@ -443,7 +443,7 @@ OBJ_ROLLERS4:   EQU $09
                 DEFB SPR_ROLLERS,    OBJFN_DISSOLVE2,$01
                 DEFB SPR_BOOK,       OBJFN_BALL,$01
                 DEFB SPR_BOOK,       OBJFN_PUSHABLE,$01
-                DEFB ANIM_CHIMP,     $40 | $0F,$6C
+                DEFB ANIM_CHIMP,     $40 | OBJFN_HOMEIN,$6C
                 DEFB ANIM_CHIMP,     $C0 | $0D,$6C
                 DEFB ANIM_VISORO,    $08,$68
                 DEFB SPR_ROBOMOUSE,  $00,DEADLY

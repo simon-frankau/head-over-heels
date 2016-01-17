@@ -45,13 +45,16 @@
 	;; Offset 4: Some flag - bit 6 and 7 causes skipping. Bit 6 = carryable?
         ;;           Bits 0-2: ObjectShape (see GetNewCoords)
         ;;           Bit 3:    Tall (extra 6 height)
+        ;;           Bit 4: Holds switch status for a switch.
 	;; Offset 5: U coordinate
 	;; Offset 6: V coordinate
 	;; Offset 7: Z coordinate, C0 = ground
 	;; Offset 8: Its sprite
 	;; Offset 9: Gets used as a sprite code???
         ;;           Bit 5 = has another object tacked after (double height?)
+        ;;           Bit 7 = switched flag
 	;; Offset A: Top bit is flag that's checked against Phase, lower bits are object function.
+        ;;           Bit 1 set for other bit of double height?
         ;;           Gets loaded into SpriteFlags
 	;; Offset B: Some form of direction mask?
 	;; Offset C: Some form of direction mask?
@@ -70,9 +73,11 @@
         ;;    Z
 
 O_SPRITE:       EQU $08
+O_FUNC:         EQU $0A
 O_ANIM: 	EQU $0F
 
         ;; Bit 0 set = have updated object extents
+        ;; Bit 1 set = needs redraw
 TodoFlags:	DEFB $00
 L8ED9:		DEFB $FF
 RobotDir:	DEFB $FF
@@ -113,7 +118,7 @@ ObjFn36:	LD		HL,ObjFn36Val
 		RET		NZ
 		LD		(HL),$60
 		LD		(IY+$0B),~$08
-		LD		(IY+$0A),OBJFN_FIRE
+		LD		(IY+O_FUNC),OBJFN_FIRE
 		LD		A,$05
 		JP		SetSound
 
@@ -151,7 +156,7 @@ ObjFnEnd:	LD		(IY+$0C),C
 		JR		ObjFnEnd2
 
 	;; The function associated with a firing donut object.
-ObjFnFire:	CALL		AnimateSetBit1
+ObjFnFire:	CALL		AnimateMe
 		CALL		ObjFnSub
 		JR		C,OFF2
 		CALL		ObjFnSub
@@ -202,60 +207,68 @@ ObjFnSub:	LD		A,(ObjDir)
 TableCallCurr:	LD		HL,(CurrObject)
 		JP		TableCall
 
-ObjFnSwitch:	LD		A,(IY+$0C)
-		OR		$C0
-		INC		A
-		JR		NZ,OFS1
-		LD		(IY+$11),A
-		RET
-OFS1:		LD		A,(IY+$11)
-		AND		A
-		JR		Z,OFS2
-		LD		(IY+$0C),$FF
-		RET
-OFS2:		DEC	(IY+$11)
-		CALL	ObjAgain7
-	;; Call PerObj on each object in the object list...
-		LD	HL,ObjectList
-OFS3:		LD	A,(HL)
-		INC	HL
-		LD	H,(HL)
-		LD	L,A
-		OR	H
-		JR	Z,OFS4
-		PUSH	HL
-		PUSH	HL
-		POP	IX
-		CALL	PerObj		; Call with the object in HL and IX
-		POP	HL
-		JR	OFS3
-OFS4:		CALL	SetBit1
-		LD	A,(IY+$04)
-		XOR	$10
-		LD	(IY+$04),A
-		JP	ObjDraw		; Tail call
+ObjFnSwitch:
+        ;; First check if we're touched. If not, clear $11 and return.
+                LD      A,(IY+$0C)
+                OR      $C0
+                INC     A
+                JR      NZ,OFS1
+                LD      (IY+$11),A
+                RET
+        ;; Otherwise, check if there was a previous touch.
+        ;; If so, clear $0C and return.
+OFS1:           LD      A,(IY+$11)
+                AND     A
+                JR      Z,OFS2
+                LD      (IY+$0C),$FF
+                RET
+        ;; Mark as previously touched...
+OFS2:           DEC     (IY+$11)
+                CALL    ObjAgain7
+        ;; Call PerObj on each object in the object list...
+                LD      HL,ObjectList
+OFS3:           LD      A,(HL)
+                INC     HL
+                LD      H,(HL)
+                LD      L,A
+                OR      H
+                JR      Z,OFS4
+                PUSH    HL
+                PUSH    HL
+                POP     IX
+                CALL    PerObjSwitch    ; Call with the object in HL and IX
+                POP     HL
+                JR      OFS3
+        ;; End part, mark for redraw and tottle the switch state flag.
+OFS4:           CALL    MarkToDraw
+                LD      A,(IY+$04)
+                XOR     $10
+                LD      (IY+$04),A
+                JP      ObjDraw         ; Tail call
 
-PerObj:		LD		A,(IX+$0A)
-		AND		$7F
-		CP		$0E
-		RET		Z
-		CP		$11
-		RET		Z
-		LD		A,(IX+$09)
-		LD		C,A
-		AND		$09
-		RET		NZ
-		LD		A,C
-		XOR		$40
-		LD		(IX+$09),A
-		RET
+PerObjSwitch:   LD      A,(IX+O_FUNC)
+        ;; Some objects aren't affected by a switch...
+                AND     $7F
+                CP      OBJFN_SWITCH
+                RET     Z
+                CP      OBJFN_FADE
+                RET     Z
+        ;; If neither bit 3 or 1 of $09 is set, toggle bit 7.
+                LD      A,(IX+$09)
+                LD      C,A
+                AND     $09
+                RET     NZ
+                LD      A,C
+                XOR     $40
+                LD      (IX+$09),A
+                RET
 
 ObjFnHeliplat2:	LD 	A,$90
-		DEFB 	$01			; LD BC,nn , NOPs next instruction!
+		DEFB 	$01	; LD BC,nn , NOPs next instruction!
 
-ObjFnHeliplat:  LD		A,$52
-		LD		(IY+$11),A
-		LD		(IY+$0A),OBJFN_16
+ObjFnHeliplat:  LD	A,$52
+		LD	(IY+$11),A
+		LD	(IY+O_FUNC),OBJFN_16
 		RET
 
 ObjFn19:	BIT	5,(IY+$0C)
@@ -277,7 +290,7 @@ ObjFnRollers4:  LD      A,~$04
         ;; Fall through
 
 Write0B:        LD      (IY+$0B),A
-                LD      (IY+$0A),$00
+                LD      (IY+O_FUNC),$00
                 RET
 
 ObjFnHushPuppy:	LD	A,(Character)
@@ -298,16 +311,16 @@ TestAndFade:	RET	Z
         ;; Set to use ObjFnFade
 Fadeify:	LD	A,$05
 		CALL	SetSound
-		LD	A,(IY+$0A)
+		LD	A,(IY+O_FUNC)
 		AND	$80
 		OR	OBJFN_FADE
-		LD	(IY+$0A),A
+		LD	(IY+O_FUNC),A
 		LD	(IY+$0F),$08
         ;; NB: Fall through
 
 ObjFnFade:	LD	(IY+$04),$80
 		CALL	UpdateObjExtents
-		CALL	AnimateSetBit1
+		CALL	AnimateMe
 		LD	A,(IY+$0F)
 		AND	$07
 		JP	NZ,ObjDraw
@@ -344,7 +357,7 @@ ObjFn26:	LD		A,(IY+$0F)
         ;; NB: Fall through
 
 ObjFnStuff:	CALL	UpdateObjExtents
-		CALL	AnimateSetBit1
+		CALL	AnimateMe
         ;; NB: Fall through
 
 ObjFnPushable:	CALL	ObjAgain8
@@ -379,8 +392,9 @@ ObjFn13:	LD		HL,ObjBlah
         ;; Act like a beacon (?)
 ObjFnBeacon:	LD		HL,ObjBlah2
 		JR		ObjFnStuff8
-	
-ObjFn15:	LD		HL,HomeIn
+
+;; Home in, like a robomouse.
+ObjFnHomeIn:	LD		HL,HomeIn
 		JR		ObjFnStuff7
 
 ObjFn37:	LD		A,(WorldMask)
@@ -546,25 +560,25 @@ ObjFn33:	CALL		ObjAgain8
 NoColl33:	CALL		FaceAndAnimate
 		JP		ObjDraw
 
-	;; Find the direction number associated with zeroing the
-	;; smaller distance, and then working towards the other
-	;; dimension.
-HomeIn:		CALL		CharDistAndDir
-		LD		A,D
-		CP		E
-		LD		B,~$0C
-		JR		C,HI2
-		LD		A,E
-		LD		B,~$03
-HI2:		AND		A
-		LD		A,B
-		JR		NZ,HI3
-		XOR		$0F
-HI3:		OR		C
-	;; NB: Fall through
+;; Find the direction number associated with zeroing the
+;; smaller distance, and then working towards the other
+;; dimension.
+HomeIn:         CALL    CharDistAndDir
+                LD      A,D
+                CP      E
+                LD      B,~$0C
+                JR      C,HI2
+                LD      A,E
+                LD      B,~$03
+HI2:            AND     A
+                LD      A,B
+                JR      NZ,HI3
+                XOR     $0F
+HI3:            OR      C
+        ;; NB: Fall through
 
-MoveToDirMask:	CALL		LookupDir
-		JR		MoveDir
+MoveToDirMask:  CALL    LookupDir
+                JR      MoveDir
 
 MoveAway:	CALL		CharDistAndDir
 		XOR		$0F
@@ -647,13 +661,13 @@ ObjDraw:        LD      (IY+$0C),$FF
 FaceAndAnimate: CALL    SetFacingDirEx
         ;; NB: Fall through
 
-;; Calls animate and SetBit1 if it's an animation.
-AnimateSetBit1: CALL    AnimateObj
+;; Calls animate and MarkToDraw if it's an animation.
+AnimateMe:      CALL    AnimateObj
                 RET     NC
         ;; NB: Fall through
 
 ;; Sets bit 1 of TodoFlags
-SetBit1:        LD      A,(TodoFlags)
+MarkToDraw:     LD      A,(TodoFlags)
                 OR      $02
                 LD      (TodoFlags),A
                 RET
