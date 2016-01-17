@@ -117,7 +117,7 @@ CallObjFn:	LD	(CurrObject),DE
 		LD	L,A
 	;; Do some stuff...
 		XOR	A
-		LD	(L8ED8),A
+		LD	(TodoFlags),A
 		LD	A,(IY+$0B)
 		LD	(ObjDir),A
 		LD	(IY+$0B),$FF
@@ -134,7 +134,7 @@ AnimateObj:	BIT	5,(IY+$09)
 		LD	DE,L0012
 		PUSH	IY
 		ADD	IY,DE
-		CALL	C938D
+		CALL	SetFacingDir
 		CALL	Animate
 		POP	IY
 		RET	C

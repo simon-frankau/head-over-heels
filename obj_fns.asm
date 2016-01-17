@@ -10,14 +10,14 @@
 ;; * AnimateObj
 ;; * C8CD3
 ;; * C8D18
-;; * C937E
+;; * SetFacingDirEx
 ;; * CAB06
 ;; * CAC41
 ;; * Character
 ;; * CurrObject
 ;; * GetCharObj
 ;; * L0005
-;; * L8ED8
+;; * TodoFlags
 ;; * L8ED9
 ;; * LA2BB
 ;; * LookupDir
@@ -71,7 +71,12 @@
 
 O_SPRITE:       EQU $08
 O_ANIM: 	EQU $0F
-        
+
+        ;; Bit 0 set = have updated object extents
+TodoFlags:	DEFB $00
+L8ED9:		DEFB $FF
+RobotDir:	DEFB $FF
+
 ObjFnJoystick:	LD	A,(IY+$0C)
 		LD	(IY+$0C),$FF
 		OR	$F0
@@ -91,13 +96,13 @@ ObjFnRobot:	CALL	ObjAgain8
 		CALL	NC,MoveDir
 		POP	AF
 		CALL	ObjAgain6
-		CALL	ObjAgain3
-		JP	ObjAgain2		; Tail call
+		CALL	FaceAndAnimate
+		JP	ObjDraw		; Tail call
 
 ObjFnTeleport:	BIT	5,(IY+$0C)
 		RET	NZ
-		CALL	ObjAgain3
-		CALL	ObjAgain2
+		CALL	FaceAndAnimate
+		CALL	ObjDraw
 		LD	B,$47
 		JP	PlaySound 	; Tail call
 
@@ -107,7 +112,7 @@ ObjFn36:	LD		HL,ObjFn36Val
 		AND		A
 		RET		NZ
 		LD		(HL),$60
-		LD		(IY+$0B),$F7
+		LD		(IY+$0B),~$08
 		LD		(IY+$0A),OBJFN_FIRE
 		LD		A,$05
 		JP		SetSound
@@ -146,12 +151,12 @@ ObjFnEnd:	LD		(IY+$0C),C
 		JR		ObjFnEnd2
 
 	;; The function associated with a firing donut object.
-ObjFnFire:	CALL		ObjAgain4
+ObjFnFire:	CALL		AnimateSetBit1
 		CALL		ObjFnSub
 		JR		C,OFF2
 		CALL		ObjFnSub
 OFF2:		JP		C,Fadeify
-		JR		ObjFnEnd3
+		JR		ObjDraw2
 
 ObjFnBall:	LD		A,(ObjDir)
 		INC		A
@@ -163,7 +168,8 @@ ObjFnBall:	LD		A,(ObjDir)
 
 ObjFnEnd2:	CALL		ObjAgain8
 		CALL		ObjFnSub
-ObjFnEnd3:	JP		ObjAgain2
+ObjDraw2:	JP		ObjDraw
+
 ObjFnEnd4:	PUSH		IY
 		CALL		ObjFnPushable
 		POP		IY
@@ -179,7 +185,7 @@ ObjFnSub:	LD		A,(ObjDir)
 		CALL	TableCallCurr
 		RET		C
 		PUSH	AF
-		CALL	ObjAgain
+		CALL	UpdateObjExtents
 		POP		AF
 		PUSH	AF
 		CALL	C8CD3
@@ -223,11 +229,11 @@ OFS3:		LD	A,(HL)
 		CALL	PerObj		; Call with the object in HL and IX
 		POP	HL
 		JR	OFS3
-OFS4:		CALL	ObjAgain5
+OFS4:		CALL	SetBit1
 		LD	A,(IY+$04)
 		XOR	$10
 		LD	(IY+$04),A
-		JP	ObjAgain2		; Tail call
+		JP	ObjDraw		; Tail call
 
 PerObj:		LD		A,(IX+$0A)
 		AND		$7F
@@ -252,26 +258,27 @@ ObjFnHeliplat:  LD		A,$52
 		LD		(IY+$0A),OBJFN_16
 		RET
 
-ObjFn19:	BIT		5,(IY+$0C)
-		RET		NZ
+ObjFn19:	BIT	5,(IY+$0C)
+		RET	NZ
 		CALL	ObjAgain9
-		JP		ObjAgain2
-	
-ObjFnRollers1:  LD		A,$FE
-		JR		Write0B
+		JP	ObjDraw
 
-ObjFnRollers2:	LD		A,$FD
-		JR		Write0B
+;; Rollers in the various directions
+ObjFnRollers1:  LD      A,~$01
+                JR      Write0B
 
-ObjFnRollers3:	LD		A,$F7
-		JR		Write0B
+ObjFnRollers2:  LD      A,~$02
+                JR      Write0B
 
-ObjFnRollers4:	LD		A,$FB
-	;; Fall through
-	
-Write0B:	LD		(IY+$0B),A
-		LD		(IY+$0A),$00
-		RET
+ObjFnRollers3:  LD      A,~$08
+                JR      Write0B
+
+ObjFnRollers4:  LD      A,~$04
+        ;; Fall through
+
+Write0B:        LD      (IY+$0B),A
+                LD      (IY+$0A),$00
+                RET
 
 ObjFnHushPuppy:	LD	A,(Character)
 		AND	$02			; Test if we have Head (returns early if not)
@@ -299,11 +306,11 @@ Fadeify:	LD	A,$05
         ;; NB: Fall through
 
 ObjFnFade:	LD	(IY+$04),$80
-		CALL	ObjAgain
-		CALL	ObjAgain4
+		CALL	UpdateObjExtents
+		CALL	AnimateSetBit1
 		LD	A,(IY+$0F)
 		AND	$07
-		JP	NZ,ObjAgain2
+		JP	NZ,ObjDraw
 ObjFnDisappear:	LD	HL,(CurrObject)
 		JP	RemoveObject
 
@@ -336,14 +343,15 @@ ObjFn26:	LD		A,(IY+$0F)
 		JR		Z,ObjFnPushable
         ;; NB: Fall through
 
-ObjFnStuff:	CALL	ObjAgain
-		CALL	ObjAgain4
+ObjFnStuff:	CALL	UpdateObjExtents
+		CALL	AnimateSetBit1
         ;; NB: Fall through
 
 ObjFnPushable:	CALL	ObjAgain8
 		LD	A,$FF
 		CALL	ObjAgain6
-		JP		ObjAgain2
+		JP		ObjDraw
+
 ObjFn22:	LD		HL,ObjBlah6
 		JP		ObjFnStuff2
 
@@ -384,11 +392,11 @@ ObjFn37:	LD		A,(WorldMask)
 OFn37b:		JR		ObjFnStuff7
 
 ObjFnStuff2:	PUSH	HL
-		CALL	ObjAgain3
+		CALL	FaceAndAnimate
 		JR		ObjFnStuff5
 	
 ObjFnStuff3:	PUSH	HL
-ObjFnStuff4:	CALL	ObjAgain3
+ObjFnStuff4:	CALL	FaceAndAnimate
 		CALL	ObjAgain8
 		LD		A,$FF
 		JR		C,ObjFnStuff6
@@ -397,9 +405,9 @@ ObjFnStuff6:	CALL	ObjAgain6
 		POP		HL
 		LD		A,(L8ED9)
 		INC		A
-		JP		Z,ObjAgain2
+		JP		Z,ObjDraw
 		CALL	TOHL
-		JP		ObjAgain2
+		JP		ObjDraw
 
 	;; Calling here is like calling HL.
 TOHL:		JP		(HL)
@@ -410,10 +418,10 @@ ObjFnStuff7:	PUSH	HL
 		CALL	TOHL
         ;; NB: Fall through
 
-Collision33:	CALL	ObjAgain3
+Collision33:	CALL	FaceAndAnimate
 		CALL	ObjAgain11
 		CALL	ObjAgain6
-		JP	ObjAgain2
+		JP	ObjDraw
 
 ObjFnStuff8:	PUSH	HL
 		CALL	C8D18
@@ -423,16 +431,16 @@ ObjFnStuff8:	PUSH	HL
 		CALL	ObjAgain8
 		POP		HL
 		CALL	TOHL
-		CALL	ObjAgain3
+		CALL	FaceAndAnimate
 		CALL	ObjAgain11
 		CALL	ObjAgain6
-		JP		ObjAgain2
+		JP		ObjDraw
 
 ObjFn16Val:		DEFB 0
 
 ObjFn16:	LD		A,$01
 		CALL	SetSound
-		CALL	ObjAgain3
+		CALL	FaceAndAnimate
 		LD		A,(IY+$11)
 		LD		B,A
 		BIT		3,A
@@ -452,7 +460,7 @@ ObjFn16:	LD		A,$01
 		RES		4,(IY+$0B)
 		JR		NC,OF16b
 		JR		Z,OF16g
-OF16b:		CALL	ObjAgain
+OF16b:		CALL	UpdateObjExtents
 		DEC		(IY+$07)
 		JR		OF16g
 OF16c:		LD		HL,ObjFn16Val
@@ -480,10 +488,10 @@ OF16e:		AND		$07
 		CALL	CAB06
 		JR		NC,OF16f
 		JR		Z,OF16g
-OF16f:		CALL	ObjAgain
+OF16f:		CALL	UpdateObjExtents
 		RES		5,(IY+$0B)
 		INC		(IY+$07)
-OF16g:		JP		ObjAgain2
+OF16g:		JP		ObjDraw
 
 ObjBlah:	CALL	C8D18
 		LD		A,L
@@ -535,8 +543,8 @@ ObjFn33:	CALL		ObjAgain8
 		CALL		LookupDir
 		LD		(IY+$10),A
 		JP		Collision33
-NoColl33:	CALL		ObjAgain3
-		JP		ObjAgain2
+NoColl33:	CALL		FaceAndAnimate
+		JP		ObjDraw
 
 	;; Find the direction number associated with zeroing the
 	;; smaller distance, and then working towards the other
@@ -615,36 +623,40 @@ FstCoordMatch:	RLC		C
 		RET
 
 
-        ;; TODO: Very heavily used!
-ObjAgain:	LD		A,(L8ED8)
-		BIT		0,A
-		RET		NZ
-		OR		$01
-		LD		(L8ED8),A
-		LD		HL,(CurrObject)
-		JP		StoreObjExtents
+;; If bit 0 of TodoFlags is not set, set it and set the object extents.
+UpdateObjExtents:
+                LD      A,(TodoFlags)
+                BIT     0,A
+                RET     NZ
+                OR      $01
+                LD      (TodoFlags),A
+                LD      HL,(CurrObject)
+                JP      StoreObjExtents
 
-        ;; TODO: Also popular.
-ObjAgain2:	LD		(IY+$0C),$FF
-		LD		A,(L8ED8)
-		AND		A
-		RET		Z
-		CALL	ObjAgain
-		LD		HL,(CurrObject)
-		CALL	ProcObjUnk4
-		LD		HL,(CurrObject)
-		JP		UnionAndDraw
+;; Clear $0C and if any of TodoFlags are set, draw the thing.
+ObjDraw:        LD      (IY+$0C),$FF
+                LD      A,(TodoFlags)
+                AND     A
+                RET     Z
+                CALL    UpdateObjExtents
+                LD      HL,(CurrObject)
+                CALL    ProcObjUnk4
+                LD      HL,(CurrObject)
+                JP      UnionAndDraw
 
-        ;; TODO: Ditto
-ObjAgain3:	CALL	C937E
+FaceAndAnimate: CALL    SetFacingDirEx
         ;; NB: Fall through
 
-ObjAgain4:	CALL	AnimateObj
-		RET		NC
-ObjAgain5:	LD		A,(L8ED8)
-		OR		$02
-		LD		(L8ED8),A
-		RET
+;; Calls animate and SetBit1 if it's an animation.
+AnimateSetBit1: CALL    AnimateObj
+                RET     NC
+        ;; NB: Fall through
+
+;; Sets bit 1 of TodoFlags
+SetBit1:        LD      A,(TodoFlags)
+                OR      $02
+                LD      (TodoFlags),A
+                RET
 
 ObjAgain6:	AND		A,(IY+$0C)
 		CP		$FF
@@ -665,7 +677,7 @@ ObjAgain6:	AND		A,(IY+$0C)
 		JR		NZ,OA6b
 		LD		A,$FF
 		LD		(L8ED9),A
-OA6b:		CALL	ObjAgain
+OA6b:		CALL	UpdateObjExtents
 		POP		AF
 		CALL	C8CD3
 		SCF
@@ -697,7 +709,7 @@ OA9b:		BIT		4,(IY+$0C)
 		RES		4,(IY+$0B)
 		RET
 OA9c:		PUSH	AF
-		CALL	ObjAgain
+		CALL	UpdateObjExtents
 		RES		5,(IY+$0B)
 		INC		(IY+$07)
 		LD		A,$03
@@ -714,7 +726,7 @@ ObjAgain10:	LD		HL,(CurrObject)
 		JR		NC,OA10b
 		CCF
 		RET		Z
-OA10b:		CALL	ObjAgain
+OA10b:		CALL	UpdateObjExtents
 		DEC		(IY+$07)
 		SCF
 		RET

@@ -1430,36 +1430,36 @@ InsertObject:	PUSH	HL
 	
 #include "sprite_stuff.asm"
 	
-L8ED8:	DEFB $00
-L8ED9:	DEFB $FF
-RobotDir:	DEFB $FF
-
 #include "obj_fns.asm"
 	
 L9376:	DEFB $FD,$F9,$FB,$FA,$FE,$F6,$F7,$F5
-C937E:	LD		C,(IY+$10)
-		BIT		1,C
-		RES		4,(IY+$04)
-		JR		NZ,C938D
-		SET		4,(IY+$04)
-C938D:	LD		A,(IY+$0F)
-		AND		A
-		RET		Z
-		BIT		2,C
-		LD		C,A
-		JR		Z,L939E
-		BIT		3,C
-		RET		NZ
-		LD		A,$08
-		JR		L93A2
-L939E:	BIT		3,C
-		RET		Z
-		XOR		A
-L93A2:	XOR		C
-		AND		$0F
-		XOR		C
-		LD		(IY+$0F),A
-		RET
+
+SetFacingDirEx: LD      C,(IY+$10)      ; Read direction code
+                BIT     1,C             ; Heading 'down'?
+                RES     4,(IY+$04)      ; Set bit 4 of flags, if so.
+                JR      NZ,SetFacingDir
+                SET     4,(IY+$04)
+        ;; NB: Fall through
+SetFacingDir:   LD      A,(IY+$0F)      ; Load animation code.
+                AND     A
+                RET     Z               ; Return if not animated
+                BIT     2,C             ; Heading right?
+        ;; TODO: All seems a bit complicated for what I think it does.
+                LD      C,A
+                JR      Z,SFD1          ; Then jump to that case.
+                BIT     3,C
+                RET     NZ
+                LD      A,$08
+                JR      SFD2
+SFD1:           BIT     3,C             ; Ret if sprite currently faces forward.
+                RET     Z
+                XOR     A               ; ...
+SFD2:           XOR     C
+                AND     $0F
+                XOR     C
+                LD      (IY+$0F),A
+                RET
+
 L93AA:	DEFB $00,$00,$00,$00,$00,$00
 
 	;; The phase mechanism allows an object to not get processed
