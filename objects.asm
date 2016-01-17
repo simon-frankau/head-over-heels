@@ -117,7 +117,7 @@ CallObjFn:	LD	(CurrObject),DE
 		LD	L,A
 	;; Do some stuff...
 		XOR	A
-		LD	(TodoFlags),A
+		LD	(DrawFlags),A
 		LD	A,(IY+$0B)
 		LD	(ObjDir),A
 		LD	(IY+$0B),$FF
@@ -313,18 +313,18 @@ OBJFN_VISOR1:   EQU 6
                 DEFW ObjFnVisor1
 OBJFN_MONOCAT:  EQU 7
                 DEFW ObjFnMonocat
-OBJFN_8:        EQU 8
-                DEFW ObjFn8
-OBJFN_BEACON:   EQU 9
-                DEFW ObjFnBeacon
+OBJFN_ANTICLOCK:EQU 8
+                DEFW ObjFnAnticlock
+OBJFN_RANDB:    EQU 9
+                DEFW ObjFnRandB
 OBJFN_BALL:     EQU 10
                 DEFW ObjFnBall
 OBJFN_BEE:      EQU 11
                 DEFW ObjFnBee
-OBJFN_12:       EQU 12
-                DEFW ObjFn12
-OBJFN_13:       EQU 13
-                DEFW ObjFn13
+OBJFN_RANDQ:    EQU 12
+                DEFW ObjFnRandQ
+OBJFN_RANDR:    EQU 13
+                DEFW ObjFnRandR
 OBJFN_SWITCH:   EQU 14
                 DEFW ObjFnSwitch
 OBJFN_HOMEIN:   EQU 15
@@ -371,8 +371,8 @@ OBJFN_35:       EQU 35
                 DEFW ObjFn35
 OBJFN_36:       EQU 36
                 DEFW ObjFn36
-OBJFN_37:       EQU 37
-                DEFW ObjFn37
+OBJFN_CROWNY:   EQU 37
+                DEFW ObjFnCrowny
 
         ;; FIXME: Guessing the flags...
 DEADLY:         EQU $20
@@ -407,7 +407,7 @@ OBJ_ROLLERS4:   EQU $09
                 DEFB SPR_VAPORISE,   $00,$21
                 DEFB SPR_TOASTER,    $00,$21
                 DEFB SPR_SWITCH,     OBJFN_SWITCH,$00
-                DEFB ANIM_BEACON,    OBJFN_BEACON,$60
+                DEFB ANIM_BEACON,    OBJFN_RANDB,$60
                 DEFB ANIM_FACE,      $40 | OBJFN_HOMEIN,$6C
                 DEFB ANIM_CHARLES,   $C0 | OBJFN_ROBOT,$0C
                 DEFB SPR_STICK,      OBJFN_JOYSTICK,$00
@@ -418,11 +418,11 @@ OBJ_ROLLERS4:   EQU $09
                 DEFB ANIM_BEE,       OBJFN_BEE,$60
                 DEFB SPR_GRATING,    OBJFN_DISSOLVE,$02
                 DEFB ANIM_VISORO,    OBJFN_VISOR1,$68
-                DEFB ANIM_VAPE2,     $C0 | $0C,$6C
+                DEFB ANIM_VAPE2,     $C0 | OBJFN_RANDQ,$6C
                 DEFB SPR_DRUM,       $0A,DEADLY
                 DEFB SPR_HUSHPUPPY,  OBJFN_HUSHPUPPY,$01
                 DEFB SPR_SANDWICH,   $15,$01
-                DEFB ANIM_FACE,      $C0 | $0D,$6C
+                DEFB ANIM_FACE,      $C0 | OBJFN_RANDR,$6C
                 DEFB SPR_SPIKES,     $00,$21
                 DEFB SPR_BOOK,       OBJFN_DISSOLVE2,$01
                 DEFB SPR_PAD,        OBJFN_DISSOLVE2,$01
@@ -434,9 +434,9 @@ OBJ_ROLLERS4:   EQU $09
                 DEFB SPR_CUSHION,    $13,$01
                 DEFB ANIM_MONOCAT,   OBJFN_MONOCAT,$60
                 DEFB SPR_ANVIL,      $16,$01
-                DEFB SPR_BOOK,       $08,$01
+                DEFB SPR_BOOK,       OBJFN_ANTICLOCK,$01
                 DEFB SPR_SANDWICH,   $23,$01
-                DEFB ANIM_TRUNK,     $C0 | $0D,$6C
+                DEFB ANIM_TRUNK,     $C0 | OBJFN_RANDR,$6C
                 DEFB SPR_TRUNK,      $00,DEADLY
                 DEFB SPR_DRUM,       $0A,$00
                 DEFB SPR_FISH1,      $00,DEADLY
@@ -444,12 +444,12 @@ OBJ_ROLLERS4:   EQU $09
                 DEFB SPR_BOOK,       OBJFN_BALL,$01
                 DEFB SPR_BOOK,       OBJFN_PUSHABLE,$01
                 DEFB ANIM_CHIMP,     $40 | OBJFN_HOMEIN,$6C
-                DEFB ANIM_CHIMP,     $C0 | $0D,$6C
-                DEFB ANIM_VISORO,    $08,$68
+                DEFB ANIM_CHIMP,     $C0 | OBJFN_RANDR,$6C
+                DEFB ANIM_VISORO,    OBJFN_ANTICLOCK,$68
                 DEFB SPR_ROBOMOUSE,  $00,DEADLY
                 DEFB SPR_ROBOMOUSEB, $00,DEADLY
                 DEFB SPR_HEAD1,      $00,$00
                 DEFB SPR_HEELS1,     $00,$00
                 DEFB SPR_BALL,       $24,$00
-                DEFB SPR_BALL,       $80 | $25,$2C
+                DEFB SPR_BALL,       $80 | OBJFN_CROWNY,DEADLY | $0C
                 DEFB ANIM_VAPE2,     $21,$60

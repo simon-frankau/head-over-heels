@@ -1352,8 +1352,9 @@ L8D11:	LD		(HL),$01
 		INC		HL
 		LD		D,(HL)
 		RET
-	
-C8D18:		LD		HL,(L8D49)
+
+        ;; Looks suspiciously like a crazy PRNG?
+Random:		LD		HL,(L8D49)
 		LD		D,L
 		ADD		HL,HL
 		ADC		HL,HL

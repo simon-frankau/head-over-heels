@@ -22,7 +22,7 @@ GoMainMenu:	LD	A,STR_GO_TITLE_SCREEN
 		LD	(IX+MENU_CUR_ITEM),$00
 		CALL	DrawHnH
 		CALL	DrawMenu
-GMM_1:		CALL	C8D18			; FIXME: ?
+GMM_1:		CALL	Random  		; Effectively seed the PRNG
 		CALL	MenuStep
 		JR	C,GMM_1
 		LD	A,(IX+MENU_CUR_ITEM)
