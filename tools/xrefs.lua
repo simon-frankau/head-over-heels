@@ -18,6 +18,11 @@ end
 local edges = {}
 
 local function add_edge(src, dst)
+  if string.find(dst, "[(]") then
+    -- Indirect jumps etc. Give up.
+    return
+  end
+
   local src_list = edges[src]
   if src_list == nil then
     src_list = {}
@@ -27,6 +32,7 @@ local function add_edge(src, dst)
 end
 
 local curr_sym
+local reinit_call
 
 local debug = nil
 
@@ -52,11 +58,33 @@ for line in f:lines() do
     if debug then print("LABEL: '" .. sym .. "'") end
   end
 
+  if string.find(line, "DEF[BW]") then
+    -- Data can appear immediately after a call to Reinitialise.
+    if not reinit_call then
+      curr_sym = nil
+    end
+
+    if debug then print("DATA") end
+  end
+
+  if string.find(line, "EQU") then
+    curr_sym = nil
+
+    if debug then print("EQU") end
+  end
+
+
+  reinit_call = false
+
   -- Calls always create edges, don't end flow.
   _, _, dest = string.find(line, "CALL%s+(.*)")
   if dest ~= nil then
     _, label = extract_label(dest)
     add_edge(curr_sym, label)
+    -- Nasty hack
+    if dest == "Reinitialise" then
+      reinit_call = true
+    end
 
     if debug then print("CALLER: '" .. label .. "'") end
   end
@@ -89,13 +117,6 @@ for line in f:lines() do
     add_edge(curr_sym, dest)
 
     if debug then print("DJNZER: '" .. dest .. "'") end
-  end
-
-  -- Data should not be part of a control flow - but is sometimes!
-  if string.find(line, "DEF[BW]") then
-    -- curr_sym = nil
-
-    if debug then print("DATA") end
   end
 end
 
