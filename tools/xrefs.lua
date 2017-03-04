@@ -28,6 +28,9 @@ end
 
 local curr_sym
 
+local debug = nil
+
+-- Slurp up the data
 for line in f:lines() do
   -- Strip comments
   line = string.gsub(line, "%s*;.*", "")
@@ -46,7 +49,7 @@ for line in f:lines() do
     end
     curr_sym = sym
 
-    print("LABEL: '" .. sym .. "'")
+    if debug then print("LABEL: '" .. sym .. "'") end
   end
 
   -- Calls always create edges, don't end flow.
@@ -55,7 +58,7 @@ for line in f:lines() do
     _, label = extract_label(dest)
     add_edge(curr_sym, label)
 
-    print("CALLER: '" .. label .. "'")
+    if debug then print("CALLER: '" .. label .. "'") end
   end
 
   -- Non-conditional returns end flows.
@@ -65,7 +68,7 @@ for line in f:lines() do
       curr_sym = nil
     end
 
-    print("RETER: '" .. (cond ~= "" and "CONT" or "ALWAYS") .. "'")
+    if debug then print("RETER: '" .. (cond ~= "" and "CONT" or "ALWAYS") .. "'") end
   end
 
   -- Jumps create edges. Non-conditional jumps end flows.
@@ -77,7 +80,7 @@ for line in f:lines() do
       curr_sym = nil
     end
 
-    print("JUMPER: '" .. label .. "' " .. (cond and "COND" or "ALWAYS"))
+    if debug then print("JUMPER: '" .. label .. "' " .. (cond and "COND" or "ALWAYS")) end
   end
 
   -- DJNZ is a conditional jump.
@@ -85,13 +88,25 @@ for line in f:lines() do
   if dest ~= nil then
     add_edge(curr_sym, dest)
 
-    print("DJNZER: '" .. dest .. "'")
+    if debug then print("DJNZER: '" .. dest .. "'") end
   end
 
   -- Data should not be part of a control flow - but is sometimes!
   if string.find(line, "DEF[BW]") then
     -- curr_sym = nil
 
-    print("DATA")
+    if debug then print("DATA") end
   end
 end
+
+-- And print it out
+print("digraph calls {")
+
+for src, dsts in pairs(edges) do
+  for _, dst in ipairs(dsts) do
+    print("  " .. src .. " -> " .. dst .. ";")
+  end
+  io.write("\n")
+end
+
+print("}")
