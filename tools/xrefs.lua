@@ -20,6 +20,7 @@ local edges = {}
 local function add_edge(src, dst)
   if string.find(dst, "[(]") then
     -- Indirect jumps etc. Give up.
+    print("// Computed jump from " .. src)
     return
   end
 
@@ -157,4 +158,9 @@ local function write_remaining()
   print("}")
 end
 
+write_graph("sprite.dot", {"Draw3x24", "BlitObject"})
+write_graph("menus.dot", {"GoMainMenu"})
+write_graph("gameover.dot", {"GameOverScreen"})
+write_graph("screen.dot", {"DrawScreen"})
+write_graph("end.dot", {"EndThing"})
 write_remaining()
