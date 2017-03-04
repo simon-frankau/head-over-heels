@@ -976,14 +976,14 @@ C8603:	LD		A,(IY-$02)
 		LD		C,A
 		RET
 
-PanelBases:	DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 0
-		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 3
-		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 6
-		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 8
-		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 10
-		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 14
-		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 16
-		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 19
+PanelBases:	DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 0		; Blacktooth
+		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 3		; Market
+		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 6		; Egyptus
+		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 8		; Penitentiary
+		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 10	; Moon base
+		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 14	; Book world
+		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 16	; Safari
+		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 19	; Prison
 	;; 8-byte chunks referenced by setting DataPtr etc.
         ;; Consists of packed 2-bit values.
 WorldData:	DEFB $46,$91,$65,$94,$A1,$69,$69,$AA

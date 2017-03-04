@@ -203,7 +203,7 @@ SpriteFlips:	DEFS $10,$00
 
 	;;  Background wall tiles
 IMG_WALLS:
-#insert "walls.bin"
+#insert "img_walls.bin"
 
 	DEFB $90,$00,$A0,$00
 
