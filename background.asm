@@ -97,7 +97,7 @@ BkgndCall:      LD      (BlitFloorFnPtr+1),HL
                 INC     E
                 RET
 
-SHORT_WALL:     EQU $38         ; The basic panels are 56 pixels high
+SHORT_WALL:     EQU $38         ; The basic walls are 56 pixels high
 TALL_WALL:      EQU $4A         ; 74 pixels max height for columns (indices 4 and 5)
 
 ;; Call inputs:

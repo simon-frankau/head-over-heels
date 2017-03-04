@@ -9,7 +9,7 @@
 ;; Called functions and accessed values:
 ;; * AnimateObj
 ;; * C8CD3
-;; * C8D18
+;; * Random
 ;; * SetFacingDirEx
 ;; * CAB06
 ;; * CAC41

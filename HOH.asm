@@ -7,7 +7,7 @@
 	;; 
 
 #target ROM
-#code 0, $10000
+#code HOH, 0, $FFFF
 	defs $4000, $00
 
 #insert "screen.scr"
@@ -763,7 +763,7 @@ ODW3:		DJNZ	ODW2
 #include "objects.asm"
 
 PanelBase:	DEFW $0000
-PanelFlipsPtr:	DEFW $0000	; Pointer to byte full of whether panels need to flip
+PanelFlipsPtr:	DEFW $0000	; Pointer to byte full of whether walls need to flip
 L84C7:	DEFB $00
 L84C8:	DEFB $00
 L84C9:	DEFB $00
@@ -976,7 +976,14 @@ C8603:	LD		A,(IY-$02)
 		LD		C,A
 		RET
 
-PanelBases:	DEFW $C050,$C1A0,$C2F0,$C3D0,$C4B0,$C670,$C750,$C8A0
+PanelBases:	DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 0
+		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 3
+		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 6
+		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 8
+		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 10
+		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 14
+		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 16
+		DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 19
 	;; 8-byte chunks referenced by setting DataPtr etc.
         ;; Consists of packed 2-bit values.
 WorldData:	DEFB $46,$91,$65,$94,$A1,$69,$69,$AA

@@ -56,8 +56,7 @@ img_3x56.bin	    24x56 sprites
 img_4x28.bin	    32x28 sprites
 img_chars.bin	    Font
 
-panels.asm	    The wall panel images. Should probably be
-		    converted to a .bin
+walls.bin	    The wall panel images.
 
 Miscellaneous other
 -------------------
