@@ -28,7 +28,7 @@ local function add_edge(src, dst)
     src_list = {}
     edges[src] = src_list
   end
-  src_list[#src_list + 1] = dst
+  src_list[dst] = true
 end
 
 local curr_sym
@@ -124,7 +124,7 @@ end
 print("digraph calls {")
 
 for src, dsts in pairs(edges) do
-  for _, dst in ipairs(dsts) do
+  for dst, _ in pairs(dsts) do
     print("  " .. src .. " -> " .. dst .. ";")
   end
   io.write("\n")
