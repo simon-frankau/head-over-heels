@@ -168,4 +168,8 @@ write_graph("menus.dot", {"GoMainMenu"})
 write_graph("gameover.dot", {"GameOverScreen"})
 write_graph("screen.dot", {"DrawScreen"})
 write_graph("end.dot", {"EndThing"})
+write_graph("objfns.dot", {"CallObjFn"})
+write_graph("37.dot", {"EPIC_37"})
+write_graph("ct15.dot", {"CharThing15"})
+
 write_remaining()
