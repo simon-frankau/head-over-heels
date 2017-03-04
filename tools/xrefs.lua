@@ -3,8 +3,6 @@
 --
 -- Probably very brittle
 
-local fin = io.open(arg[1], "r")
-
 local function extract_label(str)
   -- TODO: Assumes no spaces around "," - currently the convention in the code.
   _, _, lhs, rhs = string.find(str, "(.*),(.*)")
@@ -32,96 +30,99 @@ local function add_edge(src, dst)
   src_list[dst] = true
 end
 
-local curr_sym
-local reinit_call
-
 local debug = nil
 
--- Slurp up the data
-for line in fin:lines() do
-  -- Strip comments
-  line = string.gsub(line, "%s*;.*", "")
+local function read_asm(filename)
+  local fin = io.open(filename, "r")
 
-  -- Strip trailing blah
-  if string.find(line, "#end") then
-    break
-  end
+  local curr_sym
+  local reinit_call
 
-  -- Handle labels.
-  _, _, sym = string.find(line, "([A-Za-z0-9_]*):")
-  if sym ~= nil then
-    if curr_sym ~= nil then
-      -- Fall through
-      add_edge(curr_sym, sym)
+  -- Slurp up the data
+  for line in fin:lines() do
+    -- Strip comments
+    line = string.gsub(line, "%s*;.*", "")
+
+    -- Strip trailing blah
+    if string.find(line, "#end") then
+      break
     end
-    curr_sym = sym
 
-    if debug then print("LABEL: '" .. sym .. "'") end
-  end
+    -- Handle labels.
+    _, _, sym = string.find(line, "([A-Za-z0-9_]*):")
+    if sym ~= nil then
+      if curr_sym ~= nil then
+        -- Fall through
+        add_edge(curr_sym, sym)
+      end
+      curr_sym = sym
 
-  if string.find(line, "DEF[BW]") then
-    -- Data can appear immediately after a call to Reinitialise.
-    if not reinit_call then
+      if debug then print("LABEL: '" .. sym .. "'") end
+    end
+
+    if string.find(line, "DEF[BW]") then
+      -- Data can appear immediately after a call to Reinitialise.
+      if not reinit_call then
+        curr_sym = nil
+      end
+
+      if debug then print("DATA") end
+    end
+
+    if string.find(line, "EQU") then
       curr_sym = nil
+
+      if debug then print("EQU") end
     end
 
-    if debug then print("DATA") end
-  end
+    reinit_call = false
 
-  if string.find(line, "EQU") then
-    curr_sym = nil
+    -- Calls always create edges, don't end flow.
+    _, _, dest = string.find(line, "CALL%s+(.*)")
+    if dest ~= nil then
+      _, label = extract_label(dest)
+      add_edge(curr_sym, label)
+      -- Nasty hack
+      if dest == "Reinitialise" then
+        reinit_call = true
+      end
 
-    if debug then print("EQU") end
-  end
-
-
-  reinit_call = false
-
-  -- Calls always create edges, don't end flow.
-  _, _, dest = string.find(line, "CALL%s+(.*)")
-  if dest ~= nil then
-    _, label = extract_label(dest)
-    add_edge(curr_sym, label)
-    -- Nasty hack
-    if dest == "Reinitialise" then
-      reinit_call = true
+      if debug then print("CALLER: '" .. label .. "'") end
     end
 
-    if debug then print("CALLER: '" .. label .. "'") end
-  end
+    -- Non-conditional returns end flows.
+    _, _, cond = string.find(line, "RET%s*([A-Z]*)")
+    if cond ~= nil then
+      if cond == "" then
+        curr_sym = nil
+      end
 
-  -- Non-conditional returns end flows.
-  _, _, cond = string.find(line, "RET%s*([A-Z]*)")
-  if cond ~= nil then
-    if cond == "" then
-      curr_sym = nil
+      if debug then print("RETER: '" .. (cond ~= "" and "CONT" or "ALWAYS") .. "'") end
     end
 
-    if debug then print("RETER: '" .. (cond ~= "" and "CONT" or "ALWAYS") .. "'") end
-  end
+    -- Jumps create edges. Non-conditional jumps end flows.
+    _, _, dest = string.find(line, "J[PR]%s+(.*)")
+    if dest ~= nil then
+      cond, label = extract_label(dest)
+      add_edge(curr_sym, label)
+      if not cond then
+        curr_sym = nil
+      end
 
-  -- Jumps create edges. Non-conditional jumps end flows.
-  _, _, dest = string.find(line, "J[PR]%s+(.*)")
-  if dest ~= nil then
-    cond, label = extract_label(dest)
-    add_edge(curr_sym, label)
-    if not cond then
-      curr_sym = nil
+      if debug then print("JUMPER: '" .. label .. "' " .. (cond and "COND" or "ALWAYS")) end
     end
 
-    if debug then print("JUMPER: '" .. label .. "' " .. (cond and "COND" or "ALWAYS")) end
+    -- DJNZ is a conditional jump.
+    _, _, dest = string.find(line, "DJNZ%s+(.*)")
+    if dest ~= nil then
+      add_edge(curr_sym, dest)
+
+      if debug then print("DJNZER: '" .. dest .. "'") end
+    end
   end
 
-  -- DJNZ is a conditional jump.
-  _, _, dest = string.find(line, "DJNZ%s+(.*)")
-  if dest ~= nil then
-    add_edge(curr_sym, dest)
-
-    if debug then print("DJNZER: '" .. dest .. "'") end
-  end
+  fin:close()
 end
-
-fin:close()
 
 local function write_graph(name, nodes)
   local fout = io.open(name, "w")
@@ -157,6 +158,10 @@ local function write_remaining()
 
   print("}")
 end
+
+read_asm(arg[1])
+read_asm("fake.asm")
+
 
 write_graph("sprite.dot", {"Draw3x24", "BlitObject"})
 write_graph("menus.dot", {"GoMainMenu"})
