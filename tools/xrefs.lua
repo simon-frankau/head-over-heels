@@ -3,7 +3,7 @@
 --
 -- Probably very brittle
 
-local f = io.open(arg[1], "r")
+local fin = io.open(arg[1], "r")
 
 local function extract_label(str)
   -- TODO: Assumes no spaces around "," - currently the convention in the code.
@@ -37,7 +37,7 @@ local reinit_call
 local debug = nil
 
 -- Slurp up the data
-for line in f:lines() do
+for line in fin:lines() do
   -- Strip comments
   line = string.gsub(line, "%s*;.*", "")
 
@@ -92,7 +92,7 @@ for line in f:lines() do
   -- Non-conditional returns end flows.
   _, _, cond = string.find(line, "RET%s*([A-Z]*)")
   if cond ~= nil then
-    if not cond then
+    if cond == "" then
       curr_sym = nil
     end
 
@@ -120,14 +120,41 @@ for line in f:lines() do
   end
 end
 
--- And print it out
-print("digraph calls {")
+fin:close()
 
-for src, dsts in pairs(edges) do
-  for dst, _ in pairs(dsts) do
-    print("  " .. src .. " -> " .. dst .. ";")
+local function write_graph(name, nodes)
+  local fout = io.open(name, "w")
+  fout:write("digraph calls {\n")
+
+  local function write_node(node)
+    local list = edges[node]
+    if list ~= nil then
+      edges[node] = nil
+      for dest, _ in pairs(list) do
+        fout:write("  " .. node .. " -> " .. dest .. ";\n")
+        write_node(dest)
+      end
+    end
   end
-  io.write("\n")
+
+  for _, node in ipairs(nodes) do
+     write_node(node)
+  end
+
+  fout:write("}\n")
+  fout:close()
 end
 
-print("}")
+local function write_remaining()
+  print("digraph calls {")
+
+  for src, dsts in pairs(edges) do
+    for dst, _ in pairs(dsts) do
+      print("  " .. src .. " -> " .. dst .. ";")
+    end
+  end
+
+  print("}")
+end
+
+write_remaining()
