@@ -162,6 +162,8 @@ end
 read_asm(arg[1])
 read_asm("fake.asm")
 
+-- Remove edge out of game, so we can extract the main game loop.
+edges["FinishGame"]["Main"] = nil
 
 write_graph("sprite.dot", {"Draw3x24", "BlitObject"})
 write_graph("menus.dot", {"GoMainMenu"})
@@ -171,5 +173,7 @@ write_graph("end.dot", {"EndThing"})
 write_graph("objfns.dot", {"CallObjFn"})
 write_graph("37.dot", {"EPIC_37"})
 write_graph("ct15.dot", {"CharThing15"})
+write_graph("loop.dot", {"MainLoop"})
+write_graph("entry.dot", {"Entry"})
 
 write_remaining()
