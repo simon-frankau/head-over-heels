@@ -2,6 +2,12 @@
 -- Generate a call graph for the given asm source file.
 --
 -- Probably very brittle
+--
+
+-- TODO/Wish list:
+-- * Elide internal nodes of known functions
+-- * Show variables referenced
+-- * Show cross-file nodes, identify unknown nodes.
 
 local function extract_label(str)
   -- TODO: Assumes no spaces around "," - currently the convention in the code.
@@ -13,7 +19,10 @@ local function extract_label(str)
   end
 end
 
+local nodes = {}
 local edges = {}
+
+local far_nodes = {}
 
 local function add_edge(src, dst)
   if string.find(dst, "[(]") then
@@ -55,6 +64,7 @@ local function read_asm(filename)
         -- Fall through
         add_edge(curr_sym, sym)
       end
+      nodes[sym] = true
       curr_sym = sym
 
       if debug then print("LABEL: '" .. sym .. "'") end
@@ -78,7 +88,7 @@ local function read_asm(filename)
     reinit_call = false
 
     -- Calls always create edges, don't end flow.
-    _, _, dest = string.find(line, "CALL%s+(.*)")
+    _, _, dest = string.find(line, "CALL%s+([A-Za-z0-9,_()]*)")
     if dest ~= nil then
       _, label = extract_label(dest)
       add_edge(curr_sym, label)
@@ -101,7 +111,7 @@ local function read_asm(filename)
     end
 
     -- Jumps create edges. Non-conditional jumps end flows.
-    _, _, dest = string.find(line, "J[PR]%s+(.*)")
+    _, _, dest = string.find(line, "J[PR]%s+([A-Za-z0-9,_()]*)")
     if dest ~= nil then
       cond, label = extract_label(dest)
       add_edge(curr_sym, label)
@@ -113,7 +123,7 @@ local function read_asm(filename)
     end
 
     -- DJNZ is a conditional jump.
-    _, _, dest = string.find(line, "DJNZ%s+(.*)")
+    _, _, dest = string.find(line, "DJNZ%s+([A-Za-z0-9,_()]*)")
     if dest ~= nil then
       add_edge(curr_sym, dest)
 
@@ -122,6 +132,16 @@ local function read_asm(filename)
   end
 
   fin:close()
+end
+
+local function check_nodes()
+  for src,edge_list in pairs(edges) do
+    for dst, _ in pairs(edge_list) do
+      if not nodes[dst] then
+        print("// '" .. src .. "' has edge to unknown node '" .. dst .. "'")
+      end
+    end
+  end
 end
 
 local function write_graph(name, nodes)
@@ -159,8 +179,13 @@ local function write_remaining()
   print("}")
 end
 
+------------------------------------------------------------------------
+-- Main running code
+
 read_asm(arg[1])
 read_asm("fake.asm")
+
+check_nodes()
 
 -- Remove edge out of game, so we can extract the main game loop.
 edges["FinishGame"]["Main"] = nil
