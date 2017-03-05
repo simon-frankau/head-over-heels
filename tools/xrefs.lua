@@ -7,7 +7,6 @@
 -- TODO/Wish list:
 -- * Elide internal nodes of known functions
 -- * Show variables referenced
--- * Show cross-file nodes, identify unknown nodes.
 
 local function extract_label(str)
   -- TODO: Assumes no spaces around "," - currently the convention in the code.
@@ -22,12 +21,10 @@ end
 local nodes = {}
 local edges = {}
 
-local far_nodes = {}
-
 local function add_edge(src, dst)
   if string.find(dst, "[(]") then
     -- Indirect jumps etc. Give up.
-    print("// Computed jump from " .. src)
+    print("INFO: Computed jump from " .. src)
     return
   end
 
@@ -138,17 +135,35 @@ local function check_nodes()
   for src,edge_list in pairs(edges) do
     for dst, _ in pairs(edge_list) do
       if not nodes[dst] then
-        print("// '" .. src .. "' has edge to unknown node '" .. dst .. "'")
+        print("WARNING: '" .. src .. "' has edge to unknown node '" .. dst .. "'")
       end
     end
   end
 end
 
-local function write_graph(name, nodes)
+local function write_graph(name, starting_nodes)
   local fout = io.open(name, "w")
   fout:write("digraph calls {\n")
+  local seen_nodes = {}
 
   local function write_node(node)
+    -- Only process each node once.
+    if seen_nodes[node] then
+      return
+    end
+    seen_nodes[node] = true
+
+    -- If the node is unclaimed, claim it. Otherwise, mark as a 'far' node.
+    if nodes[node] == true then
+      nodes[node] = name
+      -- fout:write("  " .. node .. ";\n")
+    else
+      fout:write("  " .. node .. " [style=bold,shape=rectangle];\n")
+      -- Don't follow far nodes.
+      return
+    end
+
+    -- Then write out the edges?
     local list = edges[node]
     if list ~= nil then
       edges[node] = nil
@@ -159,7 +174,7 @@ local function write_graph(name, nodes)
     end
   end
 
-  for _, node in ipairs(nodes) do
+  for _, node in ipairs(starting_nodes) do
      write_node(node)
   end
 
@@ -168,15 +183,15 @@ local function write_graph(name, nodes)
 end
 
 local function write_remaining()
-  print("digraph calls {")
-
-  for src, dsts in pairs(edges) do
-    for dst, _ in pairs(dsts) do
-      print("  " .. src .. " -> " .. dst .. ";")
+  local remaining_list = {}
+  -- Only print nodes with edges
+  for node, location in pairs(nodes) do
+    if location == true and edges[node] then
+      -- Not yet in another file.
+      remaining_list[#remaining_list + 1] = node
     end
   end
-
-  print("}")
+  write_graph("../out/HOH.dot", remaining_list)
 end
 
 ------------------------------------------------------------------------
