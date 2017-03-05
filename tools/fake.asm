@@ -144,3 +144,20 @@ BO_2:
         CALL BlitMask4of5
         CALL BlitMask5of5
         RET
+
+SomeTableCall:
+        CALL PostTableCall
+        CALL SomeTableFn0
+        CALL SomeTableFn1
+        CALL SomeTableFn2
+        CALL SomeTableFn3
+        CALL SomeTableFn4
+        CALL SomeTableFn5
+        CALL SomeTableFn6
+        CALL SomeTableFn7
+        RET
+
+;        CALL SomeTableArg0
+;        CALL SomeTableArg2
+;        CALL SomeTableArg4
+;        CALL SomeTableArg6
