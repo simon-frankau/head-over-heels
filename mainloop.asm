@@ -8,7 +8,7 @@
 ;;  * SetCharThing
 ;;  * C728C
 ;;  * SetSens
-;;  * C708B
+;;  * InVictoryRoom
 ;;  * NopeNoise
 ;;  * FirePresed
 ;;  * L70BA
@@ -76,16 +76,19 @@ MainLoop:	CALL	WaitFrame
 		CALL	NC,PlaySound
 		JR	MainLoop
 
-	;; FIXME: ???
-C708B:		LD	HL,(RoomId)
-		LD	BC,$8D30 ; TODO
+	;; Set zero flag if in victory room.
+InVictoryRoom:	LD	HL,(RoomId)
+		LD	BC,$8D30 ; Victory room
 		XOR	A
 		SBC	HL,BC
 		RET
 
 	;; FIXME: ???
-MainLoop2:	CALL	C708B
+MainLoop2:
+        ;; Return if in victory room.
+        	CALL	InVictoryRoom
 		RET	NZ
+
 		LD	(SwopPressed),A
 		DEC	A
 		LD	(CurrDir),A

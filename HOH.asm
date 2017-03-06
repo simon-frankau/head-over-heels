@@ -1224,44 +1224,51 @@ CB2:
                 EXX
                 RET
 
-InitNewGame1:	LD		HL,RoomMask
-		LD		BC,NUM_ROOMS
-		JP		FillZero
-C8C50:	CALL	C708B
+InitNewGame1:	LD	HL,RoomMask
+		LD	BC,NUM_ROOMS
+		JP	FillZero
+
+        ;; Gets the score and puts it in HL
+GetScore:	CALL	InVictoryRoom 		; Zero set if end reached.
 		PUSH	AF
 		CALL	RoomCount
-		POP		AF
-		LD		HL,L0000
-		JR		NZ,L8C69
-		LD		HL,L0501
-		LD		A,(LA295)
-		AND		A
-		JR		Z,L8C69
-		LD		HL,L1002
-L8C69:	LD		BC,L0010
-		CALL	C8C82
+		POP	AF
+		LD	HL,L0000
+		JR	NZ,GS_1
+		LD	HL,$0501
+		LD	A,(LA295) 	; TODO: Non-zero gets you points.
+		AND	A
+		JR	Z,GS_1
+		LD	HL,$1002
+GS_1:		LD	BC,16
+		CALL	MulAccBCD
+        ;; 500 points per inventory item.
 		PUSH	HL
 		CALL	EmptyDonuts ; Alternatively, score inventory minus donuts?
-		POP		HL
-		LD		BC,L01F4
-		CALL	C8C82
+		POP	HL
+		LD	BC,500
+		CALL	MulAccBCD
+        ;; Add score for each world - 636 per world.
 		PUSH	HL
 		CALL	WorldCount
-		POP		HL
-		LD		BC,L027C
-C8C82:	LD		A,E
-		ADD		A,L
-		DAA
-		LD		L,A
-		LD		A,H
-		ADC		A,D
-		DAA
-		LD		H,A
-		DEC		BC
-		LD		A,B
-		OR		C
-		JR		NZ,C8C82
-		RET
+		POP	HL
+		LD	BC,636
+        ;; NB: Fall through.
+
+        ;; HL += DE * BC. HL and DE are in BCD. BC is not.
+MulAccBCD:      LD      A,E
+                ADD     A,L
+                DAA
+                LD      L,A
+                LD      A,H
+                ADC     A,D
+                DAA
+                LD      H,A
+                DEC     BC
+                LD      A,B
+                OR      C
+                JR      NZ,MulAccBCD
+                RET
 
 	;; Given a direction bitmask in A, return a direction code.
 LookupDir:	AND		$0F

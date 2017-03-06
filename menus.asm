@@ -157,7 +157,7 @@ GameOverScreen:	CALL	AltPlaySound
 		LD	A,STR_TITLE_SCREEN_EXT
 		CALL	PrintChar
 		CALL	DrawHnH
-		CALL	C8C50		; FIXME: ?
+		CALL	GetScore
 		PUSH	HL
 		LD	A,(WorldMask) 	; FIXME: ?
 		OR	$E0
