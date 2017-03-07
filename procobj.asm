@@ -65,7 +65,7 @@ PDO2:		POP	HL
         ;; NB: Fall through.
 
 ;; HL points at an object, as does IY.
-ProcObjUnk1:	LD	A,(LAF77)
+ProcObjUnk1:	LD	A,(ObjListIdx)
 		DEC	A
 		CP	$02
 		JR	NC,ProcObjUnk2 	; NB: Tail call
@@ -134,11 +134,11 @@ ProcObjUnk3:	PUSH	HL
 		EX	AF,AF'
 LB07D:		EXX
 		EX	AF,AF'
-		CALL	CAF96
+		CALL	SetObjList
         ;; NB: Fall through
 
-;; Does DepthInsert on the list pointed to by ObjListPtr
-DepthInsertHd:	LD	HL,(ObjListPtr)
+;; Does DepthInsert on the list pointed to by ObjListAPtr
+DepthInsertHd:	LD	HL,(ObjListAPtr)
         ;; NB: Fall through
 
         ;; Object extents in alt registers, obj+2 in HL.
@@ -178,10 +178,10 @@ DepIns3:        LD      HL,(SortObj)
         ;; Put DE's 'next' pointer into HL.
 		LD	L,C
 		LD	H,A
-        ;; And if it's zero, load HL with object referred to at LAF7C
+        ;; And if it's zero, load HL with object referred to at ObjListBPtr
 		OR	C
 		JR	NZ,DepIns4
-		LD	HL,(LAF7C)
+		LD	HL,(ObjListBPtr)
 		INC	HL
 		INC	HL
         ;; FIXME... and then some final pointer update stuff? What?
@@ -220,7 +220,7 @@ CB0D5:		LD	E,(HL)
 		INC	DE
 		INC	DE
 		JR	NZ,LB0E4
-		LD	DE,(ObjListPtr)
+		LD	DE,(ObjListAPtr)
 LB0E4:		LD	A,(HL)
 		LDI
 		LD	C,A
@@ -231,7 +231,7 @@ LB0E4:		LD	A,(HL)
 		OR	C
 		DEC	HL
 		JR	NZ,LB0F4
-		LD	HL,(LAF7C)
+		LD	HL,(ObjListBPtr)
 		INC	HL
 LB0F4:		POP	DE
 		LD	(HL),D

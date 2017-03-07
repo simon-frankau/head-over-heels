@@ -138,7 +138,7 @@ DrawCore:       LD      (ViewYExtent),DE
                 LD      A,(L84C7)
                 CP      D
                 JR      C,DrC_1
-                LD      HL,ObjList5
+                LD      HL,ObjectLists + 4
                 PUSH    DE
                 CALL    BlitObjects
                 POP     DE
@@ -156,13 +156,13 @@ DrC_1:          LD      BC,(ViewXExtent)
                 LD      A,(L84C8)
                 CP      D
                 JR      C,DrC_2
-                LD      HL,ObjList1
+                LD      HL,ObjectLists + 8
                 CALL    BlitObjects
-DrC_2:          LD      HL,ObjList2
+DrC_2:          LD      HL,ObjectLists + 12
                 CALL    BlitObjects
-                LD      HL,ObjList3
+                LD      HL,ObjectLists + 0
                 CALL    BlitObjects
-                LD      HL,ObjList4
+                LD      HL,ObjectLists + 16
                 CALL    BlitObjects
                 JP      BlitScreen              ; NB: Tail call
 

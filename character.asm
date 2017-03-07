@@ -23,7 +23,7 @@
 	;; LA316
 	;; CAA74
 	;; CAC41
-	;; CAF96
+	;; SetObjList
 	;; ProcObjUnk1
 	;; ProcObjUnk2
 	;; ProcObjUnk4
@@ -322,7 +322,7 @@ CharThing4:	CALL	GetCharObj
 		LD	A,$3F
 		LD	(OtherSoundId),A
 		LD	A,(LA2BC)
-		CALL	CAF96
+		CALL	SetObjList
 		CALL	GetCharObj
 		CALL	StoreObjExtents
 		LD	HL,LA29F
@@ -460,7 +460,7 @@ CharThing26:	LD	A,(LA2BF)
 		CALL	ProcObjUnk4
 		CALL	CharThing16
 		XOR	A
-		CALL	CAF96
+		CALL	SetObjList
 		CALL	GetCharObj
 		CALL	UnionAndDraw
 		JP	PlayOtherSound 		; NB: Tail call
@@ -908,9 +908,9 @@ EPIC_97:	LD	A,$80
 		LD	(LB219),A
 		LD	(LB21A),A
 		LD	(L7B8F),A
-		JP	CAF96
+		JP	SetObjList
 	
-CharThing16:	LD	A,(LAF77)
+CharThing16:	LD	A,(ObjListIdx)
 		LD	(LA2BC),A
 		RET
 

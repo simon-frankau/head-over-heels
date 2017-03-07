@@ -23,7 +23,7 @@
 ;; * OBJFN_FADE
 ;; * OBJFN_FIRE
 ;; * ObjDir
-;; * ObjectList
+;; * ObjectLists
 ;; * PlaySound
 ;; * ProcObjUnk4
 ;; * RemoveObject
@@ -36,7 +36,7 @@
 
 ;; Exports ObjFn* and ObjFn36Val.
 
-	;; ObjectList appears to be head of a linked list:
+	;; ObjectLists + 2 appears to be head of a linked list:
 	;; Offset 0: Next item (null == end)
         ;; Offset 2: Another list?
 	;; Offset 4: Some flag - bit 6 and 7 causes skipping. Bit 6 = carryable?
@@ -228,7 +228,7 @@ OFS1:           LD      A,(IY+$11)
 OFS2:           DEC     (IY+$11)
                 CALL    ObjAgain7
         ;; Call PerObj on each object in the object list...
-                LD      HL,ObjectList
+                LD      HL,ObjectLists + 2
 OFS3:           LD      A,(HL)
                 INC     HL
                 LD      H,(HL)

@@ -90,7 +90,7 @@ L72F3:	PUSH	DE
 		LDIR
 L7305:		LD		HL,(LAF92) 	; NB: Referenced as data.
 		LD		(ObjDest),HL
-		LD		HL,ObjList5
+		LD		HL,ObjectLists + 4
 		LD		BC,L0008
 		JP		FillZero
 	
@@ -410,7 +410,7 @@ DrawScreen:	LD	IY,L7718 		; FIXME: ???
 		AND		$08
 		JR		Z,L77D0
 		LD		A,$01
-		CALL	CAF96
+		CALL	SetObjList
 		LD		BC,(RoomId)
 		LD		A,B
 		INC		A
@@ -430,7 +430,7 @@ L77D0:	LD		IY,L7720
 		AND		$04
 		JR		Z,L77F8
 		LD		A,$02
-		CALL	CAF96
+		CALL	SetObjList
 		LD		BC,(RoomId)
 		LD		A,B
 		ADD		A,$10
@@ -452,7 +452,7 @@ L77F8:		LD	A,(L774C)
 		POP	HL
 		LD	(DoorFlags1),HL
 		XOR	A
-		JP	CAF96
+		JP	SetObjList
 
 #include "procdata.asm"
 
@@ -1484,7 +1484,7 @@ DoObjects:	LD	A,(Phase)
 		LD	(Phase),A 		; Toggle top bit of Phase
 		CALL	CharThing
 	;; Loop over object list...
-		LD	HL,(ObjectList)
+		LD	HL,(ObjectLists + 2)
 		JR	DO_3
 DO_1:		PUSH	HL
 		LD	A,(HL)
@@ -1826,7 +1826,7 @@ LAB5F:	XOR		A
 		SCF
 		JP		LB2BF
 	;; Run through all the objects
-LAB64:		LD	HL,ObjectList
+LAB64:		LD	HL,ObjectLists + 2
 LAB67:		LD	A,(HL)
 		INC	HL
 		LD	H,(HL)
@@ -1927,7 +1927,7 @@ GetStoodUpon:	CALL	GetUVZExtentsE		; Perhaps getting height as a filter?
 		LD	C,A
 		EXX
 	;; Traverse list of objects
-		LD	HL,ObjectList
+		LD	HL,ObjectLists + 2
 GSU_1:		LD	A,(HL)
 		INC	HL
 		LD	H,(HL)
@@ -1959,7 +1959,7 @@ CAC41:		CALL	GetUVZExtentsE
 		XOR	A
 		LD	(LAA72),A
 	;; Traverse list of objects
-		LD	HL,ObjectList
+		LD	HL,ObjectLists + 2
 LAC4E:		LD	A,(HL)
 		INC	HL
 		LD	H,(HL)
@@ -2247,8 +2247,8 @@ LAF5B:	DEFB $1B		; Reinitialisation size
 
 	DEFB $00
 	DEFW LBA40
-	DEFW ObjList3
-	DEFW ObjectList
+	DEFW ObjectLists + 0
+	DEFW ObjectLists + 2
 	DEFW $0000
 	DEFW $0000
 	DEFW $0000,$0000
@@ -2256,35 +2256,39 @@ LAF5B:	DEFB $1B		; Reinitialisation size
 	DEFW $0000,$0000
 	DEFW $0000,$0000
 
-LAF77:	DEFB $00
+        ;; The index into ObjectLists.
+ObjListIdx:     DEFB $00
         ;; Current pointer for where we write objects into
-ObjDest:	DEFW LBA40
-ObjListPtr:	DEFW ObjList3
-LAF7C:	DEFW ObjectList
-ObjList3:	DEFW $0000
-ObjectList:	DEFW $0000
-ObjList5:	DEFW $0000,$0000
-ObjList1:	DEFW $0000,$0000
-ObjList2:	DEFW $0000,$0000
-ObjList4:	DEFW $0000,$0000
-	
+ObjDest:        DEFW LBA40
+ObjListAPtr:    DEFW ObjectLists
+ObjListBPtr:    DEFW ObjectLists + 2
+        ;; Each list consists of a pair of pointers to linked lists of
+        ;; objects (ListA and ListB).
+ObjectLists:    DEFW $0000,$0000
+                DEFW $0000,$0000
+                DEFW $0000,$0000
+                DEFW $0000,$0000
+                DEFW $0000,$0000
+
 LAF92:	DEFW LBA40
 SortObj:	DEFW $0000
-	
-CAF96:		LD		(LAF77),A
-		ADD		A,A
-		ADD		A,A
-		ADD		A,$7E
-		LD		L,A
-		ADC		A,$AF
-		SUB		L
-		LD		H,A
-	;; HL = $AF7E + (LAF77) * 4
-		LD		(ObjListPtr),HL
-		INC		HL
-		INC		HL
-		LD		(LAF7C),HL
-		RET
+
+        ;; Given an index in A, set the object list index and pointers.
+SetObjList:     LD      (ObjListIdx),A
+                ADD     A,A
+                ADD     A,A
+                ADD     A,ObjectLists & $ff
+                LD      L,A
+                ADC     A,ObjectLists >> 8
+                SUB     L
+                LD      H,A
+        ;; ObjListAPtr = ObjectLists + (ObjListIdx) * 4
+                LD      (ObjListAPtr),HL
+                INC     HL
+                INC     HL
+        ;; ObjListBPtr = ObjectLists + (ObjListIdx) * 4 + 2
+                LD      (ObjListBPtr),HL
+                RET
 
 CAFAB:	LD		HL,L0012
 		ADD		HL,DE
@@ -2361,7 +2365,7 @@ PostTableCall:    EXX
                         POP             IX
                         BIT             2,C
                         JR              NZ,LB269
-                        LD              HL,ObjList3
+                        LD              HL,ObjectLists
 LB257:    LD              A,(HL)
                         INC             HL
                         LD              H,(HL)
