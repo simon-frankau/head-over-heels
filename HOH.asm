@@ -558,10 +558,10 @@ L7BDC:		CALL	C728C
 		CALL	C72A3
 		CALL	C774D
 		LD	HL,HeelsObj
-		CALL	GetUVZExtents
+		CALL	GetUVZExtentsB
 		EXX
 		LD	HL,HeadObj
-		CALL	GetUVZExtents
+		CALL	GetUVZExtentsB
 		CALL	CheckOverlap
 		JR	NC,L7C0C
 		LD	A,(Character)
@@ -2260,10 +2260,12 @@ LAF5B:	DEFB $1B		; Reinitialisation size
 ObjListIdx:     DEFB $00
         ;; Current pointer for where we write objects into
 ObjDest:        DEFW LBA40
+        ;; 'A' list item pointers are offset +2 from 'B' list pointers.
 ObjListAPtr:    DEFW ObjectLists
 ObjListBPtr:    DEFW ObjectLists + 2
         ;; Each list consists of a pair of pointers to linked lists of
-        ;; objects (ListA and ListB).
+        ;; objects (ListA and ListB). They're opposite directions in a
+	;; doubly-linked list, and each side has a head node, it seems.
 ObjectLists:    DEFW $0000,$0000
                 DEFW $0000,$0000
                 DEFW $0000,$0000

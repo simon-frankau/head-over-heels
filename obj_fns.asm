@@ -36,9 +36,8 @@
 
 ;; Exports ObjFn* and ObjFn36Val.
 
-	;; ObjectLists + 2 appears to be head of a linked list:
-	;; Offset 0: Next item (null == end)
-        ;; Offset 2: Another list?
+	;; Offset 0: 'B' list next item pointer
+        ;; Offset 2: 'A' list next item pointer
 	;; Offset 4: Some flag - bit 6 and 7 causes skipping. Bit 6 = carryable?
         ;;           Bits 0-2: ObjectShape (see GetNewCoords)
         ;;           Bit 3:    Tall (extra 6 height)

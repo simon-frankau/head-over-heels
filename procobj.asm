@@ -6,12 +6,11 @@
 
 ;; Exported functions:
 ;;  * ProcDataObj
-;;  * GetUVZExtents
+;;  * GetUVZExtentsB
 ;;  * ProcObjUnk1
 ;;  * ProcObjUnk5
 ;;  * ProcObjUnk2
 ;;  * ProcObjUnk4
-;;  * GetUVZExtents2
 
 ;; Called during the ProcEntry loop to copy an object into the dest
 ;; buffer and process it.
@@ -78,7 +77,7 @@ ProcObjUnk1:	LD	A,(ObjListIdx)
 		POP	DE
 		CALL	CAFAB
 		PUSH	HL
-		CALL	GetUVZExtents2
+		CALL	GetUVZExtentsA
 		EXX
 		PUSH	IY
 		POP	HL
@@ -87,7 +86,7 @@ ProcObjUnk1:	LD	A,(ObjListIdx)
 		JR	DepthInsert
 
 CB034:		PUSH	HL
-		CALL	GetUVZExtents2
+		CALL	GetUVZExtentsA
 		EXX
 		JR	DepthInsertHd
 
@@ -101,7 +100,7 @@ ProcObjUnk2:	INC	HL
 		POP	DE
 		CALL	CAFAB
 		PUSH	HL
-		CALL	GetUVZExtents2
+		CALL	GetUVZExtentsA
 		EXX
 		PUSH	IY
 		POP	HL
@@ -111,7 +110,7 @@ ProcObjUnk2:	INC	HL
 
         ;; TODO
 ProcObjUnk3:	PUSH	HL
-		CALL	GetUVZExtents2
+		CALL	GetUVZExtentsA
 		LD	A,$03
 		EX	AF,AF'
 		LD	A,(L771A)
@@ -138,10 +137,11 @@ LB07D:		EXX
         ;; NB: Fall through
 
 ;; Does DepthInsert on the list pointed to by ObjListAPtr
-DepthInsertHd:	LD	HL,(ObjListAPtr)
+DepthInsertHd:  LD      HL,(ObjListAPtr)
         ;; NB: Fall through
 
-        ;; Object extents in alt registers, obj+2 in HL.
+        ;; Object extents in alt registers, 'A' pointer in HL.
+        ;; Object to insert is on the stack.
         ;;
         ;; I believe this traverses a list sorted far-to-near, and
         ;; loads up HL with the nearest object further away from our
@@ -152,48 +152,50 @@ DepIns2:        LD      A,(HL)          ; Load next object into HL...
                 LD      H,(HL)
                 LD      L,A
                 OR      H
-                JR      Z,DepIns3         ; Zero? Done!
+                JR      Z,DepIns3       ; Zero? Done!
                 PUSH    HL
-                CALL    GetUVZExtents2
+                CALL    GetUVZExtentsA
                 CALL    DepthCmp
                 POP     HL
                 JR      NC,DepthInsert  ; Update SortObj if current HL is far away
                 AND     A
                 JR      NZ,DepIns2      ; Break out of loop if past point of caring
 DepIns3:        LD      HL,(SortObj)
-        ;; TODO: I assume this updates the object pointers?
+        ;; Insert the stack-stored object after SortObj.
+        ;;
         ;; Load our object in DE, HL contains object to chain after.
-		POP	DE
+                POP     DE
         ;; Copy HL obj's 'next' pointer into DE obj's.
-		LD	A,(HL)
-		LDI
-		LD	C,A
-		LD	A,(HL)
-		LD	(DE),A
+                LD      A,(HL)
+                LDI
+                LD      C,A
+                LD      A,(HL)
+                LD      (DE),A
         ;; Now copy address of DE into HL's 'next' pointer.
-		DEC	DE
-		LD	(HL),D
-		DEC	HL
-		LD	(HL),E
-        ;; Put DE's 'next' pointer into HL.
-		LD	L,C
-		LD	H,A
-        ;; And if it's zero, load HL with object referred to at ObjListBPtr
-		OR	C
-		JR	NZ,DepIns4
-		LD	HL,(ObjListBPtr)
-		INC	HL
-		INC	HL
-        ;; FIXME... and then some final pointer update stuff? What?
-DepIns4:	DEC	HL
-		DEC	DE
-		LDD
-		LD	A,(HL)
-		LD	(DE),A
-		LD	(HL),E
-		INC	HL
-		LD	(HL),D
-		RET
+                DEC     DE
+                LD      (HL),D
+                DEC     HL
+                LD      (HL),E
+        ;; Now links in the other direction:
+        ;; Put DE's new 'next' pointer into HL.
+                LD      L,C
+                LD      H,A
+        ;; And if it's zero, load HL with pointer referred to by ObjListBPtr
+                OR      C
+                JR      NZ,DepIns4
+                LD      HL,(ObjListBPtr)
+                INC     HL
+                INC     HL
+        ;; Link DE after HL
+DepIns4:        DEC     HL
+                DEC     DE
+                LDD
+                LD      A,(HL)
+                LD      (DE),A
+                LD      (HL),E
+                INC     HL
+                LD      (HL),D
+                RET
 
         ;; FIXME: Other functions!
 ProcObjUnk4:	PUSH	HL
@@ -202,46 +204,73 @@ ProcObjUnk4:	PUSH	HL
 		JP	ProcObjUnk2
 
 ProcObjUnk5:	BIT	3,(IY+$04)
-		JR	Z,CB0D5
+		JR	Z,UnlinkObj
 		PUSH	HL
-		CALL	CB0D5
+		CALL	UnlinkObj
 		POP	DE
 		LD	HL,L0012
 		ADD	HL,DE
         ;; NB: Fall through.
 
-CB0D5:		LD	E,(HL)
-		INC	HL
-		LD	D,(HL)
-		INC	HL
-		PUSH	DE
-		LD	A,D
-		OR	E
-		INC	DE
-		INC	DE
-		JR	NZ,LB0E4
-		LD	DE,(ObjListAPtr)
-LB0E4:		LD	A,(HL)
-		LDI
-		LD	C,A
-		LD	A,(HL)
-		LD	(DE),A
-		LD	H,A
-		LD	L,C
-		OR	C
-		DEC	HL
-		JR	NZ,LB0F4
-		LD	HL,(ObjListBPtr)
-		INC	HL
-LB0F4:		POP	DE
-		LD	(HL),D
-		DEC	HL
-		LD	(HL),E
-		RET
+        ;; Takes a 'B' pointer in HL, and removes the pointed object
+        ;; from the list.
+        ;;
+        ;; In C-like pseudocode:
+        ;;
+        ;; if (obj->b_next == null) {
+        ;;   a_head = obj->a_next;
+        ;; } else {
+        ;;   obj->b_next->a_next = obj->a_next;
+        ;; }
+        ;;
+        ;; if (obj->a_next == null) {
+        ;;   b_head = obj->b_next;
+        ;; } else {
+        ;;   obj->a_next->b_next = obj->b_next;
+        ;; }
 
-;; Like GetUVZExtents, but applies extra height adjustment -
+UnlinkObj:
+        ;; Load DE with next object after HL, save it.
+                LD      E,(HL)
+                INC     HL
+                LD      D,(HL)
+                INC     HL
+                PUSH    DE
+        ;; If zero, get first object on List A, else offset DE by 2 to
+        ;; create an 'A' pointer.
+                LD      A,D
+                OR      E
+                INC     DE
+                INC     DE
+                JR      NZ,UO_1
+                LD      DE,(ObjListAPtr)
+UO_1:
+        ;; HL pointer at 'A' pointer now. Copy *HL to *DE, saving
+        ;; value in HL.
+                LD      A,(HL)
+                LDI
+                LD      C,A
+                LD      A,(HL)
+                LD      (DE),A
+                LD      H,A
+                LD      L,C
+        ;; If the pointer was null, put the head of the B list in HL.
+                OR      C
+                DEC     HL
+                JR      NZ,UO_2
+                LD      HL,(ObjListBPtr)
+                INC     HL
+UO_2:
+        ;; Make HL's next B object the saved DE B pointer.
+                POP     DE
+                LD      (HL),D
+                DEC     HL
+                LD      (HL),E
+                RET
+
+;; Like GetUVZExtentsB, but applies extra height adjustment -
 ;; increases height by 6 if flag bit 3 is set.
-GetUVZExtentsE: CALL    GetUVZExtents
+GetUVZExtentsE: CALL    GetUVZExtentsB
                 AND     $08
                 RET     Z
                 LD      A,C
@@ -267,12 +296,12 @@ GetUVZExtentsE: CALL    GetUVZExtents
 ;; 5     0 -4  +4  0  0 -18
 ;; 6    +4  0   0 -4  0 -18
 ;; 7     0 -4   0 -4  0 -18
-GetUVZExtents:  INC     HL
+GetUVZExtentsB: INC     HL
                 INC     HL
         ;; NB: Fall through!
 
-;; GetUVZExtents, except HL has a pointer + 2 to an object.
-GetUVZExtents2: INC     HL
+;; GetUVZExtentsB, except HL has a pointer + 2 to an object, so works with ListA items.
+GetUVZExtentsA: INC     HL
                 INC     HL
                 LD      A,(HL)          ; Offset 4: Flags
                 INC     HL
@@ -280,9 +309,9 @@ GetUVZExtents2: INC     HL
                 EX      AF,AF'
                 LD      A,C
                 BIT     2,A
-                JR      NZ,GUVZE5       ; If bit 2 set
+                JR      NZ,GUVZE_5      ; If bit 2 set
                 BIT     1,A
-                JR      NZ,GUVZE3       ; If bit 1 set
+                JR      NZ,GUVZE_3      ; If bit 1 set
                 AND     $01
                 ADD     A,$03
                 LD      B,A             ; Bit 0 + 3 in B
@@ -301,15 +330,15 @@ GetUVZExtents2: INC     HL
                 LD      H,A             ; Store 2nd added co-ord in H
                 SUB     C
                 LD      L,A             ; And 2nd subtracted co-ored in L
-GUVZE2:         LD      A,B
+GUVZE_2:        LD      A,B
                 SUB     $06
                 LD      C,A             ; Put Z co-ord - 6 in C
                 EX      AF,AF'
                 RET
 
         ;; Bit 1 was set in the object flags
-GUVZE3:         RRA
-                JR      C,GUVZE4
+GUVZE_3:        RRA
+                JR      C,GUVZE_4
         ;; Bit 1 set, bit 0 not set
                 LD      A,(HL)
                 ADD     A,$04
@@ -324,10 +353,10 @@ GUVZE3:         RRA
                 LD      L,A             ; H/L given added/subtracted V co-ords of 1
                 INC     H
                 DEC     L
-                JR      GUVZE2
+                JR      GUVZE_2
 
         ;; Bits 1 and 0 were set
-GUVZE4:         LD      D,(HL)
+GUVZE_4:        LD      D,(HL)
                 LD      E,D
                 INC     D
                 DEC     E               ; D/E given added/subtracted U co-ords of 1
@@ -339,37 +368,37 @@ GUVZE4:         LD      D,(HL)
                 LD      H,A
                 SUB     $08
                 LD      L,A             ; H/L given added/subtracted V co-ords of 4
-                JR      GUVZE2
+                JR      GUVZE_2
 
         ;; Bit 2 was set in the object flags
-GUVZE5:         LD      A,(HL)          ; Load U co-ord
+GUVZE_5:        LD      A,(HL)          ; Load U co-ord
                 RR      C
-                JR      C,GUVZE5b
+                JR      C,GUVZE_5b
         ;; Bit 0 reset
                 LD      E,A
                 ADD     A,$04
                 LD      D,A
-                JR      GUVZE5c
+                JR      GUVZE_5c
         ;; Bit 0 set
-GUVZE5b:        LD      D,A
+GUVZE_5b:       LD      D,A
                 SUB     $04
                 LD      E,A
-GUVZE5c:        INC     HL
+GUVZE_5c:       INC     HL
                 LD      A,(HL)          ; Load V co-ord
                 INC     HL
                 LD      B,(HL)          ; Load Z co-ord
                 RR      C
-                JR      C,GUVZE5d
+                JR      C,GUVZE_5d
         ;; Bit 1 reset
                 LD      L,A
                 ADD     A,$04
                 LD      H,A
-                JR      GUVZE5e
+                JR      GUVZE_5e
         ;; Bit 1 set
-GUVZE5d:        LD      H,A
+GUVZE_5d:       LD      H,A
                 SUB     $04
                 LD      L,A
-GUVZE5e:        LD      A,B
+GUVZE_5e:       LD      A,B
                 SUB     $12
                 LD      C,A
                 EX      AF,AF'
