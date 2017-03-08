@@ -1402,7 +1402,7 @@ RemoveObject:	PUSH	HL
 		PUSH	IY
 		PUSH	HL
 		POP	IY
-		CALL	ProcObjUnk5
+		CALL	Unlink
 		POP	IY
 		POP	HL
 		CALL	C8D6F
@@ -2292,23 +2292,24 @@ SetObjList:     LD      (ObjListIdx),A
                 LD      (ObjListBPtr),HL
                 RET
 
-CAFAB:	LD		HL,L0012
-		ADD		HL,DE
+        ;; TODO: Copies some stuff between objects, it looks like.
+CAFAB:		LD	HL,L0012
+		ADD	HL,DE
 		PUSH	HL
-		EX		DE,HL
-		LD		BC,L0005
+		EX	DE,HL
+		LD	BC,L0005
 		LDIR
-		LD		A,(HL)
-		SUB		$06
-		LD		(DE),A
-		INC		DE
-		INC		HL
-		INC		HL
-		BIT		5,(HL)
-		JR		NZ,LAFC4
-		DEC		HL
+		LD	A,(HL)
+		SUB	$06
+		LD	(DE),A
+		INC	DE
+		INC	HL
+		INC	HL
+		BIT	5,(HL)
+		JR	NZ,LAFC4
+		DEC	HL
 		LDI
-LAFC4:	POP		HL
+LAFC4:		POP	HL
 		RET
 
 #include "procobj.asm"

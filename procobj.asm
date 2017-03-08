@@ -8,7 +8,7 @@
 ;;  * ProcDataObj
 ;;  * GetUVZExtentsB
 ;;  * ProcObjUnk1
-;;  * ProcObjUnk5
+;;  * Unlink
 ;;  * ProcObjUnk2
 ;;  * ProcObjUnk4
 
@@ -71,9 +71,9 @@ ProcObjUnk1:	LD	A,(ObjListIdx)
 		INC	HL
 		INC	HL
 		BIT	3,(IY+$04)
-		JR	Z,CB034
+		JR	Z,EnlistObj
 		PUSH	HL
-		CALL	CB034
+		CALL	EnlistObj
 		POP	DE
 		CALL	CAFAB
 		PUSH	HL
@@ -85,18 +85,20 @@ ProcObjUnk1:	LD	A,(ObjListIdx)
 		INC	HL
 		JR	DepthInsert
 
-CB034:		PUSH	HL
-		CALL	GetUVZExtentsA
-		EXX
-		JR	DepthInsertHd
+        ;; Put the object in HL into its depth-sorted position in the
+        ;; list.
+EnlistObj:      PUSH    HL
+                CALL    GetUVZExtentsA
+                EXX
+                JR      DepthInsertHd
 
 ;; TODO
 ProcObjUnk2:	INC	HL
 		INC	HL
 		BIT	3,(IY+$04)
-		JR	Z,ProcObjUnk3 	; NB: Tail call
+		JR	Z,EnlistObjEx 	; NB: Tail call
 		PUSH	HL
-		CALL	ProcObjUnk3
+		CALL	EnlistObjEx
 		POP	DE
 		CALL	CAFAB
 		PUSH	HL
@@ -108,44 +110,51 @@ ProcObjUnk2:	INC	HL
 		INC	HL
 		JR	DepthInsert   	; NB: Tail call
 
-        ;; TODO
-ProcObjUnk3:	PUSH	HL
-		CALL	GetUVZExtentsA
-		LD	A,$03
-		EX	AF,AF'
-		LD	A,(L771A)
-		CP	D
-		JR	C,LB07D
-		LD	A,(L771B)
-		CP	H
-		JR	C,LB07D
-		LD	A,$04
-		EX	AF,AF'
-		LD	A,(L7718)
-		DEC	A
-		CP	E
-		JR	NC,LB07D
-		LD	A,(L7719)
-		DEC	A
-		CP	L
-		JR	NC,LB07D
-		XOR	A
-		EX	AF,AF'
-LB07D:		EXX
-		EX	AF,AF'
-		CALL	SetObjList
+;; Object in HL. Inserts object into appropriate object list
+;; based on coordinates.
+EnlistObjEx:    PUSH    HL
+                CALL    GetUVZExtentsA
+        ;; If object is beyond high U boundary, put on list 3.
+                LD      A,$03
+                EX      AF,AF'
+                LD      A,(L771A)
+                CP      D
+                JR      C,EOE_2
+        ;; If object is beyond high V boundary, put on list 3.
+                LD      A,(L771B)
+                CP      H
+                JR      C,EOE_2
+        ;; If object is beyond low U boundary, put on list 4.
+                LD      A,$04
+                EX      AF,AF'
+                LD      A,(L7718)
+                DEC     A
+                CP      E
+                JR      NC,EOE_2
+        ;; If object is beyond low V boundary, put on list 4.
+                LD      A,(L7719)
+                DEC     A
+                CP      L
+                JR      NC,EOE_2
+        ;; Otherwise, put on list 0.
+                XOR     A
+                EX      AF,AF'
+EOE_2:          EXX
+                EX      AF,AF'
+        ;; And then insert into the appropriate place on that list.
+                CALL    SetObjList
         ;; NB: Fall through
 
 ;; Does DepthInsert on the list pointed to by ObjListAPtr
 DepthInsertHd:  LD      HL,(ObjListAPtr)
         ;; NB: Fall through
 
-        ;; Object extents in alt registers, 'A' pointer in HL.
-        ;; Object to insert is on the stack.
-        ;;
-        ;; I believe this traverses a list sorted far-to-near, and
-        ;; loads up HL with the nearest object further away from our
-        ;; object.
+;; Object extents in alt registers, 'A' pointer in HL.
+;; Object to insert is on the stack.
+;;
+;; I believe this traverses a list sorted far-to-near, and
+;; loads up HL with the nearest object further away from our
+;; object.
 DepthInsert:    LD      (SortObj),HL
 DepIns2:        LD      A,(HL)          ; Load next object into HL...
                 INC     HL
@@ -199,36 +208,38 @@ DepIns4:        DEC     HL
 
         ;; FIXME: Other functions!
 ProcObjUnk4:	PUSH	HL
-		CALL	ProcObjUnk5
+		CALL	Unlink
 		POP	HL
 		JP	ProcObjUnk2
 
-ProcObjUnk5:	BIT	3,(IY+$04)
-		JR	Z,UnlinkObj
-		PUSH	HL
-		CALL	UnlinkObj
-		POP	DE
-		LD	HL,L0012
-		ADD	HL,DE
+;; Unlink the object in HL. If bit 3 of IY+4 is set, it's an
+;; object made out of two subcomponents, and both must be
+;; unlinked.
+Unlink:         BIT     3,(IY+$04)
+                JR      Z,UnlinkObj
+                PUSH    HL
+                CALL    UnlinkObj
+                POP     DE
+                LD      HL,L0012
+                ADD     HL,DE
         ;; NB: Fall through.
 
-        ;; Takes a 'B' pointer in HL, and removes the pointed object
-        ;; from the list.
-        ;;
-        ;; In C-like pseudocode:
-        ;;
-        ;; if (obj->b_next == null) {
-        ;;   a_head = obj->a_next;
-        ;; } else {
-        ;;   obj->b_next->a_next = obj->a_next;
-        ;; }
-        ;;
-        ;; if (obj->a_next == null) {
-        ;;   b_head = obj->b_next;
-        ;; } else {
-        ;;   obj->a_next->b_next = obj->b_next;
-        ;; }
-
+;; Takes a 'B' pointer in HL, and removes the pointed object
+;; from the list.
+;;
+;; In C-like pseudocode:
+;;
+;; if (obj->b_next == null) {
+;;   a_head = obj->a_next;
+;; } else {
+;;   obj->b_next->a_next = obj->a_next;
+;; }
+;;
+;; if (obj->a_next == null) {
+;;   b_head = obj->b_next;
+;; } else {
+;;   obj->a_next->b_next = obj->b_next;
+;; }
 UnlinkObj:
         ;; Load DE with next object after HL, save it.
                 LD      E,(HL)

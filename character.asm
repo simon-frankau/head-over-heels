@@ -27,7 +27,7 @@
 	;; ProcObjUnk1
 	;; ProcObjUnk2
 	;; ProcObjUnk4
-	;; ProcObjUnk5
+	;; Unlink
 	;; LB21C
 	
 	
@@ -170,7 +170,7 @@ EPIC_9:		LD	A,(LA295)
 		CALL	GetCharObj
 		PUSH	HL
 		POP	IY
-		CALL	ProcObjUnk5
+		CALL	Unlink
 		LD	A,(Character)
 		CP	$03
 		JR	Z,EPIC_12
