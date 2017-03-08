@@ -1433,7 +1433,7 @@ InsertObject:	PUSH	HL
 		PUSH	IY
 		PUSH	HL
 		POP	IY
-		CALL	ProcObjUnk2
+		CALL	EnlistAux
 		POP	IY
 		POP	HL
 		CALL	C8D6F
@@ -2292,25 +2292,32 @@ SetObjList:     LD      (ObjListIdx),A
                 LD      (ObjListBPtr),HL
                 RET
 
-        ;; TODO: Copies some stuff between objects, it looks like.
-CAFAB:		LD	HL,L0012
-		ADD	HL,DE
-		PUSH	HL
-		EX	DE,HL
-		LD	BC,L0005
-		LDIR
-		LD	A,(HL)
-		SUB	$06
-		LD	(DE),A
-		INC	DE
-		INC	HL
-		INC	HL
-		BIT	5,(HL)
-		JR	NZ,LAFC4
-		DEC	HL
-		LDI
-LAFC4:		POP	HL
-		RET
+;; DE contains an 'A' object pointer. Assumes the other half of the object
+;; is in the next slot (+0x12). Syncs the object state.
+SyncDoubleObject:
+        ;; Copy 5 bytes, from the pointer location onwards:
+        ;; Next pointer, flags, U & V coordinates.
+                LD      HL,$0012
+                ADD     HL,DE
+                PUSH    HL
+                EX      DE,HL
+                LD      BC,$0005
+                LDIR
+        ;; Copy across Z coordinate, sutracting 6.
+                LD      A,(HL)
+                SUB     $06
+                LD      (DE),A
+        ;; If bit 5 of byte 9 is set on first object, we're done.
+                INC     DE
+                INC     HL
+                INC     HL
+                BIT     5,(HL)
+                JR      NZ,SDO_2
+        ;; Otherwise, copy the sprite over (byte 8).
+                DEC     HL
+                LDI
+SDO_2:          POP     HL
+                RET
 
 #include "procobj.asm"
 

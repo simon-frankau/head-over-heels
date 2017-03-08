@@ -25,7 +25,7 @@
 ;; * ObjDir
 ;; * ObjectLists
 ;; * PlaySound
-;; * ProcObjUnk4
+;; * Relink
 ;; * RemoveObject
 ;; * RootDir
 ;; * SetSound
@@ -665,7 +665,7 @@ ObjDraw:        LD      (IY+$0C),$FF
                 RET     Z
                 CALL    UpdateObjExtents
                 LD      HL,(CurrObject)
-                CALL    ProcObjUnk4
+                CALL    Relink
                 LD      HL,(CurrObject)
                 JP      UnionAndDraw
 

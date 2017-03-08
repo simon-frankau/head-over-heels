@@ -7,10 +7,10 @@
 ;; Exported functions:
 ;;  * ProcDataObj
 ;;  * GetUVZExtentsB
-;;  * ProcObjUnk1
+;;  * Enlist
 ;;  * Unlink
-;;  * ProcObjUnk2
-;;  * ProcObjUnk4
+;;  * EnlistAux
+;;  * Relink
 
 ;; Called during the ProcEntry loop to copy an object into the dest
 ;; buffer and process it.
@@ -37,7 +37,7 @@ ProcDataObj:
                 PUSH    HL
                 POP     IY
                 BIT     3,(IY+$04)      ; Check bit 3 of flags...
-                JR      Z,ProcObjUnk1   ; NB: Tail call if not set
+                JR      Z,Enlist        ; NB: Tail call if not set
         ;; Bit 3 set = tall object
 		LD	BC,L0009
 		PUSH	HL
@@ -64,84 +64,92 @@ PDO2:		POP	HL
         ;; NB: Fall through.
 
 ;; HL points at an object, as does IY.
-ProcObjUnk1:	LD	A,(ObjListIdx)
-		DEC	A
-		CP	$02
-		JR	NC,ProcObjUnk2 	; NB: Tail call
-		INC	HL
-		INC	HL
-		BIT	3,(IY+$04)
-		JR	Z,EnlistObj
-		PUSH	HL
-		CALL	EnlistObj
-		POP	DE
-		CALL	CAFAB
-		PUSH	HL
-		CALL	GetUVZExtentsA
-		EXX
-		PUSH	IY
-		POP	HL
-		INC	HL
-		INC	HL
-		JR	DepthInsert
+Enlist:         LD      A,(ObjListIdx)
+        ;; If the current object list is >= 3, use EnlistAux directly.
+                DEC     A
+                CP      $02
+                JR      NC,EnlistAux    ; NB: Tail call
+        ;; If it's not double-height, insert on the current list.
+                INC     HL
+                INC     HL
+                BIT     3,(IY+$04)
+                JR      Z,EnlistObj
+        ;; Otherwise, do the two halves analogously to in EnlistAux.
+                PUSH    HL
+                CALL    EnlistObj
+                POP     DE
+                CALL    SyncDoubleObject
+                PUSH    HL
+                CALL    GetUVZExtentsA
+                EXX
+                PUSH    IY
+                POP     HL
+                INC     HL
+                INC     HL
+                JR      DepthInsert
 
-        ;; Put the object in HL into its depth-sorted position in the
-        ;; list.
+;; Put the object in HL into its depth-sorted position in the
+;; list.
 EnlistObj:      PUSH    HL
                 CALL    GetUVZExtentsA
                 EXX
                 JR      DepthInsertHd
 
-;; TODO
-ProcObjUnk2:	INC	HL
-		INC	HL
-		BIT	3,(IY+$04)
-		JR	Z,EnlistObjEx 	; NB: Tail call
-		PUSH	HL
-		CALL	EnlistObjEx
-		POP	DE
-		CALL	CAFAB
-		PUSH	HL
-		CALL	GetUVZExtentsA
-		EXX
-		PUSH	IY
-		POP	HL
-		INC	HL
-		INC	HL
-		JR	DepthInsert   	; NB: Tail call
+;; Takes a B pointer in HL/IY. Enlists it, and its other half if it's a
+;; double-size object. Inserts inthe the appropriate list.
+EnlistAux:      INC     HL
+                INC     HL
+        ;; Easy path if it's a single object.
+                BIT     3,(IY+$04)
+                JR      Z,EnlistObjAux  ; NB: Tail call
+        ;; Otherwise, do one half...
+                PUSH    HL
+                CALL    EnlistObjAux
+        ;; update the other half...
+                POP     DE
+                CALL    SyncDoubleObject
+        ;; and insert the other half, on the same object list.
+                PUSH    HL
+                CALL    GetUVZExtentsA
+                EXX
+                PUSH    IY
+                POP     HL
+                INC     HL
+                INC     HL
+                JR      DepthInsert     ; NB: Tail call
 
 ;; Object in HL. Inserts object into appropriate object list
 ;; based on coordinates.
 ;;
 ;; List 3 is far away, 0 in middle, 4 is near.
-EnlistObjEx:    PUSH    HL
+EnlistObjAux:   PUSH    HL
                 CALL    GetUVZExtentsA
         ;; If object is beyond high U boundary, put on list 3.
                 LD      A,$03
                 EX      AF,AF'
                 LD      A,(MaxU)
                 CP      D
-                JR      C,EOE_2
+                JR      C,EOA_2
         ;; If object is beyond high V boundary, put on list 3.
                 LD      A,(MaxV)
                 CP      H
-                JR      C,EOE_2
+                JR      C,EOA_2
         ;; If object is beyond low U boundary, put on list 4.
                 LD      A,$04
                 EX      AF,AF'
                 LD      A,(MinU)
                 DEC     A
                 CP      E
-                JR      NC,EOE_2
+                JR      NC,EOA_2
         ;; If object is beyond low V boundary, put on list 4.
                 LD      A,(MinV)
                 DEC     A
                 CP      L
-                JR      NC,EOE_2
+                JR      NC,EOA_2
         ;; Otherwise, put on list 0.
                 XOR     A
                 EX      AF,AF'
-EOE_2:          EXX
+EOA_2:          EXX
                 EX      AF,AF'
         ;; And then insert into the appropriate place on that list.
                 CALL    SetObjList
@@ -208,11 +216,12 @@ DepIns4:        DEC     HL
                 LD      (HL),D
                 RET
 
-        ;; FIXME: Other functions!
-ProcObjUnk4:	PUSH	HL
-		CALL	Unlink
-		POP	HL
-		JP	ProcObjUnk2
+;; Take an object out of the list, and reinserts it in the
+;; appropriate list.
+Relink:         PUSH    HL
+                CALL    Unlink
+                POP     HL
+                JP      EnlistAux
 
 ;; Unlink the object in HL. If bit 3 of IY+4 is set, it's an
 ;; object made out of two subcomponents, and both must be

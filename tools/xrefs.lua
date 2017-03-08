@@ -208,6 +208,7 @@ edges["FinishGame"]["Main"] = nil
 write_graph("sprite.dot", {"Draw3x24", "BlitObject"})
 write_graph("menus.dot", {"GoMainMenu"})
 write_graph("gameover.dot", {"GameOverScreen"})
+write_graph("enlist.dot", {"Enlist"})
 write_graph("enter.dot", {"EnterRoom"})
 write_graph("screen.dot", {"DrawScreen"})
 write_graph("end.dot", {"EndThing"})

@@ -24,9 +24,9 @@
 	;; CAA74
 	;; CAC41
 	;; SetObjList
-	;; ProcObjUnk1
-	;; ProcObjUnk2
-	;; ProcObjUnk4
+	;; Enlist
+	;; EnlistAux
+	;; Relink
 	;; Unlink
 	;; LB21C
 	
@@ -140,7 +140,7 @@ DoFire:		LD	A,(FirePressed)
 		LD	(FiredObj+$0B),A
 		LD	(IY+$0C),$FF
 		LD	(IY+$0F),$20
-		CALL	ProcObjUnk2
+		CALL	EnlistAux
 	;; Use up a donut
 		LD	A,$06
 		CALL	DecCount
@@ -457,7 +457,7 @@ EPIC_52:	LD	A,(Character)
 CharThing26:	LD	A,(LA2BF)
 		LD	(IY+$0C),A
 		CALL	GetCharObj
-		CALL	ProcObjUnk4
+		CALL	Relink
 		CALL	CharThing16
 		XOR	A
 		CALL	SetObjList
@@ -902,7 +902,7 @@ EPIC_97:	LD	A,$80
 		LD	(IY+$0B),$FF
 		LD	(IY+$0C),$FF
 		POP	HL
-		CALL	ProcObjUnk1
+		CALL	Enlist
 		CALL	CharThing16
 		XOR	A
 		LD	(LB219),A
