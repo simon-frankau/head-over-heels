@@ -112,27 +112,29 @@ ProcObjUnk2:	INC	HL
 
 ;; Object in HL. Inserts object into appropriate object list
 ;; based on coordinates.
+;;
+;; List 3 is far away, 0 in middle, 4 is near.
 EnlistObjEx:    PUSH    HL
                 CALL    GetUVZExtentsA
         ;; If object is beyond high U boundary, put on list 3.
                 LD      A,$03
                 EX      AF,AF'
-                LD      A,(L771A)
+                LD      A,(MaxU)
                 CP      D
                 JR      C,EOE_2
         ;; If object is beyond high V boundary, put on list 3.
-                LD      A,(L771B)
+                LD      A,(MaxV)
                 CP      H
                 JR      C,EOE_2
         ;; If object is beyond low U boundary, put on list 4.
                 LD      A,$04
                 EX      AF,AF'
-                LD      A,(L7718)
+                LD      A,(MinU)
                 DEC     A
                 CP      E
                 JR      NC,EOE_2
         ;; If object is beyond low V boundary, put on list 4.
-                LD      A,(L7719)
+                LD      A,(MinV)
                 DEC     A
                 CP      L
                 JR      NC,EOE_2

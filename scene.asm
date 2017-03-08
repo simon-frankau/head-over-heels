@@ -156,13 +156,13 @@ DrC_1:          LD      BC,(ViewXExtent)
                 LD      A,(L84C8)
                 CP      D
                 JR      C,DrC_2
-                LD      HL,ObjectLists + 8
+                LD      HL,ObjectLists + 2 * 4
                 CALL    BlitObjects
-DrC_2:          LD      HL,ObjectLists + 12
+DrC_2:          LD      HL,ObjectLists + 3 * 4
                 CALL    BlitObjects
-                LD      HL,ObjectLists + 0
+                LD      HL,ObjectLists + 0 * 4
                 CALL    BlitObjects
-                LD      HL,ObjectLists + 16
+                LD      HL,ObjectLists + 4 * 4
                 CALL    BlitObjects
                 JP      BlitScreen              ; NB: Tail call
 

@@ -9,10 +9,10 @@
 	;; Only call out is to DoTableCall... which calls right back!
 
 	;; Variables used in this file:
-	;; L7718
-	;; L7719
-	;; L771A
-	;; L771B
+	;; MinU
+	;; MinV
+	;; MaxU
+	;; MaxV
 	;; L7744
 	;; L7745
 	;; L7746
@@ -290,12 +290,12 @@ SomeTableFn0:	CALL	TblFnCommon19
 		JR	C,TblFnCommon2
 		CALL	TblFnCommon15
 		JR	C,TblFnCommon3
-		LD	A,(L7718)
+		LD	A,(MinU)
 		SUB	$04
 		JR	STF8_2
 STF8_1:		BIT	0,(IX-$02)
 		JR	Z,TblFnCommon2
-		LD	A,(L7718)
+		LD	A,(MinU)
 STF8_2:		CP	E
 		RET	NZ
 		LD	A,$01
@@ -305,7 +305,7 @@ TblFnCommon1:	LD	(LB218),A
 		SCF
 		RET
 
-TblFnCommon2:	LD	A,(L7718)
+TblFnCommon2:	LD	A,(MinU)
 TblFnCommon2b:	CP	E
 		RET	NZ
 		SCF
@@ -341,18 +341,18 @@ SomeTableFn2:	CALL	TblFnCommon19
 		JR	C,TblFnCommon6
 		CALL	TblFnCommon13
 		JR	C,TblFnCommon7
-		LD	A,(L7719)
+		LD	A,(MinV)
 		SUB	$04
 		JR	STF2_2
 STF2_1:		BIT	1,(IX-$02)
 		JR	Z,TblFnCommon6
-		LD	A,(L7719)
+		LD	A,(MinV)
 STF2_2:		CP	L
 		RET	NZ
 		LD	A,$02
 		JR	TblFnCommon1
 	
-TblFnCommon6:	LD	A,(L7719)
+TblFnCommon6:	LD	A,(MinV)
 TblFnCommon6b:	CP	L
 		RET	NZ
 		SCF
@@ -383,17 +383,17 @@ SomeTableFn4:	CALL	TblFnCommon19
 		JR	C,STF4_3
 		CALL	TblFnCommon15
 		JR	C,STF4_5
-		LD	A,(L771A)
+		LD	A,(MaxU)
 		ADD	A,$04
 		JR	STF4_2
 STF4_1:		BIT	2,(IX-$02)
 		JR	Z,STF4_3
-		LD	A,(L771A)
+		LD	A,(MaxU)
 STF4_2:		CP	D
 		RET	NZ
 		LD	A,$03
 		JP	TblFnCommon1
-STF4_3:		LD	A,(L771A)
+STF4_3:		LD	A,(MaxU)
 STF4_4:		CP	D
 		RET	NZ
 		SCF
@@ -415,18 +415,18 @@ SomeTableFn6:	CALL	TblFnCommon19
 		JR	C,TblFnCommon9
 		CALL	TblFnCommon13
 		JR	C,TblFnCommon10
-		LD	A,(L771B)
+		LD	A,(MaxV)
 		ADD	A,$04
 		JR	STF6_2
 STF6_1:		BIT	3,(IX-$02)
 		JR	Z,TblFnCommon9
-		LD	A,(L771B)
+		LD	A,(MaxV)
 STF6_2:		CP	H
 		RET	NZ
 		LD	A,$04
 		JP	TblFnCommon1
 
-TblFnCommon9:	LD	A,(L771B)
+TblFnCommon9:	LD	A,(MaxV)
 TblFnCommon9b:	CP	H
 		RET	NZ
 		SCF
@@ -438,14 +438,14 @@ TblFnCommon10:	CALL	TblFnCommon14
 		JP	TblFnCommon8
 
 	;; Unused?
-TblFnCommon11:	LD	A,(L771B)
+TblFnCommon11:	LD	A,(MaxV)
 		CP	H
 		RET	C
 		LD	A,L
 		CP	A,(IX+$01)
 		RET
 
-TblFnCommon12:	LD	A,(L771A)
+TblFnCommon12:	LD	A,(MaxU)
 		CP	D
 		RET	C
 		LD	A,E
@@ -497,7 +497,7 @@ TFC17_1:	POP	AF
 		CCF
 		RET
 
-TblFnCommon19:	LD	IX,L7718
+TblFnCommon19:	LD	IX,MinU
 		BIT	0,(IY+$09)
 		RET	Z
 		LD	A,(IY+$0A)

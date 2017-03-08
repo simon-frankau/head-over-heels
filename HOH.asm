@@ -334,10 +334,10 @@ AttribScheme:	DEFB $00
 WorldId:	DEFB $00	; Range 0..7 (I think 7 is 'same as last')
 DoorFlags1:	DEFB $00
 DoorFlags2:	DEFB $00
-L7718:	DEFB $00
-L7719:	DEFB $00
-L771A:	DEFB $00
-L771B:	DEFB $00
+MinU:	DEFB $00
+MinV:	DEFB $00
+MaxU:	DEFB $00
+MaxV:	DEFB $00
 L771C:	DEFB $00
 L771D:	DEFB $00
 L771E:	DEFB $00
@@ -370,7 +370,7 @@ C774D:		LD		A,$FF
 	;; NB: Fall through
 
 	;; Guess that this is redraw screen, based on setting sprite extend to full screen...
-DrawScreen:	LD	IY,L7718 		; FIXME: ???
+DrawScreen:	LD	IY,MinU 		; FIXME: ???
 	;; Initialise the sprite extents to cover the full screen.
 		LD	HL,L40C0
 		LD	(ViewXExtent),HL
@@ -418,7 +418,7 @@ DrawScreen:	LD	IY,L7718 		; FIXME: ???
 		AND		$0F
 		XOR		B
 		LD		B,A
-		LD		A,(L771B)
+		LD		A,(MaxV)
 		LD		H,A
 		LD		L,$00
 		CALL	EnterRoom
@@ -438,7 +438,7 @@ L77D0:	LD		IY,L7720
 		AND		$F0
 		XOR		B
 		LD		B,A
-		LD		A,(L771A)
+		LD		A,(MaxU)
 		LD		L,A
 		LD		H,$00
 		CALL	EnterRoom
@@ -588,7 +588,7 @@ L7C14:		LD	(LA295),A
 	;;  /   \
 	;; H     L
 	
-C7C1A:		LD	HL,(L7718)
+C7C1A:		LD	HL,(MinU)
 		LD	A,(DoorFlags2)
 		PUSH	AF
 		BIT	1,A
@@ -1714,17 +1714,17 @@ CAA7E:	LD		C,$C0
 		RET		Z
 		LD		IX,L7744
 		LD		C,(IX+$00)
-		LD		A,(L771B)
+		LD		A,(MaxV)
 		SUB		$03
 		CP		A,(IY+$06)
 		RET		C
 		LD		C,(IX+$02)
-		LD		A,(L7719)
+		LD		A,(MinV)
 		ADD		A,$02
 		CP		A,(IY+$06)
 		RET		NC
 		LD		C,(IX+$01)
-		LD		A,(L771A)
+		LD		A,(MaxU)
 		SUB		$03
 		CP		A,(IY+$05)
 		RET		C
@@ -2266,11 +2266,11 @@ ObjListBPtr:    DEFW ObjectLists + 2
         ;; Each list consists of a pair of pointers to linked lists of
         ;; objects (ListA and ListB). They're opposite directions in a
 	;; doubly-linked list, and each side has a head node, it seems.
-ObjectLists:    DEFW $0000,$0000
-                DEFW $0000,$0000
-                DEFW $0000,$0000
-                DEFW $0000,$0000
-                DEFW $0000,$0000
+ObjectLists:    DEFW $0000,$0000 ; 0
+                DEFW $0000,$0000 ; 1
+                DEFW $0000,$0000 ; 2
+                DEFW $0000,$0000 ; 3 - Far
+                DEFW $0000,$0000 ; 4 - Near
 
 LAF92:	DEFW LBA40
 SortObj:	DEFW $0000
