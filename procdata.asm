@@ -201,7 +201,7 @@ ProcTmpObj:     LD      HL,TmpObj
                 PUSH    IY
                 LD      A,(SkipObj)
                 AND     A
-                CALL    Z,ProcDataObj
+                CALL    Z,AddObject
                 POP     IY
                 RET
 

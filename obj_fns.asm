@@ -50,7 +50,7 @@
         ;;           Bit 5 = has another object tacked after (double height?)
         ;;           Bit 7 = switched flag
 	;; Offset A: Top bit is flag that's checked against Phase, lower bits are object function.
-        ;;           Bit 1 set for other bit of double height?
+        ;;           Bit 1 set for other bit of double height? This might actually be at offset 9.
         ;;           Gets loaded into SpriteFlags
 	;; Offset B: Some form of direction bitmask?
 	;; Offset C: Some form of direction bitmask?

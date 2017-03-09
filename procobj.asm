@@ -5,25 +5,25 @@
 ;;
 
 ;; Exported functions:
-;;  * ProcDataObj
+;;  * AddObject
 ;;  * GetUVZExtentsB
 ;;  * Enlist
 ;;  * Unlink
 ;;  * EnlistAux
 ;;  * Relink
 
-;; Called during the ProcEntry loop to copy an object into the dest
-;; buffer and process it.
+;; Copy an object into the object buffer, add a second object if it's
+;; doubled, and link it into the depth-sorted lists.
 ;;
-;; HL points to an object.
+;; HL is a 'B' pointer to an object.
 ;; BC contains the size of the object (always 18 bytes!).
-ProcDataObj:
+AddObject:
         ;; First, just return if there's no intersection with the view window.
                 PUSH    HL
                 PUSH    BC
                 INC     HL
                 INC     HL
-                CALL    IntersectObj   ; HL now contains an object + 2
+                CALL    IntersectObj   ; HL now contains an 'A' ptr to object.
                 POP     BC
                 POP     HL
                 RET     NC
@@ -36,31 +36,36 @@ ProcDataObj:
         ;; HL now points at copied object
                 PUSH    HL
                 POP     IY
+        ;; If it's not a double object, just call Enlist.
                 BIT     3,(IY+$04)      ; Check bit 3 of flags...
                 JR      Z,Enlist        ; NB: Tail call if not set
-        ;; Bit 3 set = tall object
-		LD	BC,L0009
-		PUSH	HL
-		LDIR
-		EX	DE,HL
-		LD	A,(DE)  	; Load A with offset 10 of original
-		OR	$02
-		LD	(HL),A  	; Set bit 1, write out.
-		INC	HL
-		LD	(HL),$00 	; Write 0 to offset 11
-		LD	DE,L0008
-		ADD	HL,DE
-		LD	(ObjDest),HL 	; Update pointer to after new object.
+        ;; Bit 3 set = tall object. Make the second object like the
+        ;; first, copying the first 9 bytes.
+                LD      BC,L0009
+                PUSH    HL
+                LDIR
+        ;; Copy byte at offset 9 over, setting bit 1.
+                EX      DE,HL
+                LD      A,(DE)          ; Load A with offset 9 of original
+                OR      $02
+                LD      (HL),A          ; Set bit 1, write out.
+        ;; Write 0 for byte at offset 10.
+                INC     HL
+                LD      (HL),$00
+        ;; And update ObjDest to point past newly constructed object (offset 18).
+                LD      DE,L0008
+                ADD     HL,DE
+                LD      (ObjDest),HL
         ;; If bit 5 of offset 9 set, set the sprite on this second object.
-		BIT	5,(IY+$09)
-		JR	Z,PDO2
-		PUSH	IY
-		LD	DE,L0012
-		ADD	IY,DE
-		LD	A,(L822E)
-		CALL	SetObjSprite
-		POP	IY
-PDO2:		POP	HL
+                BIT     5,(IY+$09)
+                JR      Z,AO_2
+                PUSH    IY
+                LD      DE,L0012
+                ADD     IY,DE
+                LD      A,(BottomSprite)
+                CALL    SetObjSprite
+                POP     IY
+AO_2:           POP     HL
         ;; NB: Fall through.
 
 ;; HL points at an object, as does IY.

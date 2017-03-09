@@ -13,15 +13,17 @@
 ;; Exported variables:
 ;;  * CurrObject
 ;;  * ObjDir
-;;  * L822E
+;;  * BottomSprite
 
 CurrObject:     DEFW $0000
 ObjDir:         DEFB $FF
-L822E:          DEFW $3D00,$3D8E
+        ;; TODO: First byte is the sprite to use for the bottom half
+	;; of double-height things. Not sure about the rest yet...
+BottomSprite:          DEFW $3D00,$3D8E
 
 ;; Takes an object pointer in IY, an object code in A, and initialises it.
 ;; Doesn't set flags, direction code, or coordinates.
-;; Call ProcDataObj when you're done to copy it into the room.
+;; Caller should call AddObject when you're done to copy it into the room.
 InitObj:	LD	(IY+$09),$00 	; TODO: Not sure of this field.
         ;; Look up A in the ObjDefns table.
 		LD	L,A
@@ -47,9 +49,9 @@ InitObj:	LD	(IY+$09),$00 	; TODO: Not sure of this field.
 		AND	$03
 		JR	Z,L8264
         ;; If non-zero, do some stuff. FIXME. NB: Modifies B.
-		ADD	A,L822E & $FF
+		ADD	A,BottomSprite & $FF
 		LD	E,A
-		ADC	A,L822E >> 8
+		ADC	A,BottomSprite >> 8
 		SUB	E
 		LD	D,A
 		LD	A,(DE)
@@ -59,7 +61,7 @@ InitObj:	LD	(IY+$09),$00 	; TODO: Not sure of this field.
 		LD	C,B
 		LD	B,A
 		LD	A,C
-L8264:		LD	(L822E),A
+L8264:		LD	(BottomSprite),A
 		LD	A,B
 		CALL	SetObjSprite
         ;; Load third byte of the object definition. FIXME
