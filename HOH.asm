@@ -987,113 +987,157 @@ WorldData:	DEFB $46,$91,$65,$94,$A1,$69,$69,$AA
 		DEFB $00,$00,$00,$00,$00,$00,$00,$00
         ;; Bit mask of worlds visited.
 WorldMask:	DEFB $00
-L866C:	DEFB $70,$14,$00,$72,$60,$30,$01,$40,$B0,$2E,$09,$34,$B0,$00,$1A
-L867B:	DEFB $00,$F0,$9A,$0B,$70,$40,$A7,$1C,$44,$30,$37,$7D,$37,$70,$15,$68
-L868B:	DEFB $34,$60,$89,$48,$47,$60,$C5,$68,$76,$80,$1B,$68,$76,$D0,$BC,$28
-L869B:	DEFB $35,$D0,$1C,$28,$71,$F0,$87,$38,$74,$20,$FB,$28,$71,$60,$31,$48
-L86AB:	DEFB $05,$C0,$E2,$38,$54,$20,$69,$68,$07,$60,$52,$62,$77,$60,$47,$72
-L86BB:	DEFB $27,$C0,$E3,$42,$07,$F0,$63,$12,$70,$20,$AA,$22,$05,$30,$6C,$22
-L86CB:	DEFB $46,$60,$47,$73,$57,$80,$FA,$63,$67,$F0,$70,$13,$60,$10,$7B,$73
-L86DB:	DEFB $31,$60,$64,$74,$70,$80,$1A,$44,$45,$F0,$46,$74,$74,$60,$C5,$66
-L86EB:	DEFB $74,$70,$98,$76,$00,$00,$32,$76,$50,$80,$29,$76,$40,$A0,$E0,$16
-L86FB:	DEFB $40,$A0,$0F,$66,$47,$B0,$03,$26,$44,$F0,$83,$36,$17,$40,$8A,$06
-L870B:	DEFB $06,$20,$99,$76,$14,$60,$C5,$65,$75,$60,$77,$75,$44,$00,$36,$75
-L871B:	DEFB $66,$A0,$FE,$75,$22,$F0,$42,$65,$61,$20,$AE,$75,$04
-L8728:	DEFB $30,$8D,$7E
-L872B:	DEFB $47,$30,$8D,$6E,$17,$30,$8D,$7E,$07,$30,$8D,$6E,$37,$30,$8D,$3E
-L873B:	DEFB $27,$27,$28,$29,$2A,$2A,$2A,$2A,$00,$86,$2F,$2F,$2F,$2F,$2F,$2F
 
-C874B:	LD		BC,(RoomId)
-C874F:	LD		HL,L866C
-		LD		E,$34
-L8754:	LD		A,C
-		CP		(HL)
-		INC		HL
-		JR		NZ,C875C
-		LD		A,B
-		CP		(HL)
-		RET		Z
-C875C:	INC		HL
-		INC		HL
-		INC		HL
-		DEC		E
-		JR		NZ,L8754
-		DEC		E
-L8763:		RET		; FIXME: Self-modifying code??
-C8764:	INC		HL
-		XOR		A
-		RLD
-		LD		E,A
-		RLD
-		LD		D,A
-		RLD
-		INC		HL
-		RLD
-		LD		B,A
-		RLD
-		LD		C,A
-		RLD
-		RET
+        ;; Special collectible items
+Specials:	DEFB $70,$14,$00,$72,    $60,$30,$01,$40
+                DEFB $B0,$2E,$09,$34,    $B0,$00,$1A,$00
+                DEFB $F0,$9A,$0B,$70,    $40,$A7,$1C,$44
+                DEFB $30,$37,$7D,$37,    $70,$15,$68,$34
+                DEFB $60,$89,$48,$47,    $60,$C5,$68,$76
+                DEFB $80,$1B,$68,$76,    $D0,$BC,$28,$35
+                DEFB $D0,$1C,$28,$71,    $F0,$87,$38,$74
+                DEFB $20,$FB,$28,$71,    $60,$31,$48,$05
+                DEFB $C0,$E2,$38,$54,    $20,$69,$68,$07
+                DEFB $60,$52,$62,$77,    $60,$47,$72,$27
+                DEFB $C0,$E3,$42,$07,    $F0,$63,$12,$70
+                DEFB $20,$AA,$22,$05,    $30,$6C,$22,$46
+                DEFB $60,$47,$73,$57,    $80,$FA,$63,$67
+                DEFB $F0,$70,$13,$60,    $10,$7B,$73,$31
+                DEFB $60,$64,$74,$70,    $80,$1A,$44,$45
+                DEFB $F0,$46,$74,$74,    $60,$C5,$66,$74
+                DEFB $70,$98,$76,$00,    $00,$32,$76,$50
+                DEFB $80,$29,$76,$40,    $A0,$E0,$16,$40
+                DEFB $A0,$0F,$66,$47,    $B0,$03,$26,$44
+                DEFB $F0,$83,$36,$17,    $40,$8A,$06,$06
+                DEFB $20,$99,$76,$14,    $60,$C5,$65,$75
+                DEFB $60,$77,$75,$44,    $00,$36,$75,$66
+                DEFB $A0,$FE,$75,$22,    $F0,$42,$65,$61
+                DEFB $20,$AE,$75,$04
+        ;; Crowns?
+L8728:	        DEFB $30,$8D,$7E,$47
+                DEFB $30,$8D,$6E,$17
+                DEFB $30,$8D,$7E,$07
+                DEFB $30,$8D,$6E,$37
+                DEFB $30,$8D,$3E,$27
 
-BPDEnd:		PUSH	BC
-		LD		HL,L8728
-		LD		A,(WorldMask)
-		CPL
-		LD		B,$05
-		LD		DE,L0004
-BPDE1:		RR		(HL)
-		RRA
-		RL		(HL)
-		ADD		HL,DE
-		DJNZ	BPDE1
-		POP		BC
-		CALL	C874F
-BPDE2:		RET		NZ
-		PUSH	HL
-		PUSH	DE
-		PUSH	BC
-		PUSH	IY
-		CALL	C8764
-		LD		IY,TmpObj
-		LD		A,D
-		CP		$0E
-		LD		A,$60
-		JR		NZ,BPDE3
-		XOR		A
-BPDE3:		LD		(IY+$04),A
-		LD		(IY+$11),D
-		LD		(IY+$0A),$1A
-		LD		A,D
-		ADD		A,$3C
-		LD		L,A
-		ADC		A,$87
-		SUB		L
-		LD		H,A
-		LD		A,(HL)
-		PUSH	BC
-		PUSH	DE
-		CALL	SetObjSprite
-		POP		DE
-		POP		BC
-		POP		IY
-		LD		A,E
-		CALL	SetTmpObjUVZ
-		CALL	AddObjOpt
-		POP		BC
-		POP		DE
-		POP		HL
-		CALL	C875C
-		JR		BPDE2
+        ;; The sprites associated with special collectible objects.
+SpecialSprites: DEFB SPR_PURSE,SPR_HOOTER,SPR_DONUTS,SPR_BUNNY
+                DEFB SPR_BUNNY,SPR_BUNNY,SPR_BUNNY,$00
+                DEFB ANIM_FISH,SPR_CROWN,SPR_CROWN,SPR_CROWN
+                DEFB SPR_CROWN,SPR_CROWN,SPR_CROWN
 
-InitNewGame2:	LD		HL,L866C
+FindSpecials2:  LD      BC,(RoomId)
+
+FindSpecials:   LD      HL,Specials
+                LD      E,$34           ; # of special items
+        ;; Try to find the room id we want, looping by skipping 2
+        ;; bytes (plus the 2 room id bytes) each time.
+        ;;
+        ;; Remaining count in E, room id in BC, search point in HL.
+FindSpecLoop:   LD      A,C
+                CP      (HL)
+                INC     HL
+                JR      NZ,FindSpecCont
+                LD      A,B
+                CP      (HL)
+                RET     Z       ; Found!
+        ;; NB: Entry point in the middle to continue loop
+FindSpecCont:   INC     HL
+                INC     HL
+                INC     HL
+                DEC     E
+                JR      NZ,FindSpecLoop
+                DEC     E
+FindSpecRet:    RET             ; FIXME: Self-modifying code??
+
+        ;; Takes a pointer in HL, and extracts the nybbles.
+GetNybbles:     INC     HL
+                XOR     A
+                RLD
+                LD      E,A     ; E gets high 4 bits of *(HL+1).
+                RLD
+                LD      D,A     ; D gets next 4 bits of *(HL+1).
+                RLD
+                INC     HL
+                RLD
+                LD      B,A     ; B gets high 4 bits of *(HL+2).
+                RLD
+                LD      C,A     ; C gets next 4 bits of *(HL+2).
+                RLD
+                RET
+
+;; Adds all the special collectible items to the room.
+;;
+;; Takes room id in BC
+AddSpecials:    PUSH    BC
+        ;; TODO: Tweak some room list entries (?) from WorldMask?
+                LD      HL,L8728
+                LD      A,(WorldMask)
+                CPL
+                LD      B,$05
+                LD      DE,L0004
+AS_1:           RR      (HL)
+                RRA
+                RL      (HL)
+                ADD     HL,DE
+                DJNZ    AS_1
+        ;; Then, look up the room id.
+                POP     BC
+                CALL    FindSpecials
+AS_2:           RET     NZ              ; If not found, return.
+        ;; Found. Save the state so we can search some more, as there
+        ;; can be multiple entries per room.
+                PUSH    HL
+                PUSH    DE
+                PUSH    BC
+                PUSH    IY
+        ;; And construct some extra objects.
+                CALL    GetNybbles      ; Fills in D, E, B, C
+                LD      IY,TmpObj
+                LD      A,D
+                CP      $0E
+                LD      A,$60
+                JR      NZ,AS_3
+                XOR     A
+AS_3:           LD      (IY+$04),A              ; Set flags
+                LD      (IY+$11),D              ; ???
+                LD      (IY+$0A),OBJFN_26       ; Set the object function
+        ;; Look up D in SpecialSprites to get a sprite id, and set it.
+                LD      A,D
+                ADD     A,SpecialSprites & $FF
+                LD      L,A
+                ADC     A,SpecialSprites >> 8
+                SUB     L
+                LD      H,A
+                LD      A,(HL)
+                PUSH    BC
+                PUSH    DE
+                CALL    SetObjSprite
+                POP     DE
+                POP     BC
+        ;; Set position based on B, C and E
+                POP     IY
+                LD      A,E
+                CALL    SetTmpObjUVZ
+                CALL    AddObjOpt
+        ;; Restore state and carry on.
+                POP     BC
+                POP     DE
+                POP     HL
+                CALL    FindSpecCont
+                JR      AS_2
+
+
+        
+InitNewGame2:	LD		HL,Specials
 		LD		DE,L0004
 		LD		B,$34
 L87D9:	RES		0,(HL)
 		ADD		HL,DE
 		DJNZ	L87D9
 		RET
-L87DF:	LD		D,A
-		CALL	C874B
+L87DF:		LD	D,A
+		CALL	FindSpecials2
 L87E3:	RET		NZ
 		INC		HL
 		LD		A,(HL)
@@ -1101,7 +1145,7 @@ L87E3:	RET		NZ
 		AND		$0F
 		CP		D
 		JR		Z,L87F1
-		CALL	C875C
+		CALL	FindSpecCont
 		JR		L87E3
 L87F1:	DEC		HL
 		SET		0,(HL)

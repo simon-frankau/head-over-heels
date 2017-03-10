@@ -665,7 +665,7 @@ FlipPanel:      LD      B,SHORT_WALL
 FlipColumn:     PUSH    DE
                 LD      D,RevTable >> 8
                 PUSH    HL
-FS_1:           INC     HL
+FC_1:           INC     HL
                 LD      E,(HL)
                 LD      A,(DE)
                 DEC     HL
@@ -675,7 +675,7 @@ FS_1:           INC     HL
                 LD      A,(DE)
                 LD      (HL),A
                 INC     HL
-                DJNZ    FS_1
+                DJNZ    FC_1
                 POP     HL
                 POP     DE
                 RET

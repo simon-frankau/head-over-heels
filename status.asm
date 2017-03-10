@@ -23,7 +23,7 @@ BoostSpring:	LD	A,(Character)
 		RET	Z
 		JR	BoostCountPlus  ; $01 = CNT_SPRING
 
-BoostInvuln:	LD	IX,L8763
+BoostInvuln:	LD	IX,FindSpecRet
 		LD	C,CNT_HEELS_INVULN
 		JR	BoostMaybeDbl
 BoostLives:	LD	C,CNT_HEELS_LIVES
@@ -84,7 +84,7 @@ EndThing:	LD	A,D
 SaveContinue:	LD	B,$C2
 		CALL	PlaySound
 		CALL	GetContinueData
-		LD	IX,L866C
+		LD	IX,Specials
 		LD	DE,L0004
 		LD	B,$06
 SC_1:		LD	(HL),$80
@@ -139,7 +139,7 @@ DoContinue:	LD	HL,Continues
 		LD	(WorldMask),A
 		PUSH	HL
 		POP	IX
-		LD	HL,L866C
+		LD	HL,Specials
 		LD	DE,L0004
 		LD	B,$2F
 		RR	(HL)
@@ -190,8 +190,8 @@ DC_5:		LD	DE,RoomId
 		LDI
 		LD	BC,(RoomId)
 		SET	0,C
-		CALL	C874F
-		CALL	C8764
+		CALL	FindSpecials
+		CALL	GetNybbles
 		LD	A,E
 		EX	AF,AF'
 		LD	DE,L8ADF

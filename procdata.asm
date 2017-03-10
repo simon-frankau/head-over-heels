@@ -11,7 +11,8 @@
 ;;  * AddObjOpt
 ;;  * SomeExport
 
-;; Unpacks a room.
+;; Unpacks a room, adding all its sprites to the lists, and generally
+;; setting it up.
 ;;
 ;; IY points to where we stash the room size.
 ;; Takes room id in BC.
@@ -91,7 +92,7 @@ ER3:		LD	A,(IX-$02)
 ER4:            CALL    ProcEntry
                 JR      NC,ER4
                 POP     BC
-		JP	BPDEnd 		; NB: Tail call.
+                JP      AddSpecials             ; NB: Tail call.
 
 ;; Add a signed 3-bit value in A to (HL), result in A
 Add3Bit:        BIT     2,A
