@@ -8,7 +8,7 @@
 ;;  * EnterRoom
 ;;  * SetTmpObjUVZ
 ;;  * SetUVZ
-;;  * ProcTmpObj
+;;  * AddObjOpt
 ;;  * SomeExport
 
 ;; FIXME: Called lots. Suspect it forms the backbone of loading a
@@ -128,8 +128,8 @@ RecProcEntry:   EX      AF,AF'
         ;; Run the macro.
                 CALL    FindMacro
                 LD      (DataPtr),HL
-RPE1:           CALL    ProcEntry
-                JR      NC,RPE1
+RPE_1:          CALL    ProcEntry
+                JR      NC,RPE_1
         ;; Pop the decode origin stack...
                 LD      HL,(DecodeOrgPtr)
                 DEC     HL
@@ -163,11 +163,11 @@ ProcEntry:      LD      B,$08
                 LD      B,$02
                 CALL    FetchData
                 BIT     1,A
-                JR      NZ,PE1
+                JR      NZ,PE_1
         ;; We will read per loop. Set "should loop" bit.
                 LD      A,$01
-                JR      PE2
-PE1:
+                JR      PE_2
+PE_1:
         ;; Not reading per-loop. Read once and store in the 0x04 bit position.
                 PUSH    AF
                 LD      B,$01
@@ -176,27 +176,27 @@ PE1:
                 RLCA
                 RLCA
                 OR      B
-PE2:            LD      (UnpackFlags),A
+PE_2:           LD      (UnpackFlags),A
         ;; And then some processing loops thing...
-PE3:            CALL    SetTmpObjFlags
+PE_3:           CALL    SetTmpObjFlags
                 CALL    SetTmpObjUVZEx
         ;; Only loop if loop bit (bottom bit) is set.
                 LD      A,(UnpackFlags)
                 RRA
-                JR      NC,PE4
+                JR      NC,PE_4
         ;; Although we break out if (ExpandDone) is 0xFF.
                 LD      A,(ExpandDone)
                 INC     A
                 AND     A
                 RET     Z
-                CALL    ProcTmpObj
-                JR      PE3
-PE4:            CALL    ProcTmpObj
+                CALL    AddObjOpt
+                JR      PE_3
+PE_4:           CALL    AddObjOpt
                 AND     A
                 RET
 
-;; Once we've built TmpObj, process it...
-ProcTmpObj:     LD      HL,TmpObj
+;; If SkipObj is zero, do an "AddObject"
+AddObjOpt:      LD      HL,TmpObj
                 LD      BC,L0012
                 PUSH    IY
                 LD      A,(SkipObj)
@@ -335,7 +335,7 @@ DoDoorInner:
 
 DoHalfDoor:
         ;; Add current object.
-		CALL	ProcTmpObj
+		CALL	AddObjOpt
         ;; Do some flags craziness, returning early if necessary...
 		LD	A,(TmpObj+4)
 		LD	C,A
@@ -354,7 +354,7 @@ DoHalfDoor:
 		LD	(TmpObj+7),A
 		LD	A,$54
 		LD	(TmpObj+8),A
-		CALL	ProcTmpObj
+		CALL	AddObjOpt
 		POP	AF
 		LD	(TmpObj+7),A
 		RET
@@ -485,10 +485,10 @@ SetTmpObjFlags:	LD	A,(UnpackFlags)
 		RRA
         ;; If the 'read once' bit is set, use the read-once value.
         ;; Otherwise, read another bit.
-		JR	C,BTOA1
+		JR	C,STOF_1
 		LD	B,$01
 		CALL	FetchData
-BTOA1:		AND	$01
+STOF_1:		AND	$01
         ;; Flag goes into 0x10 position of the object flag.
 		RLCA
 		RLCA
@@ -502,14 +502,14 @@ BTOA1:		AND	$01
 		LD	(TmpObj+4),A
 		LD	BC,(L76EC)
 		BIT	4,A
-		JR	Z,BTOA3
+		JR	Z,STOF_3
 		BIT	1,A
-		JR	Z,BTOA2
+		JR	Z,STOF_2
 		XOR	$01
 		LD	(TmpObj+4),A
-BTOA2:		DEC	C
+STOF_2:		DEC	C
 		DEC	C
-BTOA3:		LD	A,C
+STOF_3:		LD	A,C
 		LD	(TmpObj+16),A
 		RET
 

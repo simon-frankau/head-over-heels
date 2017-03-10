@@ -1087,7 +1087,7 @@ BPDE3:		LD		(IY+$04),A
 		POP		IY
 		LD		A,E
 		CALL	SetTmpObjUVZ
-		CALL	ProcTmpObj
+		CALL	AddObjOpt
 		POP		BC
 		POP		DE
 		POP		HL
