@@ -284,19 +284,12 @@ DrawColLDDR:	LDDR
 		RET
 
         ;; Pointer into stack for current origin coordinates
-DecodeOrgPtr:	DEFW L76E0
-L76E0:	DEFB $00
-L76E1:	DEFB $00
-L76E2:	DEFB $00
-L76E3:	DEFB $00
-L76E4:	DEFB $00
-L76E5:	DEFB $00
-L76E6:	DEFB $00
-L76E7:	DEFB $00
-L76E8:	DEFB $00
-L76E9:	DEFB $00
-L76EA:	DEFB $00
-L76EB:	DEFB $00
+DecodeOrgPtr:   DEFW DecodeOrgStack
+        ;; Each stack entry contains UVZ coordinates
+DecodeOrgStack: DEFB $00, $00, $00
+                DEFB $00, $00, $00
+                DEFB $00, $00, $00
+                DEFB $00, $00, $00
 L76EC:	DEFB $00
 L76ED:	DEFB $00
 
@@ -316,14 +309,13 @@ CurrData:	DEFB $00
 	
 ExpandDone:	DEFB $00
 DoorType:	DEFB $00,$00
-L7707:	DEFB $27
-L7708:	DEFB $26
-L7709:	DEFB $17
-L770A:	DEFB $15
-L770B:	DEFB $05
-L770C:	DEFB $04
-L770D:	DEFB $36
-L770E:	DEFB $34
+        ;; Flags that are used for the sprites for each half of each
+	;; of the 4 doors.
+DoorObjFlags:   DEFB $27, $26
+                DEFB $17, $15
+                DEFB $05, $04
+                DEFB $36, $34
+
 DoorwayTest:	DEFB $00
 L7710:	DEFB $00
 FloorCode:	DEFB $00
@@ -347,23 +339,22 @@ L7721:	DEFB $00
 L7722:	DEFB $00
 L7723:	DEFB $00
 
-L7724:	DEFB $08,$08,$48,$48
-	DEFB $08,$10,$48,$40
-	DEFB $08,$18,$48,$38
-	DEFB $08,$20,$48,$30
-	DEFB $10,$08,$40,$48
-	DEFB $18,$08,$38,$48
-	DEFB $20,$08,$30,$48
-	DEFB $10,$10,$40,$40
+        ;; Something that looks like extents, and looks like it's to do with doors.
+DoorExts:	DEFB $08,$08,$48,$48
+		DEFB $08,$10,$48,$40
+		DEFB $08,$18,$48,$38
+		DEFB $08,$20,$48,$30
+		DEFB $10,$08,$40,$48
+		DEFB $18,$08,$38,$48
+		DEFB $20,$08,$30,$48
+		DEFB $10,$10,$40,$40
 
 L7744:	DEFB $00
 L7745:	DEFB $00
 L7746:	DEFB $00
 L7747:	DEFB $00
-L7748:	DEFB $00
-L7749:	DEFB $00
-L774A:	DEFB $00
-L774B:	DEFB $00
+        ;; Locations of the 4 doors along their respective walls.
+DoorLocs:       DEFB $00, $00, $00, $00
 L774C:	DEFB $C0
 C774D:		LD		A,$FF
 		LD		(SkipObj),A
@@ -378,8 +369,8 @@ DrawScreen:	LD	IY,MinU 		; FIXME: ???
 		LD	(ViewYExtent),HL
 	;;  FIXME: ???
 		LD	HL,LC0C0
-		LD	(L7748),HL
-		LD	(L774A),HL
+		LD	(DoorLocs),HL
+		LD	(DoorLocs+2),HL
 		LD	HL,L0000
 		LD	BC,(RoomId)
 		CALL	EnterRoom
@@ -391,7 +382,7 @@ DrawScreen:	LD	IY,MinU 		; FIXME: ???
 		LD	A,(L7710)
 		LD	(DoorwayTest),A
 		LD	DE,L7744
-		LD	HL,L7748
+		LD	HL,DoorLocs
 		LD	BC,L0004
 		LDIR
 	;; Clear the backdrop info...
@@ -1561,7 +1552,7 @@ FD_3:		INC	HL
 		JP	FD_2
 
 	
-CA260:	LD		HL,(L7748)
+CA260:	LD		HL,(DoorLocs)
 		LD		A,L
 		CP		H
 		JR		C,LA268

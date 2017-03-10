@@ -11,35 +11,39 @@
 ;;  * AddObjOpt
 ;;  * SomeExport
 
-;; FIXME: Called lots. Suspect it forms the backbone of loading a
-;; screen or something? Reads all the packed data.
-;; Takes something in HL and BC and IY
+;; Unpacks a room.
 ;;
-;; Takes room id in BC
-;; L76E0 is room size?
-EnterRoom:	LD	(L76E0),HL
+;; IY points to where we stash the room size.
+;; Takes room id in BC.
+;; HL holds the UV origin of the room.
+;;
+EnterRoom:	LD	(DecodeOrgStack),HL 	; Set UV origin.
 		XOR	A
-		LD	(L76E2),A
+		LD	(DecodeOrgStack + 2),A  ; And Z origin.
 		PUSH	BC
 		CALL	FindVisitRoom
 		LD	B,$03
 		CALL	FetchData
-		LD	(L7710),A
-        ;; Load HL with L7724 + 4 * A
+		LD	(L7710),A 		; TODO: Probably something to do with doors.
+        ;; Load HL with DoorExts + 4 * A
 		ADD	A,A
 		ADD	A,A
-		ADD	A,L7724 & $FF
+		ADD	A,DoorExts & $FF
 		LD	L,A
-		ADC	A,L7724 >> 8
+		ADC	A,DoorExts >> 8
 		SUB	L
 		LD	H,A
+
         ;; Loop twice...
 		LD	B,$02
-		LD	IX,L76E0
-ER1:		LD	C,(HL)
+		LD	IX,DecodeOrgStack
+ER1:
+        ;; Load U, then V DoorExt and origin.
+        	LD	C,(HL)
 		LD	A,(IX+$00)
 		AND	A
 		JR	Z,ER2
+        ;; If origin is non-zero, update by subtracting C and dividing by 8. (?)
 		SUB	C
 		LD	E,A
 		RRA
@@ -48,24 +52,29 @@ ER1:		LD	C,(HL)
 		AND	$1F
 		LD	(IX+$00),A
 		LD	A,E
+        ;; And store sum in IY.
 ER2:		ADD	A,C
 		LD	(IY+$00),A
 		INC	HL
 		INC	IX
 		INC	IY
 		DJNZ	ER1
-	;; Do this bit twice:
+
+	;; Do this bit twice, too (for U and V again)
 		LD	B,$02
+        ;; Take previous origin, multiply by 8 and add the DoorExt.
 ER3:		LD	A,(IX-$02)
 		ADD	A,A
 		ADD	A,A
 		ADD	A,A
 		ADD	A,(HL)
+        ;; Then save it.
 		LD	(IY+$00),A
 		INC	IY
 		INC	IX
 		INC	HL
 		DJNZ	ER3
+
         ;; Now read the room configuration
                 LD      B,$03
                 CALL    FetchData
@@ -73,7 +82,7 @@ ER3:		LD	A,(IX-$02)
                 LD      B,$03
                 CALL    FetchData
                 LD      (WorldId),A             ; Fetch the current world identifier
-                CALL    ProcDoors
+                CALL    DoDoors
                 LD      B,$03
                 CALL    FetchData
                 LD      (FloorCode),A           ; And the floor pattern to use
@@ -205,8 +214,8 @@ AddObjOpt:      LD      HL,TmpObj
                 POP     IY
                 RET
 
-;; Initialise the doors
-ProcDoors:
+;; Initialise the doors. Coord destination in IY.
+DoDoors:
         ;; Read the door type? Looks like dead functionality.
                 LD      B,$03
                 CALL    FetchData
@@ -217,33 +226,35 @@ ProcDoors:
                 LD      H,A
                 INC     H
                 LD      (DoorType),HL
-        ;; FIXME: Each of the doors?
-		LD	IX,L7707
-		LD	HL,L7748
-		EXX
-		LD	A,(IY-$01)
-		ADD	A,$04
-		CALL	YetAnotherA
-		LD	HL,L7749
-		EXX
-		LD	A,(IY-$02)
-		ADD	A,$04
-		CALL	YetAnotherB
-		LD	HL,L774A
-		EXX
-		LD	A,(IY-$03)
-		SUB	$04
-		CALL	YetAnotherA
-		LD	HL,L774B
-		EXX
-		LD	A,(IY-$04)
-		SUB	$04
-		JP	YetAnotherB		; Tail call
+        ;; Do each of the doors, with the room size information coming
+        ;; in through IY. Door locations along the walls written out
+        ;; to DoorLocs.
+                LD      IX,DoorObjFlags
+                LD      HL,DoorLocs
+                EXX
+                LD      A,(IY-$01)
+                ADD     A,$04
+                CALL    DoDoorU
+                LD      HL,DoorLocs + 1
+                EXX
+                LD      A,(IY-$02)
+                ADD     A,$04
+                CALL    DoDoorV
+                LD      HL,DoorLocs + 2
+                EXX
+                LD      A,(IY-$03)
+                SUB     $04
+                CALL    DoDoorU
+                LD      HL,DoorLocs + 3
+                EXX
+                LD      A,(IY-$04)
+                SUB     $04
+                JP      DoDoorV         ; Tail call
 
 ;; Reads the code for the kind of door.
 ;;
-;; It rotates flags into the door flags, and sets the door height in
-;; TmpObj.
+;; It rotates flags into the door flags, and sets the door Z coord in
+;; TmpObj and HL'.
 ;;
 ;; TODO: Door stuff is currently only a theory...
 FetchDoor:      LD      B,$03
@@ -274,8 +285,10 @@ FetchDoor:      LD      B,$03
                 LD      (HL),A
                 RET
 FD2:
+        ;; No door case:
         ;; Set flag if fetched value was 0.
                 CP      $FF
+        ;; Complement.
                 CCF
         ;; Rotate it into DoorFlags1
                 RL      (HL)
@@ -287,20 +300,26 @@ FD2:
                 AND     A
                 RET
 
-        ;; These two seem to take a thing in HL' and A.
-YetAnotherB:	LD	(TmpObj+5),A
-		LD	HL,TmpObj+6
-		LD	A,(L76E1)
-		JP	DoDoorInner   	; NB: Tail call
+        ;; These two take the distance along the wall in A,
+        ;; and HL' is where the coordinate is stashed.
+        ;; IX points to flags to use.
 
-YetAnotherA:	LD	(TmpObj+6),A
+        ;; Build a door parallel to the V axis.
+DoDoorV:	LD	(TmpObj+5),A
+		LD	HL,TmpObj+6
+		LD	A,(DecodeOrgStack + 1)
+		JP	DoDoorAux   	; NB: Tail call
+
+        ;; Build a door parallel to the U axis
+DoDoorU:	LD	(TmpObj+6),A
 		LD	HL,TmpObj+5
-		LD	A,(L76E0)
+		LD	A,(DecodeOrgStack)
         ;; NB: Fall through
 
-        ;; Takes things in A, HL and HL'
-        ;; HL points to a place to put a coordinate
-DoDoorInner:
+        ;; HL points to a place to put a coordinate, and A holds the
+	;; base value in that dimension. Takes extra parameters in IX
+	;; and HL'.
+DoDoorAux:
         ;; Multiply A by 8
 		ADD	A,A
 		ADD	A,A
@@ -311,53 +330,55 @@ DoDoorInner:
 		LD	(HL),A
 		PUSH	HL
         ;; Get the door Z coordinate set up, return if no object to add.
-		CALL	FetchDoor
+		CALL	FetchDoor       ; NB: Does EXX
 		JR	NC,NoDoorRet 	; NB: Tail call
         ;; Draw one half
 		LD	A,(IX+$00)
-		LD	(TmpObj+4),A
+		LD	(TmpObj+4),A 	; Set the flags
 		INC	IX
 		LD	A,(DoorType)
-		LD	(TmpObj+8),A
-        	CALL	DoHalfDoor
+		LD	(TmpObj+8),A 	; Set the sprite.
+        	CALL	DoHalfDoor	; And draw.
         ;; Draw the other (NB: Call deferred to tail call)
 		LD	A,(IX+$00)
 		LD	(TmpObj+4),A
 		INC	IX
 		LD	A,(DoorType+1)
 		LD	(TmpObj+8),A
-        ;; ???
+        ;; Stash A + $2C in the coordinate this time.
 		POP	HL
 		POP	AF
 		ADD	A,$2C
 		LD	(HL),A
         ;; NB: Fall through
 
+        ;; Adds the current object in TmpObj, and creates a step
+        ;; underneath it if necessary.
 DoHalfDoor:
         ;; Add current object.
-		CALL	AddObjOpt
-        ;; Do some flags craziness, returning early if necessary...
-		LD	A,(TmpObj+4)
-		LD	C,A
-		AND	$30
-		RET	PO
-		AND	$10
-		OR	$01
-		LD	(TmpObj+4),A
-        ;; Give up at $C0
-		LD	A,(TmpObj+7)
-		CP	$C0
-		RET	Z
-        ;; Put a step ($54) under the doorway?
-		PUSH	AF
-		ADD	A,$06
-		LD	(TmpObj+7),A
-		LD	A,$54
-		LD	(TmpObj+8),A
-		CALL	AddObjOpt
-		POP	AF
-		LD	(TmpObj+7),A
-		RET
+                CALL    AddObjOpt
+        ;; TODO: Do some flags craziness, returning early if necessary...
+                LD      A,(TmpObj+4)
+                LD      C,A
+                AND     $30
+                RET     PO
+                AND     $10
+                OR      $01
+                LD      (TmpObj+4),A
+        ;; $C0 is ground level, don't need to put anything underneath.
+                LD      A,(TmpObj+7)
+                CP      $C0
+                RET     Z
+        ;; Otherwise, add a step under the doorway (6 down)
+                PUSH    AF
+                ADD     A,$06
+                LD      (TmpObj+7),A    ; Update Z coord
+                LD      A,SPR_STEP
+                LD      (TmpObj+8),A    ; And sprite
+                CALL    AddObjOpt       ; Add the step
+                POP     AF
+                LD      (TmpObj+7),A    ; And restore.
+                RET
 
 ;; No door case - unwind variables and return
 NoDoorRet:	POP	HL
@@ -398,7 +419,7 @@ SomeExport:	LD	BC,(RoomId)
 		SCF
 		RET
 
-;; Like FindRoom, but set the "visited" bit. Assumes HL' and C' set.
+;; Like FindRoom, but set the "visited" bit.
 FindVisitRoom:  CALL    FindRoom
                 EXX
                 LD      A,C
@@ -439,8 +460,7 @@ FindRoom2:      EXX
 ;;  HL' and C' are incremented as the address and bit mask for a bitfield
 ;;   associated with the nth entry.
 ;;
-;; The carry flag is set if nothing's returned. Otherwise, it returns the
-;; first four bits of the bit-packed data.
+;; The carry flag is set if nothing's returned. 
 FindRoomInner:
         ;; Return with carry set if (HL) is 0 - not found.
                 LD      E,(HL)
