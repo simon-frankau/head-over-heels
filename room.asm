@@ -121,7 +121,7 @@ BuildRoom:	LD	IY,MinU 		; Set the base of where we load limits.
 		LD	BC,L0040
 		CALL	FillZero
         ;; ???
-		CALL	CA260
+		CALL	CallBothWalls
 		CALL	HasFloorAbove
 		LD	A,$00
 		RLA
@@ -147,7 +147,7 @@ BuildRoom:	LD	IY,MinU 		; Set the base of where we load limits.
 		LD	H,A
 		LD	L,$00
 		CALL	ReadRoom
-		CALL	CA260
+		CALL	CallBothWalls
         
 BRM_1:		LD	IY,AltLimits + 4
 		POP	HL
@@ -170,7 +170,7 @@ BRM_1:		LD	IY,AltLimits + 4
 		LD	L,A
 		LD	H,$00
 		CALL	ReadRoom
-		CALL	CA260
+		CALL	CallBothWalls
         ;; TODO
 BRM_2:		LD	A,(DoorHeight)
 		LD	HL,(DoorType)

@@ -1203,24 +1203,24 @@ FD_3:		INC	HL
 		RL	C
 		JP	FD_2
 
-CA260:		LD		HL,(DoorLocs)
+CallBothWalls:	LD	HL,(DoorLocs)
         ;; Take the smaller of H and L.
-		LD		A,L
-		CP		H
-		JR		C,LA268
-		LD		A,H
+		LD	A,L
+		CP	H
+		JR	C,CBW_1
+		LD	A,H
         ;; Take it away from C0, to convert to a height above ground...
         ;; So make it the lower of the two.
-LA268:		NEG
-		ADD		A,$C0
+CBW_1:		NEG
+		ADD	A,$C0
         ;; Lower (increase Z coord) door height if it's a value less than A.
-		LD		HL,DoorHeight
-		CP		(HL)
-		JR		C,LA273
-		LD		(HL),A
+		LD	HL,DoorHeight
+		CP	(HL)
+		JR	C,CBW_2
+		LD	(HL),A
         ;; Get door height into A and tail call BothWalls
-LA273:		LD		A,(HL)
-		JP		BothWalls	; NB: Tail call.
+CBW_2:		LD	A,(HL)
+		JP	BothWalls	; NB: Tail call.
 
 FillZero:	LD	E,$00
 	;; HL = Dest, BC = Size, E = value
