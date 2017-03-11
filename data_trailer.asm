@@ -196,7 +196,7 @@ XC19F:	DEFB $92
 	;; End of 128K code.
 
 	;; Start of area that gets moved down...
-LC1A0:	DEFB $00,$00,$00,$00,$00,$00,$00,$00
+PanelFlips:	DEFB $00,$00,$00,$00,$00,$00,$00,$00
 
 ;; Bitmap of whether the nth sprite is store in flipped format.
 SpriteFlips:	DEFS $10,$00

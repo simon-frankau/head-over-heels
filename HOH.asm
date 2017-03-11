@@ -596,7 +596,7 @@ PanelFlipsPtr:	DEFW $0000	; Pointer to byte full of whether walls need to flip
 L84C7:	DEFB $00
 L84C8:	DEFB $00
 CornerX:	DEFB $00
-L84CA:	DEFB $00
+DoorZ:	DEFB $00
 
 StoreCorner:	CALL	GetCorner
 		LD	A,C
@@ -614,28 +614,38 @@ StoreCorner:	CALL	GetCorner
 		LD	(CornerX),A ; Store B
 		RET
 
-L84E4:		LD	(L84CA),A
-		CALL	C8506
+;; Configure the walls.
+;;
+;; Door height in A
+BothWalls:	LD	(DoorZ),A
+        ;; Do the V wall case before doing the U wall in this function.
+		CALL	VWall
+        ;; Skip if there's an extra room visible in the U dir.
 		LD	A,(DoorFlags1)
 		AND	$04
 		RET	NZ
+        ;; 
 		LD	B,$04
 		EXX
 		LD	A,$80
-		LD	(L8591+1),A
+		LD	(OWFlag+1),A
 		CALL	GetCorner
 		LD	DE,L0002
 		LD	A,(IY-$01) ; MaxV
 		SUB	(IY-$03)   ; MinV
-		JR	L8521
+		JR	OneWall    ; NB: Tail call.
 
-C8506:		LD	A,(DoorFlags1)
+;; Draw wall parallel to U axis.
+VWall:
+        ;; Skip if there's an extra room in the V direction.
+		LD	A,(DoorFlags1)
 		AND	$08
 		RET	NZ
+        ;; 
 		LD	B,$08
 		EXX
 		XOR	A
-		LD	(L8591+1),A
+		LD	(OWFlag+1),A
 		CALL	GetCorner
 		DEC	L
 		DEC	L
@@ -644,26 +654,34 @@ C8506:		LD	A,(DoorFlags1)
 		SUB	(IY-$04)   ; MinU
 	;; NB: Fall through
 
-L8521:		RRA
+        ;; Extent in A, movement step in DE, BkgndData pointer in HL, X/Y in B/C
+        ;; DoorFlags1 in A', the flag for this wall in B'
+OneWall:
+        ;; Divide wall extent by 16 (one panel?) 
+		RRA
 		RRA
 		RRA
 		RRA
 		AND	$0F
+        ;; Move BkgndData pointer to IX.
 		PUSH	HL
 		POP	IX
 		EXX
+        ;; Updated extent in C, check flag that was in B' against DoorFlags2.
 		LD	C,A
 		LD	A,(DoorFlags2)
 		AND	B
 		CP	$01
+        ;; Stash it in F'
 		EX	AF,AF'
-	;; WorldId-based configuration...
+
+	;; Do a bunch of WorldId-based configuration...
 		LD	A,(WorldId)
 		LD	B,A
-	;; Put $C038 + WorldId into $84C5.
-		ADD	A,$38
+	;; Put PanelFlips + WorldId into PanelFlipsPtr.
+		ADD	A,+((PanelFlips - MAGIC_OFFSET) & $FF)
 		LD	L,A
-		ADC	A,$C0
+		ADC	A,+((PanelFlips - MAGIC_OFFSET) >> 8)
 		SUB	L
 		LD	H,A
 		LD	(PanelFlipsPtr),HL
@@ -682,49 +700,60 @@ L8521:		RRA
 		LD	A,$80
 		LD	(CurrData),A
 	;; Update PanelBase
-		LD	A,$1B
+		LD	A,PanelBases & $FF
 		ADD	A,B
 		LD	L,A
-		ADC	A,$86
+		ADC	A,PanelBases >> 8
 		SUB	L
-		LD	H,A 		; HL is $861B (aka PanelBases) + 2xWorldId
+		LD	H,A 		; HL is PanelBases + 2 x WorldId
 		LD	A,(HL)
 		INC	HL
 		LD	H,(HL)
 		LD	L,A
 		LD	(PanelBase),HL	; Set the panel codes for the current world.
-	;; FIXME
+	;; Do something with the data.
 		LD	A,$FF
+        ;; Recover the flag, stick the extent in A, push A and flag.
 		EX	AF,AF'
 		LD	A,C
 		PUSH	AF
+        ;; Extent = 4 -> B = $01
 		SUB	$04
 		LD	B,$01
-		JR	Z,L857B
+		JR	Z,OW_1
+        ;; Extent = 5 -> B = $0F
 		LD	B,$0F
 		INC	A
-		JR	Z,L857B
+		JR	Z,OW_1
+        ;; Extent = 6 -> B = $19
 		LD	B,$19
 		INC	A
-		JR	Z,L857B
+		JR	Z,OW_1
+        ;; Otherwise, B = $1F
 		LD	B,$1F
-L857B:		POP	AF
-		JR	C,L8584
+OW_1:		POP	AF
+		JR	C,OW_2  ; If we jump, A' is $FF
+        ;; Flag bit was set.
 		LD	A,C
 		ADD	A,A
 		ADD	A,B
-		LD	B,A
+		LD	B,A     ; Add 2xC to B
 		LD	A,C
-		EX	AF,AF'
-L8584:		CALL	FetchData2b
-		DJNZ	L8584
+		EX	AF,AF'  ; And put C (extent) in A'
+        ;; Skip B entries
+OW_2:		CALL	FetchData2b
+		DJNZ	OW_2
+        ;; Put 2x extent in B.
 		LD	B,C
 		SLA	B
-L858C:		EX	AF,AF'
+        ;; Then enter the wall-panel-processing loop.
+OWPanel:	EX	AF,AF'
+        ;; Loop through A panels, then hit OWDoor.
 		DEC	A
-		JR	Z,L85C2
+		JR	Z,OWDoor
+        ;; Otherwise update entries in BkgndData.
 		EX	AF,AF'
-L8591:		OR	$00	; NB: Target of self-modifying code.
+OWFlag:		OR	$00		; NB: Target of self-modifying code.
 		LD	(IX+$01),A
 		EXX
 		LD	A,C
@@ -734,7 +763,8 @@ L8591:		OR	$00	; NB: Target of self-modifying code.
 		ADD	IX,DE
 		EXX
 		CALL	FetchData2b
-L85A4:		DJNZ	L858C
+OWPanelLoop:	DJNZ	OWPanel
+        ;; Loop is complete, tidy up. FIXME:
 		EXX
 		PUSH	IX
 		POP	HL
@@ -744,23 +774,24 @@ L85A4:		DJNZ	L858C
 		LD	A,(IX+$00)
 		AND	A
 		RET	NZ
-		LD	A,(L8591+1)
+		LD	A,(OWFlag+1)
 		OR	$05
 		LD	(IX+$01),A
 		LD	A,C
 		SUB	$10
 		LD	(IX+$00),A
 		RET
-L85C2:		EXX
-		LD	A,(L84CA)
+
+OWDoor:		EXX
+		LD	A,(DoorZ)
 		AND	A
 		LD	A,C
-		JR	Z,L85CD
+		JR	Z,OWD_1
 		ADD	A,$10
 		LD	C,A
-L85CD:		SUB	$10
+OWD_1:		SUB	$10
 		LD	(IX+$00),A
-		LD	A,(L8591+1)
+		LD	A,(OWFlag+1)
 		OR	$04
 		LD	(IX+$01),A
 		ADD	IX,DE
@@ -770,18 +801,18 @@ L85CD:		SUB	$10
 		LD	(IX+$00),A
 		ADD	A,$18
 		LD	C,A
-		LD	A,(L84CA)
+		LD	A,(DoorZ)
 		AND	A
-		JR	Z,L85F2
+		JR	Z,OWD_2
 		LD	A,C
 		SUB	$10
 		LD	C,A
-L85F2:		ADD	IX,DE
+OWD_2:		ADD	IX,DE
 		LD	A,$FF
 		EX	AF,AF'
 		EXX
 		DEC	B
-		JR	L85A4
+		JR	OWPanelLoop
 
 	;; Call FetchData for 2 bits
 FetchData2b:	PUSH	BC
@@ -790,7 +821,7 @@ FetchData2b:	PUSH	BC
 		POP	BC
 		RET
 
-        ;; Gets values associated with the far back corner of the screen.
+;; Gets values associated with the far back corner of the screen.
 GetCorner:
         ;; Calculate X coordinate of max U, max V position into B
 		LD	A,(IY-$02) ; MaxU
@@ -830,6 +861,9 @@ WorldData:	DEFB $46,$91,$65,$94,$A1,$69,$69,$AA
 		DEFB $45,$51,$50,$51,$54,$55,$55,$55
 		DEFB $64,$19,$65,$11,$A4,$41,$28,$55
 		DEFB $00,$00,$00,$00,$00,$00,$00,$00
+
+
+
         ;; Bit mask of worlds visited.
 WorldMask:	DEFB $00
 
@@ -1440,20 +1474,24 @@ FD_3:		INC	HL
 		RL	C
 		JP	FD_2
 
-	
 CA260:		LD		HL,(DoorLocs)
+        ;; Take the smaller of H and L.
 		LD		A,L
 		CP		H
 		JR		C,LA268
 		LD		A,H
+        ;; Take it away from C0, to convert to a height above ground...
+        ;; So make it the lower of the two.
 LA268:		NEG
 		ADD		A,$C0
+        ;; Lower (increase Z coord) door height if it's a value less than A.
 		LD		HL,DoorHeight
 		CP		(HL)
 		JR		C,LA273
 		LD		(HL),A
+        ;; Get door height into A and tail call BothWalls
 LA273:		LD		A,(HL)
-		JP		L84E4
+		JP		BothWalls	; NB: Tail call.
 
 FillZero:	LD	E,$00
 	;; HL = Dest, BC = Size, E = value
@@ -2471,8 +2509,8 @@ ShuffleMem_2:	LD	(DE),A
 		LD	A,$10
 		OUT	(C),A
 Have48K:	; Move the data end of things down by 360 bytes...
-		LD	HL,LC1A0
-		LD	DE,LC038
+		LD	HL,PanelFlips
+		LD	DE,PanelFlips - MAGIC_OFFSET
 		LD	BC,L390C ; Up to 0xFAAC
 		LDIR
 		RET
