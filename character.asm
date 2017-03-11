@@ -99,7 +99,7 @@ EPIC_5:		CALL	GetCharObj
 		JR	NC,DoFire
 		XOR	A
 		LD	(LA29F),A
-		LD	A,(L7712)
+		LD	A,(FloorAboveFlag)
 		AND	A
 		JR	NZ,DoFire
 		LD	A,$06

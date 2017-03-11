@@ -9,7 +9,7 @@
 ;;  * SetTmpObjUVZ
 ;;  * SetUVZ
 ;;  * AddObjOpt
-;;  * SomeExport
+;;  * HasFloorAbove
 
 ;; Unpacks a room, adding all its sprites to the lists, and generally
 ;; setting it up.
@@ -401,24 +401,28 @@ FM1:            LD      E,(HL)
                 ADD     HL,DE
                 JR      FM1
 
-SomeExport:	LD	BC,(RoomId)
-		LD	A,C
-		DEC	A
-		AND	$F0
-		LD	C,A
-		CALL	FindRoom
-		RET	C
-        ;; Not found? Let's carry on...
-        ;; FIXME: ???
-		INC	DE
-		INC	DE
-		INC	DE
-		LD	A,(DE)
-		OR	$F1
-		INC	A
-		RET	Z
-		SCF
-		RET
+;; Returns with carry set if the room above has a floor. Unset
+;; otherwise.
+HasFloorAbove:  LD      BC,(RoomId)
+        ;; Find the next room with a lower Z coordinate (above).
+                LD      A,C
+                DEC     A
+                AND     $F0
+                LD      C,A
+                CALL    FindRoom
+                RET     C
+        ;; Room found, extract some data
+        ;; DE is the data pointer after the room header.
+        ;; This code skips ahead to the floor field
+                INC     DE
+                INC     DE
+                INC     DE
+                LD      A,(DE)          ; A & $0E contains floor code.
+                OR      $F1
+                INC     A               ; Floor code of 7 means no floor.
+                RET     Z               ; Return with clear carry if no floor.
+                SCF
+                RET                     ; Set carry if there's a floor.
 
 ;; Like FindRoom, but set the "visited" bit.
 FindVisitRoom:  CALL    FindRoom

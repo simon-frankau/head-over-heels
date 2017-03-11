@@ -319,7 +319,8 @@ DoorObjFlags:   DEFB $27, $26
 DoorwayTest:	DEFB $00
 L7710:	DEFB $00
 FloorCode:	DEFB $00
-L7712:	DEFB $00
+        ;; Set if the room above has a floor.
+FloorAboveFlag:	DEFB $00
         ;; Do we skip processing the objects?
 SkipObj:	DEFB $00
 AttribScheme:	DEFB $00
@@ -390,16 +391,16 @@ DrawScreen:	LD	IY,MinU 		; FIXME: ???
 		LD	BC,L0040
 		CALL	FillZero
 		CALL	CA260
-		CALL	SomeExport
-		LD		A,$00
+		CALL	HasFloorAbove
+		LD	A,$00
 		RLA
-		LD		(L7712),A
+		LD	(FloorAboveFlag),A
 		CALL	C84CB
 		LD		HL,(DoorFlags1)
 		PUSH	HL
 		LD		A,L
 		AND		$08
-		JR		Z,L77D0
+		JR		Z,DRS_1
 		LD		A,$01
 		CALL	SetObjList
 		LD		BC,(RoomId)
@@ -414,12 +415,12 @@ DrawScreen:	LD	IY,MinU 		; FIXME: ???
 		LD		L,$00
 		CALL	EnterRoom
 		CALL	CA260
-L77D0:	LD		IY,L7720
+DRS_1:	LD		IY,L7720
 		POP		HL
 		PUSH	HL
 		LD		A,L
 		AND		$04
-		JR		Z,L77F8
+		JR		Z,DRS_2
 		LD		A,$02
 		CALL	SetObjList
 		LD		BC,(RoomId)
@@ -434,7 +435,7 @@ L77D0:	LD		IY,L7720
 		LD		H,$00
 		CALL	EnterRoom
 		CALL	CA260
-L77F8:		LD	A,(L774C)
+DRS_2:		LD	A,(L774C)
 		LD	HL,(DoorType)
 		PUSH	AF
 		CALL	OccludeDoorway
@@ -759,20 +760,21 @@ L84C7:	DEFB $00
 L84C8:	DEFB $00
 L84C9:	DEFB $00
 L84CA:	DEFB $00
-C84CB:	CALL	C8603
-		LD		A,C
-		SUB		$06
-		LD		C,A
-		ADD		A,B
+
+C84CB:		CALL	C8603
+		LD	A,C
+		SUB	$06
+		LD	C,A
+		ADD	A,B
 		RRA
-		LD		(L84C7),A
-		LD		A,B
+		LD	(L84C7),A
+		LD	A,B
 		NEG
-		ADD		A,C
+		ADD	A,C
 		RRA
-		LD		(L84C8),A
-		LD		A,B
-		LD		(L84C9),A
+		LD	(L84C8),A
+		LD	A,B
+		LD	(L84C9),A
 		RET
 	
 L84E4:		LD	(L84CA),A
@@ -950,21 +952,21 @@ FetchData2b:	PUSH	BC
 		POP	BC
 		RET
 
-C8603:	LD		A,(IY-$02)
-		LD		D,A
-		LD		E,(IY-$01)
-		SUB		E
-		ADD		A,$80
-		LD		B,A
+C8603:		LD	A,(IY-$02)
+		LD	D,A
+		LD	E,(IY-$01)
+		SUB	E
+		ADD	A,$80
+		LD	B,A
 		RRA
 		RRA
-		AND		$3E
-		LD		L,A
-		LD		H,BkgndData >> 8
-		LD		A,$07
-		SUB		E
-		SUB		D
-		LD		C,A
+		AND	$3E
+		LD	L,A
+		LD	H,BkgndData >> 8
+		LD	A,$07
+		SUB	E
+		SUB	D
+		LD	C,A
 		RET
 
 PanelBases:	DEFW IMG_WALLS - MAGIC_OFFSET + $70 * 0		; Blacktooth
