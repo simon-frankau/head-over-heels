@@ -8,6 +8,8 @@
 -- * Elide internal nodes of known functions
 -- * Show variables referenced
 
+local prefix = "../out/graphs/"
+
 local function extract_label(str)
   -- TODO: Assumes no spaces around "," - currently the convention in the code.
   _, _, lhs, rhs = string.find(str, "(.*),(.*)")
@@ -142,7 +144,7 @@ local function check_nodes()
 end
 
 local function write_graph(name, starting_nodes)
-  local fout = io.open(name, "w")
+  local fout = io.open(prefix .. name, "w")
   fout:write("digraph calls {\n")
   local seen_nodes = {}
 
@@ -191,7 +193,7 @@ local function write_remaining()
       remaining_list[#remaining_list + 1] = node
     end
   end
-  write_graph("../out/HOH.dot", remaining_list)
+  write_graph("HOH.dot", remaining_list)
 end
 
 ------------------------------------------------------------------------
