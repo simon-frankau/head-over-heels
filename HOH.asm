@@ -323,18 +323,22 @@ FloorCode:	DEFB $00
 FloorAboveFlag:	DEFB $00
         ;; Do we skip processing the objects?
 SkipObj:	DEFB $00
+
 AttribScheme:	DEFB $00
 WorldId:	DEFB $00	; Range 0..7 (I think 7 is 'same as last')
-DoorFlags1:	DEFB $00
+DoorFlags1:	DEFB $00        ; $08 = Extra room in V direction, $04 = Extra in U dir
 DoorFlags2:	DEFB $00
-MinU:	DEFB $00
-MinV:	DEFB $00
-MaxU:	DEFB $00
-MaxV:	DEFB $00
-L771C:	DEFB $00
-L771D:	DEFB $00
-L771E:	DEFB $00
-L771F:	DEFB $00
+        ;; IY is pointed after to byte MaxV to access limits.
+MinU:	        DEFB $00
+MinV:	        DEFB $00
+MaxU:	        DEFB $00
+MaxV:	        DEFB $00
+        ;; AltLimits is also used as IY.
+AltLimits:      DEFB $00
+                DEFB $00
+                DEFB $00
+                DEFB $00
+
 L7720:	DEFB $00
 L7721:	DEFB $00
 L7722:	DEFB $00
@@ -350,39 +354,36 @@ DoorExts:	DEFB $08,$08,$48,$48
 		DEFB $20,$08,$30,$48
 		DEFB $10,$10,$40,$40
 
-L7744:	DEFB $00
-L7745:	DEFB $00
-L7746:	DEFB $00
-L7747:	DEFB $00
+        ;; Copy of DoorLocs?
+DoorLocsCopy:	DEFB $00, $00, $00, $00
         ;; Locations of the 4 doors along their respective walls.
 DoorLocs:       DEFB $00, $00, $00, $00
-L774C:	DEFB $C0
+DoorHeight:	DEFB $C0
 C774D:		LD		A,$FF
 		LD		(SkipObj),A
 	;; NB: Fall through
 
-	;; Guess that this is redraw screen, based on setting sprite extend to full screen...
-DrawScreen:	LD	IY,MinU 		; FIXME: ???
+        ;; Set up a room.
+BuildRoom:	LD	IY,MinU 		; Set the base of where we load limits.
 	;; Initialise the sprite extents to cover the full screen.
 		LD	HL,L40C0
 		LD	(ViewXExtent),HL
 		LD	HL,L00FF
 		LD	(ViewYExtent),HL
-	;;  FIXME: ???
 		LD	HL,LC0C0
 		LD	(DoorLocs),HL
 		LD	(DoorLocs+2),HL
 		LD	HL,L0000
 		LD	BC,(RoomId)
-		CALL	EnterRoom
+		CALL	ReadRoom
 		XOR	A
 		LD	(SkipObj),A
-		LD	(L774C),A
+		LD	(DoorHeight),A
 		LD	HL,(ObjDest)
 		LD	(LAF92),HL
 		LD	A,(L7710)
 		LD	(DoorwayTest),A
-		LD	DE,L7744
+		LD	DE,DoorLocsCopy
 		LD	HL,DoorLocs
 		LD	BC,L0004
 		LDIR
@@ -390,52 +391,59 @@ DrawScreen:	LD	IY,MinU 		; FIXME: ???
 		LD	HL,BkgndData
 		LD	BC,L0040
 		CALL	FillZero
+        ;; ???
 		CALL	CA260
 		CALL	HasFloorAbove
 		LD	A,$00
 		RLA
 		LD	(FloorAboveFlag),A
-		CALL	C84CB
-		LD		HL,(DoorFlags1)
+		CALL	StoreCorner
+		LD	HL,(DoorFlags1)
 		PUSH	HL
-		LD		A,L
-		AND		$08
-		JR		Z,DRS_1
-		LD		A,$01
+		LD	A,L
+		AND	$08
+		JR	Z,DRS_1
+        ;; Optional ReadRoom pass on object list 1:
+        ;; Draw the next room in V direction, tacked on.
+		LD	A,$01
 		CALL	SetObjList
-		LD		BC,(RoomId)
-		LD		A,B
-		INC		A
-		XOR		B
-		AND		$0F
-		XOR		B
-		LD		B,A
-		LD		A,(MaxV)
-		LD		H,A
-		LD		L,$00
-		CALL	EnterRoom
+		LD	BC,(RoomId) ; Increment V nybble of the RoomId
+		LD	A,B
+		INC	A
+		XOR	B
+		AND	$0F
+		XOR	B
+		LD	B,A
+		LD	A,(MaxV) ; Set HL offset to MavV
+		LD	H,A
+		LD	L,$00
+		CALL	ReadRoom
 		CALL	CA260
-DRS_1:	LD		IY,L7720
-		POP		HL
+        
+DRS_1:		LD	IY,AltLimits + 4
+		POP	HL
 		PUSH	HL
-		LD		A,L
-		AND		$04
-		JR		Z,DRS_2
-		LD		A,$02
+		LD	A,L
+		AND	$04
+		JR	Z,DRS_2
+        ;; Optional ReadRoom pass on object list 2:
+        ;; Draw the next room in U direction, tacked on.
+		LD	A,$02
 		CALL	SetObjList
-		LD		BC,(RoomId)
-		LD		A,B
-		ADD		A,$10
-		XOR		B
-		AND		$F0
-		XOR		B
-		LD		B,A
-		LD		A,(MaxU)
-		LD		L,A
-		LD		H,$00
-		CALL	EnterRoom
+		LD	BC,(RoomId) ; Increment U byte of the RoomId
+		LD	A,B
+		ADD	A,$10
+		XOR	B
+		AND	$F0
+		XOR	B
+		LD	B,A
+		LD	A,(MaxU) ; Set HL offset to MaxU
+		LD	L,A
+		LD	H,$00
+		CALL	ReadRoom
 		CALL	CA260
-DRS_2:		LD	A,(L774C)
+        ;; TODO
+DRS_2:		LD	A,(DoorHeight)
 		LD	HL,(DoorType)
 		PUSH	AF
 		CALL	OccludeDoorway
@@ -443,8 +451,8 @@ DRS_2:		LD	A,(L774C)
 		CALL	SetColHeight
 		POP	HL
 		LD	(DoorFlags1),HL
-		XOR	A
-		JP	SetObjList
+		XOR	A                       ; Switch back to usual object list.
+		JP	SetObjList 		; NB: Tail call.
 
 #include "procdata.asm"
 
@@ -542,7 +550,7 @@ C7BBF:		CALL	Reinitialise
 		JR	NZ,L7BDC
 		LD	HL,LFB28
 		SET	0,(HL)
-		CALL	DrawScreen
+		CALL	BuildRoom
 		LD	A,$01
 		JR	L7C14
 L7BDC:		CALL	C728C
@@ -569,7 +577,7 @@ L7C00:		LD	A,B
 		LD	(L7B8F),A
 L7C0C:		LD	A,$01
 		JR	L7C14
-L7C10:		CALL	DrawScreen
+L7C10:		CALL	BuildRoom
 		XOR	A
 L7C14:		LD	(LA295),A
 		JP	C7C1A
@@ -758,25 +766,25 @@ PanelBase:	DEFW $0000
 PanelFlipsPtr:	DEFW $0000	; Pointer to byte full of whether walls need to flip
 L84C7:	DEFB $00
 L84C8:	DEFB $00
-L84C9:	DEFB $00
+CornerX:	DEFB $00
 L84CA:	DEFB $00
 
-C84CB:		CALL	C8603
+StoreCorner:	CALL	GetCorner
 		LD	A,C
 		SUB	$06
 		LD	C,A
 		ADD	A,B
 		RRA
-		LD	(L84C7),A
+		LD	(L84C7),A ; Store (C + B - 6) / 2 (= 43 - MaxV)
 		LD	A,B
 		NEG
 		ADD	A,C
 		RRA
-		LD	(L84C8),A
+		LD	(L84C8),A ; Store (C - B) / 2 (= -36 - MaxU)
 		LD	A,B
-		LD	(L84C9),A
+		LD	(CornerX),A ; Store B
 		RET
-	
+
 L84E4:		LD	(L84CA),A
 		CALL	C8506
 		LD	A,(DoorFlags1)
@@ -786,11 +794,12 @@ L84E4:		LD	(L84CA),A
 		EXX
 		LD	A,$80
 		LD	(L8591+1),A
-		CALL	C8603
+		CALL	GetCorner
 		LD	DE,L0002
-		LD	A,(IY-$01)
-		SUB	(IY-$03)
+		LD	A,(IY-$01) ; MaxV
+		SUB	(IY-$03)   ; MinV
 		JR	L8521
+
 C8506:		LD	A,(DoorFlags1)
 		AND	$08
 		RET	NZ
@@ -798,12 +807,12 @@ C8506:		LD	A,(DoorFlags1)
 		EXX
 		XOR	A
 		LD	(L8591+1),A
-		CALL	C8603
+		CALL	GetCorner
 		DEC	L
 		DEC	L
 		LD	DE,LFFFE
-		LD	A,(IY-$02)
-		SUB	(IY-$04)
+		LD	A,(IY-$02) ; MaxU
+		SUB	(IY-$04)   ; MinU
 	;; NB: Fall through
 
 L8521:		RRA
@@ -952,17 +961,22 @@ FetchData2b:	PUSH	BC
 		POP	BC
 		RET
 
-C8603:		LD	A,(IY-$02)
+        ;; Gets values associated with the far back corner of the screen.
+GetCorner:
+        ;; Calculate X coordinate of max U, max V position into B
+		LD	A,(IY-$02) ; MaxU
 		LD	D,A
-		LD	E,(IY-$01)
+		LD	E,(IY-$01) ; MaxV
 		SUB	E
 		ADD	A,$80
 		LD	B,A
 		RRA
 		RRA
+        ;; And the associated BkgndData pointer into HL.
 		AND	$3E
 		LD	L,A
 		LD	H,BkgndData >> 8
+        ;; Y coordinate of max U/V in C?
 		LD	A,$07
 		SUB	E
 		SUB	D
@@ -1520,7 +1534,7 @@ DoObjects:	LD	A,(Phase)
 		XOR	$80
 		LD	(Phase),A 		; Toggle top bit of Phase
 		CALL	CharThing
-	;; Loop over object list...
+	;; Loop over main object list...
 		LD	HL,(ObjectLists + 2)
 		JR	DO_3
 DO_1:		PUSH	HL
@@ -1598,18 +1612,18 @@ FD_3:		INC	HL
 		JP	FD_2
 
 	
-CA260:	LD		HL,(DoorLocs)
+CA260:		LD		HL,(DoorLocs)
 		LD		A,L
 		CP		H
 		JR		C,LA268
 		LD		A,H
-LA268:	NEG
+LA268:		NEG
 		ADD		A,$C0
-		LD		HL,L774C
+		LD		HL,DoorHeight
 		CP		(HL)
 		JR		C,LA273
 		LD		(HL),A
-LA273:	LD		A,(HL)
+LA273:		LD		A,(HL)
 		JP		L84E4
 
 FillZero:	LD	E,$00
@@ -1749,7 +1763,7 @@ CAA7E:	LD		C,$C0
 		LD		A,(LA2BC)
 		AND		A
 		RET		Z
-		LD		IX,L7744
+		LD		IX,DoorLocsCopy
 		LD		C,(IX+$00)
 		LD		A,(MaxV)
 		SUB		$03
@@ -1862,7 +1876,7 @@ LAB55:		OR		$E0
 LAB5F:	XOR		A
 		SCF
 		JP		LB2BF
-	;; Run through all the objects
+	;; Run through all the objects in the main object list
 LAB64:		LD	HL,ObjectLists + 2
 LAB67:		LD	A,(HL)
 		INC	HL
@@ -1963,7 +1977,7 @@ GetStoodUpon:	CALL	GetUVZExtentsE		; Perhaps getting height as a filter?
 		INC	A
 		LD	C,A
 		EXX
-	;; Traverse list of objects
+	;; Traverse list of objects in main object list
 		LD	HL,ObjectLists + 2
 GSU_1:		LD	A,(HL)
 		INC	HL
@@ -1995,7 +2009,7 @@ CAC41:		CALL	GetUVZExtentsE
 		EXX
 		XOR	A
 		LD	(LAA72),A
-	;; Traverse list of objects
+	;; Traverse main list of objects
 		LD	HL,ObjectLists + 2
 LAC4E:		LD	A,(HL)
 		INC	HL
@@ -2303,9 +2317,9 @@ ObjListBPtr:    DEFW ObjectLists + 2
         ;; Each list consists of a pair of pointers to linked lists of
         ;; objects (ListA and ListB). They're opposite directions in a
 	;; doubly-linked list, and each side has a head node, it seems.
-ObjectLists:    DEFW $0000,$0000 ; 0
-                DEFW $0000,$0000 ; 1
-                DEFW $0000,$0000 ; 2
+ObjectLists:    DEFW $0000,$0000 ; 0 - Usual list
+                DEFW $0000,$0000 ; 1 - Next room in V direction
+                DEFW $0000,$0000 ; 2 - Next room in U direction
                 DEFW $0000,$0000 ; 3 - Far
                 DEFW $0000,$0000 ; 4 - Near
 
@@ -2412,7 +2426,7 @@ PostTableCall:    EXX
                         POP             IX
                         BIT             2,C
                         JR              NZ,LB269
-                        LD              HL,ObjectLists
+                        LD              HL,ObjectLists ; TODO: Another object list traversal
 LB257:    LD              A,(HL)
                         INC             HL
                         LD              H,(HL)

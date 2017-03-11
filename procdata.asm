@@ -5,7 +5,7 @@
 ;;
 
 ;; Exported functions:
-;;  * EnterRoom
+;;  * ReadRoom
 ;;  * SetTmpObjUVZ
 ;;  * SetUVZ
 ;;  * AddObjOpt
@@ -18,7 +18,7 @@
 ;; Takes room id in BC.
 ;; HL holds the UV origin of the room.
 ;;
-EnterRoom:	LD	(DecodeOrgStack),HL 	; Set UV origin.
+ReadRoom:	LD	(DecodeOrgStack),HL 	; Set UV origin.
 		XOR	A
 		LD	(DecodeOrgStack + 2),A  ; And Z origin.
 		PUSH	BC

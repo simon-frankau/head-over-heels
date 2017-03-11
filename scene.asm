@@ -127,7 +127,7 @@ DrawCore:       LD      (ViewYExtent),DE
                 AND     $08
                 JR      Z,DrC_1
                 LD      BC,(ViewXExtent)
-                LD      HL,L84C9
+                LD      HL,CornerX
                 LD      A,B
                 CP      (HL)
                 JR      NC,DrC_1
@@ -138,14 +138,14 @@ DrawCore:       LD      (ViewYExtent),DE
                 LD      A,(L84C7)
                 CP      D
                 JR      C,DrC_1
-                LD      HL,ObjectLists + 4
+                LD      HL,ObjectLists + 4      ; Next room in V direction (??)
                 PUSH    DE
                 CALL    BlitObjects
                 POP     DE
                 BIT     2,E
                 JR      Z,DrC_2
 DrC_1:          LD      BC,(ViewXExtent)
-                LD      A,(L84C9)
+                LD      A,(CornerX)
                 CP      C
                 JR      NC,DrC_2
                 LD      A,(ViewYExtent+1)
@@ -156,13 +156,13 @@ DrC_1:          LD      BC,(ViewXExtent)
                 LD      A,(L84C8)
                 CP      D
                 JR      C,DrC_2
-                LD      HL,ObjectLists + 2 * 4
+                LD      HL,ObjectLists + 2 * 4  ; Next room in U direction
                 CALL    BlitObjects
-DrC_2:          LD      HL,ObjectLists + 3 * 4
+DrC_2:          LD      HL,ObjectLists + 3 * 4  ; Far
                 CALL    BlitObjects
-                LD      HL,ObjectLists + 0 * 4
+                LD      HL,ObjectLists + 0 * 4  ; Main object list
                 CALL    BlitObjects
-                LD      HL,ObjectLists + 4 * 4
+                LD      HL,ObjectLists + 4 * 4  ; Near
                 CALL    BlitObjects
                 JP      BlitScreen              ; NB: Tail call
 

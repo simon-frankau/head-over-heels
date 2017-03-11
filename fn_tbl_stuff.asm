@@ -13,10 +13,7 @@
 	;; MinV
 	;; MaxU
 	;; MaxV
-	;; L7744
-	;; L7745
-	;; L7746
-	;; L7747
+	;; DoorLocsCopy
 	;; LA2BF
 	;; LB218
 	
@@ -285,7 +282,7 @@ SomeTableFn0:	CALL	TblFnCommon19
 		JR	C,TblFnCommon2b
 		BIT	0,(IX-$01)
 		JR	Z,STF8_1
-		LD	A,(L7747)
+		LD	A,(DoorLocsCopy + 3)
 		CALL	TblFnCommon17
 		JR	C,TblFnCommon2
 		CALL	TblFnCommon15
@@ -336,7 +333,7 @@ SomeTableFn2:	CALL	TblFnCommon19
 		JR	C,TblFnCommon6b
 		BIT	1,(IX-$01)
 		JR	Z,STF2_1
-		LD	A,(L7746)
+		LD	A,(DoorLocsCopy + 2)
 		CALL	TblFnCommon17
 		JR	C,TblFnCommon6
 		CALL	TblFnCommon13
@@ -378,7 +375,7 @@ SomeTableFn4:	CALL	TblFnCommon19
 		JR	C,STF4_4
 		BIT	2,(IX-$01)
 		JR	Z,STF4_1
-		LD	A,(L7745)
+		LD	A,(DoorLocsCopy + 1)
 		CALL	TblFnCommon17
 		JR	C,STF4_3
 		CALL	TblFnCommon15
@@ -410,7 +407,7 @@ SomeTableFn6:	CALL	TblFnCommon19
 		JR	C,TblFnCommon9b
 		BIT	3,(IX-$01)
 		JR	Z,STF6_1
-		LD	A,(L7744)
+		LD	A,(DoorLocsCopy)
 		CALL	TblFnCommon17
 		JR	C,TblFnCommon9
 		CALL	TblFnCommon13

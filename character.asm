@@ -460,7 +460,7 @@ CharThing26:	LD	A,(LA2BF)
 		CALL	Relink
 		CALL	CharThing16
 		XOR	A
-		CALL	SetObjList
+		CALL	SetObjList 		; Switch to default object list
 		CALL	GetCharObj
 		CALL	UnionAndDraw
 		JP	PlayOtherSound 		; NB: Tail call
@@ -815,7 +815,7 @@ CharThing15:	XOR	A 	; FIXME: Unused?
 		XOR	$01
 		LD	E,A
 		LD	D,$00
-		LD	HL,L7744
+		LD	HL,DoorLocsCopy
 		ADD	HL,DE
 		LD	C,(HL)
 		LD	HL,LAA6E
@@ -908,7 +908,7 @@ EPIC_97:	LD	A,$80
 		LD	(LB219),A
 		LD	(LB21A),A
 		LD	(L7B8F),A
-		JP	SetObjList
+		JP	SetObjList ; Switch to default object list
 	
 CharThing16:	LD	A,(ObjListIdx)
 		LD	(LA2BC),A
