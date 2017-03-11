@@ -1,5 +1,5 @@
 ;;
-;; procdata.asm
+;; room.asm
 ;;
 ;; Functions that largely decode the packed room data
 ;;

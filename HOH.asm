@@ -283,7 +283,7 @@ DrawColBottom:	LD	HL,IMG_ColBottom + $0F - MAGIC_OFFSET
 DrawColLDDR:	LDDR
 		RET
 
-#include "procdata.asm"
+#include "room.asm"
 
 InitStuff:	CALL	IrqInstall
 		JP	InitRevTbl
