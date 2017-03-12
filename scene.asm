@@ -120,17 +120,21 @@ CheckYAndDraw2: LD      A,D
 ;; TODO: Work out what all these flag variables are about...
 DrawCore:       LD      (ViewYExtent),DE
                 CALL    DrawBkgnd
+        ;; Skip next rooms in U and V if neither $08 or $04 is set.
                 LD      A,(DoorFlags1)
                 AND     $0C
                 JR      Z,DrC_2
+        ;; Skip next room in V if $08 not set.
                 LD      E,A
                 AND     $08
                 JR      Z,DrC_1
+        ;; TODO: Another V test.
                 LD      BC,(ViewXExtent)
                 LD      HL,CornerX
                 LD      A,B
                 CP      (HL)
                 JR      NC,DrC_1
+        ;; TODO: Another V test.
                 LD      A,(ViewYExtent+1)
                 ADD     A,B
                 RRA
@@ -138,16 +142,20 @@ DrawCore:       LD      (ViewYExtent),DE
                 LD      A,(L84C7)
                 CP      D
                 JR      C,DrC_1
-                LD      HL,ObjectLists + 4      ; Next room in V direction (??)
+        ;; Draw the next room in the V direction.
+                LD      HL,ObjectLists + 4
                 PUSH    DE
                 CALL    BlitObjects
                 POP     DE
+        ;; Skip next room in U if $04 not set.
                 BIT     2,E
                 JR      Z,DrC_2
+        ;; TODO: Another U test.
 DrC_1:          LD      BC,(ViewXExtent)
                 LD      A,(CornerX)
                 CP      C
                 JR      NC,DrC_2
+        ;; TODO: Another U test.
                 LD      A,(ViewYExtent+1)
                 SUB     C
                 CCF
@@ -156,8 +164,10 @@ DrC_1:          LD      BC,(ViewXExtent)
                 LD      A,(L84C8)
                 CP      D
                 JR      C,DrC_2
-                LD      HL,ObjectLists + 2 * 4  ; Next room in U direction
+        ;; Draw the next room in U direction.
+                LD      HL,ObjectLists + 2 * 4
                 CALL    BlitObjects
+        ;; And then draw the other object lists.
 DrC_2:          LD      HL,ObjectLists + 3 * 4  ; Far
                 CALL    BlitObjects
                 LD      HL,ObjectLists + 0 * 4  ; Main object list
