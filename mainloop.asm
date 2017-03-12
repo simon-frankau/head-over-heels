@@ -166,7 +166,7 @@ CP_1:		CALL	GetInputEntSh
 	;; Continue
 	;; FIXME: Interesting one to understand...
 		CALL	WaitInputClear
-		CALL	C7BB3
+		CALL	RevealScreen
 		LD	HL,L4C50
 CP_2:		PUSH	HL
 		LD	DE,L6088

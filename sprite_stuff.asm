@@ -15,6 +15,7 @@
 EndScreen:      LD      A,(WorldMask)
                 CP      $1F
                 JR      NZ,ES_1
+        ;; Get proclaimed Emperor!
                 LD      A,STR_WIN_SCREEN
                 CALL    PrintChar
                 CALL    AltPlaySound
@@ -22,9 +23,10 @@ EndScreen:      LD      A,(WorldMask)
                 LD      HL,MainMenuSpriteList
                 CALL    DrawFromList
                 CALL    WaitKey
+        ;; Dislay the crowns you've won.
 ES_1:           CALL    CrownScreen
-                CALL    C7395
-                JP      C7BB3
+                CALL    DrawBlacked
+                JP      RevealScreen            ; NB: Tail call
 
 CrownScreen:    LD      A,STR_EMPIRE_BLURB
                 CALL    PrintChar

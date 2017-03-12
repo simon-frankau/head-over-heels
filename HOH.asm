@@ -172,28 +172,32 @@ IrqHandler:	PUSH	AF
 SkipWriteFrame:	POP	AF
 		EI
 		RET
-	
-C7395:		LD	A,$08
+
+;; Draws the screen in black. Presumably hides the drawing process.
+;;
+;; Draws screen in black with an X extent from 32 to 192,
+;; Y extent from 40 to 255 (?!).
+DrawBlacked:	LD	A,$08
 		CALL	SetAttribs 	; Set all black attributes
-		LD	HL,L4048
-		LD	DE,L4857
-L73A0:		PUSH	HL
+		LD	HL,$4048	; X extent
+		LD	DE,$4857 	; Y extent
+DBL_1:		PUSH	HL
 		PUSH	DE
 		CALL	CheckYAndDraw
 		POP	DE
 		POP	HL
 		LD	H,L
 		LD	A,L
-		ADD	A,$14
+		ADD	A,$14   ; First window is 8 wide, subsequent are 20.
 		LD	L,A
-		CP	$C1
-		JR	C,L73A0
-		LD	HL,L4048
+		CP	$C1     ; Loop across the visible core of the screen.
+		JR	C,DBL_1
+		LD	HL,$4048
 		LD	D,E
 		LD	A,E
-		ADD	A,$2A
-		LD	E,A
-		JR	NC,L73A0
+		ADD	A,$2A   ; First window is 15, subsequent are 42.
+		LD	E,A     ; Loop all the way to row 255!
+		JR	NC,DBL_1
 		RET
 
 #include "attr_scheme.asm"
@@ -340,10 +344,10 @@ L7B78:		CALL	C774D
 		DEFW	ReinitThing
 		CALL	SetCharThing
 		CALL	C7C1A
-		CALL	C7395
+		CALL	DrawBlacked
 		XOR	A
 		LD	(LA295),A
-		JR	C7BB3		; Tail call
+		JR	RevealScreen	; Tail call
 
 L7B8F:	DEFB $00
 WorldIdSnd:	DEFB $00
@@ -361,11 +365,13 @@ L7BA4:		LD	(WorldIdSnd),A
 		OR	$40
 		LD	B,A
 		CALL	PlaySound
-L7BAD:		CALL	C7395
+L7BAD:		CALL	DrawBlacked
 		CALL	CharThing15
 	;; NB: Fall through
 
-C7BB3:		LD	A,(AttribScheme)
+;; Apply the attributes to make the screen visible, and draw the bits
+;; around the edge.
+RevealScreen:	LD	A,(AttribScheme)
 		CALL	UpdateAttribs
 		CALL	PrintStatus
 		JP	DrawScreenPeriphery		; Tail call
