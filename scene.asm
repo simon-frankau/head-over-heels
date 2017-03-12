@@ -121,7 +121,7 @@ CheckYAndDraw2: LD      A,D
 DrawCore:       LD      (ViewYExtent),DE
                 CALL    DrawBkgnd
         ;; Skip next rooms in U and V if neither $08 or $04 is set.
-                LD      A,(DoorFlags1)
+                LD      A,(HasNoWall)
                 AND     $0C
                 JR      Z,DrC_2
         ;; Skip next room in V if $08 not set.

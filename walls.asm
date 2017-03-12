@@ -34,7 +34,7 @@ BothWalls:	LD	(DoorZ),A
         ;; Do the V wall case before doing the U wall in this function.
 		CALL	VWall
         ;; Skip if there's an extra room visible in the U dir.
-		LD	A,(DoorFlags1)
+		LD	A,(HasNoWall)
 		AND	$04
 		RET	NZ
         ;; 
@@ -51,7 +51,7 @@ BothWalls:	LD	(DoorZ),A
 ;; Draw wall parallel to U axis.
 VWall:
         ;; Skip if there's an extra room in the V direction.
-		LD	A,(DoorFlags1)
+		LD	A,(HasNoWall)
 		AND	$08
 		RET	NZ
         ;; 
@@ -68,7 +68,7 @@ VWall:
 	;; NB: Fall through
 
         ;; Extent in A, movement step in DE, BkgndData pointer in HL, X/Y in B/C
-        ;; DoorFlags1 in A', the flag for this wall in B'
+        ;; HasNoWall in A', the flag for this wall in B'
 OneWall:
         ;; Divide wall extent by 16 (one panel?) 
 		RRA
@@ -80,9 +80,9 @@ OneWall:
 		PUSH	HL
 		POP	IX
 		EXX
-        ;; Updated extent in C, check flag that was in B' against DoorFlags2.
+        ;; Updated extent in C, check flag that was in B' against HasDoor.
 		LD	C,A
-		LD	A,(DoorFlags2)
+		LD	A,(HasDoor)
 		AND	B
 		CP	$01
         ;; Stash it in F'

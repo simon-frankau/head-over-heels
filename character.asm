@@ -820,7 +820,7 @@ CharThing15:	XOR	A 	; FIXME: Unused?
 		LD	C,(HL)
 		LD	HL,LAA6E
 		ADD	HL,DE
-		LD	A,(DoorFlags1)
+		LD	A,(HasNoWall)
 		AND	(HL)
 		JR	NZ,EPIC_86
 		LD	(IY+$07),C

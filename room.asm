@@ -55,8 +55,8 @@ SkipObj:	DEFB $00
 
 AttribScheme:	DEFB $00
 WorldId:	DEFB $00	; Range 0..7 (I think 7 is 'same as last')
-DoorFlags1:	DEFB $00        ; $08 = Extra room in V direction, $04 = Extra in U dir
-DoorFlags2:	DEFB $00
+HasNoWall:	DEFB $00        ; $08 = Extra room in V direction, $04 = Extra in U dir
+HasDoor:	DEFB $00
         ;; IY is pointed after to byte MaxV to access limits.
 MinU:	        DEFB $00
 MinV:	        DEFB $00
@@ -127,7 +127,7 @@ BuildRoom:	LD	IY,MinU 		; Set the base of where we load limits.
 		RLA
 		LD	(FloorAboveFlag),A
 		CALL	StoreCorner
-		LD	HL,(DoorFlags1)
+		LD	HL,(HasNoWall)
 		PUSH	HL
 		LD	A,L
 		AND	$08
@@ -179,7 +179,7 @@ BRM_2:		LD	A,(DoorHeight)
 		POP	AF
 		CALL	SetColHeight
 		POP	HL
-		LD	(DoorFlags1),HL
+		LD	(HasNoWall),HL
 		XOR	A                       ; Switch back to usual object list.
 		JP	SetObjList 		; NB: Tail call.
 
@@ -432,13 +432,13 @@ DoDoors:
 ;; TODO: Door stuff is currently only a theory...
 FetchDoor:      LD      B,$03
                 CALL    FetchData
-                LD      HL,DoorFlags1
+                LD      HL,HasNoWall
                 SUB     $02
         ;; Jump for the fetched-a-0-or-1 case
                 JR      C,FD2
-        ;; Rotate a zero into DoorFlags1
+        ;; Rotate a zero into HasNoWall - there's a wall.
                 RL      (HL)
-        ;; And rotate a one bit into DoorFlags2
+        ;; And rotate a one bit into HasDoor
                 INC     HL
                 SCF
                 RL      (HL)
@@ -463,9 +463,9 @@ FD2:
                 CP      $FF
         ;; Complement.
                 CCF
-        ;; Rotate it into DoorFlags1
+        ;; Rotate it into HasNoWall
                 RL      (HL)
-        ;; And rotate a zero bit into DoorFlags2
+        ;; And rotate a zero bit into HasDoor
                 AND     A
                 INC     HL
                 RL      (HL)

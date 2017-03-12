@@ -418,7 +418,7 @@ L7C14:		LD	(LA295),A
 	;; H     L
 	
 C7C1A:		LD	HL,(MinU)
-		LD	A,(DoorFlags2)
+		LD	A,(HasDoor)
 		PUSH	AF
 		BIT	1,A
 		JR	Z,L7C29
