@@ -59,11 +59,16 @@ XB9FF:	DEFB $5D
 	;; 16 words describing the 16 double-columns
 	;;
 	;; NB: Page-aligned
-BkgndData:	 DEFB $FD,$4E,$06,$FD,$46,$07,$AF,$ED,$42,$17,$FD,$AE,$00,$E6,$01
-XBA0F:	DEFB $EB,$20,$0E,$FD,$CB,$00,$E6,$AF,$FD,$77,$0F,$FD,$6E,$06,$FD,$66
-XBA1F:	DEFB $07,$FD,$75,$08,$FD,$74,$09,$FD,$CB,$00,$5E,$C8,$FD,$21,$1B,$C5
-XBA2F:	DEFB $FD,$35,$04,$C0,$CD,$CB,$C1,$A7,$20,$04,$FD,$B6,$03,$C0,$7E,$E6
-XBA3F:	DEFB $0F
+	;;
+	;; Byte 0: Y start (0 = clear)
+	;; Byte 1: Id for wall panel sprite
+	;;         (0-3 - world-specific, 4 - blank, 5 - columns, | $80 to flip)
+BkgndData:	DEFB $FD,$4E,$06,$FD,$46,$07,$AF,$ED,$42,$17,$FD,$AE,$00,$E6,$01,$EB
+		DEFB $20,$0E,$FD,$CB,$00,$E6,$AF,$FD,$77,$0F,$FD,$6E,$06,$FD,$66,$07
+
+	DEFB $FD,$75,$08,$FD,$74,$09,$FD,$CB,$00,$5E,$C8,$FD,$21,$1B,$C5,$FD
+XBA30:	DEFB $35,$04,$C0,$CD,$CB,$C1,$A7,$20,$04,$FD,$B6,$03,$C0,$7E,$E6,$0F
+
 	
 LBA40:		BIT		7,(IY+$00)
 		JR		Z,LBA48

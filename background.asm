@@ -57,7 +57,7 @@ DrawBkgnd:      LD      HL,(ViewXExtent)
                 LD      IY,ClearOne
                 LD      IX,OneColBlitR
                 LD      HL,BlitFloorR
-                CALL    BkgndCall
+                CALL    DrawBkgndCol
                 CP      $FF
                 RET     Z
                 SUB     $01
@@ -66,7 +66,7 @@ DrawBkgnd:      LD      HL,(ViewXExtent)
 DB_1:           LD      IY,ClearTwo
                 LD      IX,TwoColBlit
                 LD      HL,BlitFloor
-                CALL    BkgndCall
+                CALL    DrawBkgndCol
                 INC     E
                 SUB     $02
 DB_2:           JR      NC,DB_1
@@ -78,16 +78,16 @@ DB_2:           JR      NC,DB_1
                 LD      HL,BlitFloorL
                 LD      (BlitFloorFnPtr+1),HL
                 EXX
-                JR      BkgndCall2              ; Tail call.
+                JR      DrawBkgndCol2           ; Tail call.
 
 ;; Performs register-saving and incrementing HL'/E. Not needed
 ;; for the last call from DrawBkgnd.
-BkgndCall:      LD      (BlitFloorFnPtr+1),HL
+DrawBkgndCol:   LD      (BlitFloorFnPtr+1),HL
                 PUSH    DE
                 PUSH    AF
                 EXX
                 PUSH    HL
-                CALL    BkgndCall2
+                CALL    DrawBkgndCol2
                 POP     HL
                 INC     L
                 INC     L
@@ -111,38 +111,38 @@ TALL_WALL:      EQU $4A         ; 74 pixels max height for columns (indices 4 an
 ;;           Byte 1: Id for wall panel sprite
 ;;                   (0-3 - world-specific, 4 - blank, 5 - columns, | $80 to flip)
 ;; Note that the Y coordinates are downward-increasing, matching memory.
-BkgndCall2:     LD      DE,(ViewYExtent)
+DrawBkgndCol2:  LD      DE,(ViewYExtent)
                 LD      A,E
                 SUB     D
                 LD      E,A             ; E now contains height
                 LD      A,(HL)
                 AND     A
-                JR      Z,BC_Clear      ; Baseline of zero? Clear full height, then
+                JR      Z,DBC_Clear     ; Baseline of zero? Clear full height, then
                 LD      A,D
                 SUB     (HL)
                 LD      D,A             ; D holds how many lines we are below the bottom of the wall
-                JR      NC,BC_DoFloor   ; Positive? Then skip to drawing the floor.
+                JR      NC,DBC_DoFloor  ; Positive? Then skip to drawing the floor.
         ;; In this case, we handle the viewing window starting above the start of the floor.
                 INC     HL
                 LD      C,SHORT_WALL    ; Wall height for ids 0-3
                 BIT     2,(HL)
-                JR      Z,BC_Flag
+                JR      Z,DBC_Flag
                 LD      C,TALL_WALL     ; Wall weight for ids 4-5
-BC_Flag:        ADD     A,C             ; Add the wall height on.
+DBC_Flag:       ADD     A,C             ; Add the wall height on.
         ;; Window Y start now relative to the top of the current wall panel.
-                JR      NC,BC_TopSpace  ; Still some space left above in window? Jump
+                JR      NC,DBC_TopSpace ; Still some space left above in window? Jump
         ;; Start drawing some fraction through the wall panel
                 ADD     A,A
                 CALL    GetOffsetWall
                 EXX
                 LD      A,D
                 NEG
-                JP      BC_Wall
+                JP      DBC_Wall
         ;; We start before the top of the wall panel, so we'll start off by clearing above.
         ;; A holds -number of rows to top of wall panel, E holds number of rows to write.
-BC_TopSpace:    NEG
+DBC_TopSpace:   NEG
                 CP      E
-                JR      NC,BC_Clear     ; If we're /only/ drawing space, do the tail call.
+                JR      NC,DBC_Clear    ; If we're /only/ drawing space, do the tail call.
         ;; Clear the appropriate amount of space.
                 LD      B,A
                 NEG
@@ -158,11 +158,11 @@ BC_TopSpace:    NEG
         ;; and the height to use
                 LD      A,SHORT_WALL
                 BIT     2,(HL)
-                JR      Z,BC_Wall
+                JR      Z,DBC_Wall
                 LD      A,TALL_WALL
         ;; Now draw the wall. A holds number of lines of wall to draw, source in HL'
-BC_Wall:        CP      E
-                JR      NC,BC_Copy      ; Window ends in the wall panel? Tail call
+DBC_Wall:       CP      E
+                JR      NC,DBC_Copy     ; Window ends in the wall panel? Tail call
         ;; Otherwise, copy the full wall panel, and then draw the floor etc.
                 LD      B,A
                 NEG
@@ -172,14 +172,14 @@ BC_Wall:        CP      E
                 CALL    DoCopy
                 EX      AF,AF'
                 LD      D,$00
-                JR      BC_FloorEtc     ; Tail call
-BC_Copy:        LD      A,E
+                JR      DBC_FloorEtc    ; Tail call
+DBC_Copy:       LD      A,E
                 JP      (IX)            ; Copy A rows from HL' to DE'.
-BC_Clear:       LD      A,E
+DBC_Clear:      LD      A,E
                 JP      (IY)            ; Clear A rows at DE'.
 
         ;; Point we jump to if we're initially below the top edge of the floor.
-BC_DoFloor:     LD      A,E
+DBC_DoFloor:    LD      A,E
                 INC     HL
         ;; NB: Fall through
 
@@ -189,7 +189,7 @@ BC_DoFloor:     LD      A,E
         ;; D contains baseline.
         ;;
         ;; First, calculate the position of the bottom edge.
-BC_FloorEtc:    LD      B,A             ; Store height in B
+DBC_FloorEtc:   LD      B,A             ; Store height in B
                 DEC     HL              ; And go back to original pointer location
                 LD      A,L             ; L contained column number & ~1
                 ADD     A,A
@@ -199,19 +199,19 @@ BC_FloorEtc:    LD      B,A             ; Store height in B
         ;; play area edge graphic to use, by overwriting the WhichEdge
         ;; operand. A itself is adjusted around the corner position.
 CornerPos:      CP      $00             ; NB: Target of self-modifying code.
-                JR      C,BC_Left
+                JR      C,DBC_Left
                 LD      E,DBE_R - DBE_R ; Right edge graphic case
-                JR      NZ,BC_Right
+                JR      NZ,DBC_Right
                 LD      E,DBE_C - DBE_R ; Corner edge graphic case
-BC_Right:       SUB     $04
+DBC_Right:      SUB     $04
 RightAdj:       ADD     A,$00           ; NB: Target of self-modifying code.
-                JR      BC_CrnrJmp
-BC_Left:        ADD     A,$04
+                JR      DBC_CrnrJmp
+DBC_Left:       ADD     A,$04
                 NEG
 LeftAdj:        ADD     A,$00           ; NB: Target of self-modifying code.
                 LD      E,DBE_L - DBE_R ; Left edge graphic case
         ;; Store coordinate of bottom edge in C, write out edge graphic
-BC_CrnrJmp:     NEG
+DBC_CrnrJmp:    NEG
                 ADD     A,EDGE_HEIGHT
                 LD      C,A
                 LD      A,E
@@ -221,38 +221,38 @@ BC_CrnrJmp:     NEG
                 ADD     A,D             ; Add to offset start to get original start again.
                 INC     HL
                 SUB     C               ; Calculate A (onscreen start) - C (screen end of image)
-                JR      NC,BC_Clear2    ; <= 0 -> Reached end, so clear buffer
+                JR      NC,DBC_Clear2   ; <= 0 -> Reached end, so clear buffer
                 ADD     A,EDGE_HEIGHT
-                JR      NC,BC_Floor     ; > 11 -> Some floor and edge
+                JR      NC,DBC_Floor    ; > 11 -> Some floor and edge
         ;; 0 < Amount to draw <= 11
                 LD      E,A             ; Now we see if we'll reach the end of the bottom edge
                 SUB     EDGE_HEIGHT
                 ADD     A,B
-                JR      C,BC_AllBottom  ; Does the drawing window extend to the edge and beyond?
+                JR      C,DBC_AllBottom ; Does the drawing window extend to the edge and beyond?
                 LD      A,B             ; No, so only draw B lines of edge
                 JR      DrawBottomEdge  ; Tail call
         ;; Case where we're drawing
-BC_AllBottom:   PUSH    AF
+DBC_AllBottom:  PUSH    AF
                 SUB     B
                 NEG                     ; Draw the bottom edge, then any remaining lines cleared
         ;; Expects number of rows of edge in A, starting row in E,
         ;; draws bottom edge and remaining blanks in DE'. Number of
         ;; blank rows pushed on stack.
-BC_Bottom:      CALL    DrawBottomEdge
+DBC_Bottom:     CALL    DrawBottomEdge
                 POP     AF
                 RET     Z
                 JP      (IY)            ; Clear A rows at DE'
-BC_Clear2:      LD      A,B
+DBC_Clear2:     LD      A,B
                 JP      (IY)            ; Clear A rows at DE'
         ;; Draw some floor. A contains -height before reaching edge,
         ;; B contains drawing window height.
-BC_Floor:       ADD     A,B
-                JR      C,BC_FloorNEdge ; Need to draw some floor and also edge.
+DBC_Floor:      ADD     A,B
+                JR      C,DBC_FloorNEdge; Need to draw some floor and also edge.
                 LD      A,B             ; Just draw a window-height of floor.
         ;; NB: Fall through
 BlitFloorFnPtr: JP      L0000           ; NB: Target of self-modifying code
         ;; Draw the floor and then edge etc.
-BC_FloorNEdge:  PUSH    AF
+DBC_FloorNEdge: PUSH    AF
                 SUB     B
                 NEG
                 CALL    BlitFloorFnPtr
@@ -262,14 +262,14 @@ BC_FloorNEdge:  PUSH    AF
         ;; test we did above for the no-floor case
                 SUB     EDGE_HEIGHT
                 LD      E,$00
-                JR      NC,BC_EdgeNSpace
+                JR      NC,DBC_EdgeNSpace
         ;; Just-draw-the-edge case
                 ADD     A,EDGE_HEIGHT
                 JR      DrawBottomEdge
         ;; Draw-the-edge-and-then-space case
-BC_EdgeNSpace:  PUSH    AF
+DBC_EdgeNSpace: PUSH    AF
                 LD      A,EDGE_HEIGHT
-                JR      BC_Bottom
+                JR      DBC_Bottom
 
 ;; Takes starting row number in E, number of rows in A, destination in DE'
 ;; Returns an updated DE' pointer.

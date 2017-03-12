@@ -166,14 +166,15 @@ OWPanel:	EX	AF,AF'
 		JR	Z,OWDoor
         ;; Otherwise update entries in BkgndData.
 		EX	AF,AF'
+        ;; Self-modifixing code adds a flip if needed.
 OWFlag:		OR	$00		; NB: Target of self-modifying code.
-		LD	(IX+$01),A
+		LD	(IX+$01),A      ; Set the wall-panel sprite
 		EXX
 		LD	A,C
 		ADD	A,$08
-		LD	(IX+$00),C
+		LD	(IX+$00),C      ; Y start of wall (0 = clear)
 		LD	C,A
-		ADD	IX,DE
+		ADD	IX,DE           ; Move to next panel (L or R)
 		EXX
 		CALL	FetchData2b
 OWPanelLoop:	DJNZ	OWPanel
@@ -184,9 +185,11 @@ OWPanelLoop:	DJNZ	OWPanel
 		LD	A,L
 		CP	$40
 		RET	NC
+        ;; If last entry is not clear, return
 		LD	A,(IX+$00)
 		AND	A
 		RET	NZ
+        ;; If it is, add some columns.
 		LD	A,(OWFlag+1)
 		OR	$05
 		LD	(IX+$01),A
@@ -203,15 +206,15 @@ OWDoor:		EXX
 		ADD	A,$10
 		LD	C,A
 OWD_1:		SUB	$10
-		LD	(IX+$00),A
+		LD	(IX+$00),A 		; Set height.
 		LD	A,(OWFlag+1)
 		OR	$04
-		LD	(IX+$01),A
+		LD	(IX+$01),A 		; Set wall to blank.
 		ADD	IX,DE
-		LD	(IX+$01),A
+		LD	(IX+$01),A 		; Ditto next slot.
 		LD	A,C
 		SUB	$08
-		LD	(IX+$00),A
+		LD	(IX+$00),A 		; And lower for the next slot.
 		ADD	A,$18
 		LD	C,A
 		LD	A,(DoorZ)

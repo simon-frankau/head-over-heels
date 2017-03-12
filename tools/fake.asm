@@ -87,7 +87,7 @@ DoClear:
         CALL ClearTwo
         RET
 
-BC_Floor:
+BlitFloorFnPtr:
         CALL BlitFloorL
         CALL BlitFloorR
         CALL BlitFloor
