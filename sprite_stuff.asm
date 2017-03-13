@@ -8,11 +8,12 @@
 ;;  * CrownScreen
 ;;  * DrawScreenPeriphery
 ;;  * Draw2FromList
-;;  * EndScreen
+;;  * CrownScreenCont
 ;;  * Draw3x24
 ;;  * Clear3x24
 
-EndScreen:      LD      A,(WorldMask)
+;; Draw the crown screen and continue.
+CrownScreenCont:LD      A,(WorldMask)
                 CP      $1F
                 JR      NZ,ES_1
         ;; Get proclaimed Emperor!
@@ -25,9 +26,11 @@ EndScreen:      LD      A,(WorldMask)
                 CALL    WaitKey
         ;; Dislay the crowns you've won.
 ES_1:           CALL    CrownScreen
+        ;; Then back to the normal display.
                 CALL    DrawBlacked
                 JP      RevealScreen            ; NB: Tail call
 
+;; Just draw the crown screen and wait for a keypress
 CrownScreen:    LD      A,STR_EMPIRE_BLURB
                 CALL    PrintChar
                 CALL    AltPlaySound

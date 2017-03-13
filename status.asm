@@ -81,7 +81,7 @@ GetCrown:	LD	A,D
 		CALL	SetBit
 		LD	B,$C1
 		CALL	PlaySound
-		JP	EndScreen		; FIXME: Tail call to end screen thing
+		JP	CrownScreenCont         ; NB: Tail call
 
 	;; FIXME: Decode!
 	;; NB: Not directly called from any code I've seen!
