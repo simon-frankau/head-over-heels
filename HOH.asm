@@ -303,7 +303,7 @@ InitNewGame:	XOR	A
 		CALL	InitNewGame1
 		CALL	Reinitialise
 		DEFW	StatusReinit
-		CALL	InitNewGame2
+		CALL	ResetSpecials
 		LD	HL,L8940
 		LD	(RoomId),HL
 		LD	A,$01
@@ -599,11 +599,11 @@ ODW3:		DJNZ	ODW2
 
 #include "walls.asm"
 
-        ;; Bit mask of worlds visited.
-WorldMask:	DEFB $00
+;; Bit mask of worlds visited.
+WorldMask:      DEFB $00
 
-        ;; Special collectible items
-Specials:	DEFB $70,$14,$00,$72,    $60,$30,$01,$40
+;; Special collectible items
+Specials:       DEFB $70,$14,$00,$72,    $60,$30,$01,$40
                 DEFB $B0,$2E,$09,$34,    $B0,$00,$1A,$00
                 DEFB $F0,$9A,$0B,$70,    $40,$A7,$1C,$44
                 DEFB $30,$37,$7D,$37,    $70,$15,$68,$34
@@ -627,18 +627,18 @@ Specials:	DEFB $70,$14,$00,$72,    $60,$30,$01,$40
                 DEFB $60,$77,$75,$44,    $00,$36,$75,$66
                 DEFB $A0,$FE,$75,$22,    $F0,$42,$65,$61
                 DEFB $20,$AE,$75,$04
-        ;; Crowns?
-L8728:	        DEFB $30,$8D,$7E,$47
+;; The crown special items.
+Crowns:         DEFB $30,$8D,$7E,$47
                 DEFB $30,$8D,$6E,$17
                 DEFB $30,$8D,$7E,$07
                 DEFB $30,$8D,$6E,$37
                 DEFB $30,$8D,$3E,$27
 
-        ;; The sprites associated with special collectible objects.
+;; The sprites associated with special collectible objects.
 SpecialSprites: DEFB SPR_PURSE,SPR_HOOTER,SPR_DONUTS,SPR_BUNNY
                 DEFB SPR_BUNNY,SPR_BUNNY,SPR_BUNNY,$00
                 DEFB ANIM_FISH,SPR_CROWN,SPR_CROWN,SPR_CROWN
-                DEFB SPR_CROWN,SPR_CROWN,SPR_CROWN
+                DEFB SPR_CROWN,SPR_CROWN,SPR_CROWN ; One excess crown?
 
 FindSpecials2:  LD      BC,(RoomId)
 
@@ -648,6 +648,7 @@ FindSpecials:   LD      HL,Specials
         ;; bytes (plus the 2 room id bytes) each time.
         ;;
         ;; Remaining count in E, room id in BC, search point in HL.
+        ;; Returns with Z flag set if found, pointer in HL.
 FindSpecLoop:   LD      A,C
                 CP      (HL)
                 INC     HL
@@ -662,9 +663,9 @@ FindSpecCont:   INC     HL
                 DEC     E
                 JR      NZ,FindSpecLoop
                 DEC     E
-FindSpecRet:    RET             ; FIXME: Self-modifying code??
+FindSpecRet:    RET             ; Looks like an arbitrary 'ret'.
 
-        ;; Takes a pointer in HL, and extracts the nybbles.
+;; Takes a pointer in HL, and extracts the nybbles.
 GetNybbles:     INC     HL
                 XOR     A
                 RLD
@@ -685,7 +686,7 @@ GetNybbles:     INC     HL
 ;; Takes room id in BC
 AddSpecials:    PUSH    BC
         ;; TODO: Tweak some room list entries (?) from WorldMask?
-                LD      HL,L8728
+                LD      HL,Crowns
                 LD      A,(WorldMask)
                 CPL
                 LD      B,$05
@@ -706,7 +707,7 @@ AS_2:           RET     NZ              ; If not found, return.
                 PUSH    BC
                 PUSH    IY
         ;; And construct some extra objects.
-                CALL    GetNybbles      ; Fills in D, E, B, C
+                CALL    GetNybbles      ; Fills in E, D, B, C
                 LD      IY,TmpObj
                 LD      A,D
                 CP      $0E
@@ -714,7 +715,7 @@ AS_2:           RET     NZ              ; If not found, return.
                 JR      NZ,AS_3
                 XOR     A
 AS_3:           LD      (IY+$04),A              ; Set flags
-                LD      (IY+$11),D              ; ???
+                LD      (IY+$11),D              ; Set special id.
                 LD      (IY+$0A),OBJFN_26       ; Set the object function
         ;; Look up D in SpecialSprites to get a sprite id, and set it.
                 LD      A,D
@@ -741,80 +742,75 @@ AS_3:           LD      (IY+$04),A              ; Set flags
                 CALL    FindSpecCont
                 JR      AS_2
 
+        ;; Clear the "collected" flag on all the specials.
+ResetSpecials:  LD      HL,Specials
+                LD      DE,L0004
+                LD      B,$34
+RS_1:           RES     0,(HL)
+                ADD     HL,DE
+                DJNZ    RS_1
+                RET
 
-        
-InitNewGame2:	LD		HL,Specials
-		LD		DE,L0004
-		LD		B,$34
-L87D9:	RES		0,(HL)
-		ADD		HL,DE
-		DJNZ	L87D9
-		RET
-L87DF:		LD	D,A
-		CALL	FindSpecials2
-L87E3:	RET		NZ
-		INC		HL
-		LD		A,(HL)
-		DEC		HL
-		AND		$0F
-		CP		D
-		JR		Z,L87F1
-		CALL	FindSpecCont
-		JR		L87E3
-L87F1:	DEC		HL
-		SET		0,(HL)
-		ADD		A,A
-		ADD		A,$0A
-		LD		L,A
-		ADC		A,$88
-		SUB		L
-		LD		H,A
-		LD		E,(HL)
-		INC		HL
-		LD		H,(HL)
-		LD		L,E
-		LD		IX,L8805
-		JP		(HL)
-L8805:		LD		B,$C5 ; Self-modifying code?
-		JP		PlaySound
-L880A:	LD		H,$88
-		LD		H,$88
-		DEC		(HL)
-		ADC		A,B
-		LD		B,H
-		ADC		A,B
-		LD		C,L
-		ADC		A,B
-		LD		E,C
-		ADC		A,B
-		LD		E,L
-		ADC		A,B
-		NOP
-		NOP
-		AND		(HL)
-		ADC		A,B
-		SUB		L
-		ADC		A,B
-		SUB		L
-		ADC		A,B
-		SUB		L
-		ADC		A,B
-		SUB		L
-		ADC		A,B
-		SUB		L
-		ADC		A,B
-		LD		A,D
-	;; NB: Fall through
+        ;; Get a special item. Id in A
+GetSpecial:     LD      D,A
+                CALL    FindSpecials2
+        ;; Return if not found.
+GSP_1:          RET     NZ
+                INC     HL
+        ;; Extract second nybble, compare to D.
+                LD      A,(HL)
+                DEC     HL
+                AND     $0F
+                CP      D
+                JR      Z,GSP_2
+        ;; Not the one we wanted? Loop.
+                CALL    FindSpecCont
+                JR      GSP_1
+        ;; Found!
+GSP_2:          DEC     HL
+        ;; Mark bit 0 of the location second location byte, so that
+        ;; this entry is hidden from future searches.
+                SET     0,(HL)
+        ;; Look up the special in a table
+                ADD     A,A
+                ADD     A,SpecialFns & $FF
+                LD      L,A
+                ADC     A,SpecialFns >> 8
+                SUB     L
+                LD      H,A
+                LD      E,(HL)
+                INC     HL
+                LD      H,(HL)
+                LD      L,E
+        ;; Set IX to a continuation function (?), and off we go.
+                LD      IX,GSPRet
+                JP      (HL)
 
-	;; Pick up an inventory item. Item number in A.
-PickUp:		LD	HL,Inventory
-		CALL	SetBit
-		CALL	DrawScreenPeriphery
-		LD	B,$C2
-		JP	PlaySound
+GSPRet:         LD      B,$C5 ; Self-modifying code?
+                JP      PlaySound
+
+ ;; Array of function pointers for actions when picking up a special.
+SpecialFns      ;; Purse, hooter, donuts, bunny
+                DEFW PickUp2, PickUp2, BoostDonuts, BoostSpeed
+                ;; bunny, bunny, bunny, $00
+                DEFW BoostSpring, BoostInvuln, BoostLives, $0000
+                ;; fish, crown, crown, crown
+                DEFW SaveContinue, GetCrown, GetCrown, GetCrown
+                ;; crown, crown
+                DEFW GetCrown, GetCrown
+
+PickUp2:        LD      A,D
+        ;; NB: Fall through
+
+        ;; Pick up an inventory item. Item number in A.
+PickUp:         LD      HL,Inventory
+                CALL    SetBit
+                CALL    DrawScreenPeriphery
+                LD      B,$C2
+                JP      PlaySound
 
 #include "status.asm"
-	
+
 L8ADC:	DEFB $00,$00
 L8ADE:	DEFB $00
 L8ADF:	DEFB $00,$00,$00
@@ -1384,36 +1380,42 @@ CAA7E:	LD		C,$C0
 		LD		C,(IX+$03)
 		RET
 
-FloorThing1:	CP	$FF
+NearHitFloor:	CP	$FF     	; This way, only get the start.
 	;; NB: Fall through.
-FloorThing2:	SCF
+
+;; A is zero. We've hit, or nearly hit, the floor.
+HitFloor:	SCF
 		LD	(IY+$0D),A
 		LD	(IY+$0E),A
 		RET	NZ
+        ;; Called HitFloor, not NearHitFloor.
 		BIT	0,(IY+$09)
-		JR	Z,FloorCheck
+		JR	Z,FloorCheck 	; Floor check for non-player objects
+        ;; Right, player has hit floor.
+        ;; Some check?
 		LD	A,(LA2BC)
 		AND	A
 		JR	NZ,RetZeroC
+        ;; Then handle the possibilities
 		LD	A,(FloorCode)
 		CP	$06 		; Deadly floor?
 		JR	Z,DeadlyFloorCase
 		CP	$07 		; No floor?
 		JR	NZ,RetZeroC
 	;; Code to handle no floor...
+        ;; TODO
 		CALL	GetCharObj
 		PUSH	IY
 		POP	DE
 		AND	A
 		SBC	HL,DE
-		JR	Z,FloorThing3
+		JR	Z,HF_1
 		LD	HL,SwopPressed
 		LD	A,(HL)
 		OR	$03
 		LD	(HL),A
-		JR	RetZeroC
-
-FloorThing3:	LD	A,$05
+		JR	RetZeroC 	; Tail call.
+HF_1:		LD	A,$05
 		LD	(LB218),A
 		AND	A
 		RET
@@ -1427,19 +1429,26 @@ RetZeroC:	XOR	A
 		SCF
 		RET
 
+;; A non-player object has hit the floor...
 FloorCheck:	LD	A,(FloorCode)
-		CP	$07 		; No floor?
+		CP	$07 				; No floor?
 		JR	NZ,RetZeroC
-		LD	(IY+$0A),$22 	; Update this, then.
+		LD	(IY+$0A),OBJFN_DISAPPEAR	; Then it disappears.
 		JR	RetZeroC
 
+        ;; Object (character?) in IY.
 CAB06:		LD	A,(IY+$07)
 		SUB	$C0
+        ;; NB: Fall through
+
 LAB0B:		LD	BC,L0000
 		LD	(LAA72),BC
-		JR	Z,FloorThing2
+        ;; If we've hit the floor, go to that case
+		JR	Z,HitFloor
+        ;; Just above floor? Still call through
 		INC	A
-		JR	Z,FloorThing1
+		JR	Z,NearHitFloor
+        ;; TODO
 		CALL	GetUVZExtentsE
 		LD	C,B
 		INC	C
@@ -2096,68 +2105,94 @@ LB2BF:	PUSH	AF
 		POP		IX
 		POP		AF
 		RET
-CB2CD:	BIT		0,(IY+$09)
-		JR		NZ,LB2DF
-		BIT		0,(IX+$09)
-		JR		Z,LB34F
+
+        ;; IX and IY are both objects?
+        ;; Something is in A.
+CB2CD:		BIT	0,(IY+$09)
+		JR	NZ,LB2DF 		; Bit 0 set on IY? Proceed.
+		BIT	0,(IX+$09)
+		JR	Z,LB34F 		; Bit 0 not set on IX? LB34F instead.
+        ;; Swap IY and IX.
 		PUSH	IY
-		EX		(SP),IX
-		POP		IY
-LB2DF:	LD		C,(IY+$09)
-		LD		B,(IY+$04)
-		BIT		5,(IX+$04)
-		RET		Z
-		BIT		6,(IX+$04)
-		JR		NZ,LB333
-		AND		A
-		JR		Z,CB2F8
-		BIT		4,(IX+$09)
-		RET		NZ
-CB2F8:		BIT		3,B
-		LD		B,$03
-		JR		NZ,LB304
-		DEC		B
-		BIT		2,C
-		JR		NZ,LB304
-		DEC		B
-LB304:		XOR		A
-		LD		HL,Invuln
-		CP		(HL)
-		JR		Z,LB30D
-		RES		0,B
-LB30D:		INC		HL
-		CP		(HL)
-		JR		Z,LB313
-		RES		1,B
-LB313:		LD		A,B
-		AND		A
-		RET		Z
-		LD		HL,LB21A
-		OR		(HL)
-		LD		(HL),A
-		DEC		HL
-		LD		A,(HL)
-		AND		A
-		RET		NZ
-		LD		A,(WorldMask)
-		CP		$1F
-		RET		Z
-		LD		(HL),$0C
-		LD		A,(LB218)
-		AND		A
-		CALL	NZ,BoostInvuln
-		LD		B,$C6
-		JP		PlaySound
-LB333:	LD		(IX+$0F),$08
-		LD		(IX+$04),$80
-		LD		A,(IX+$0A)
-		AND		$80
-		OR		$11
-		LD		(IX+$0A),A
-		RES		6,(IX+$09)
-		LD		A,(IX+$11)
-		JP		L87DF
-LB34F:	BIT		3,(IY+$09)
+		EX	(SP),IX
+		POP	IY
+        ;; At this point, bit 0 set on IY.
+LB2DF:		LD	C,(IY+$09) 		; IY's sprite flags in C.
+		LD	B,(IY+$04)		; IY's flags in B.
+		BIT	5,(IX+$04)              ; Bit 5 not set in IX's flags?
+		RET	Z			; Then return.
+		BIT	6,(IX+$04)		; Bit 6 set?
+		JR	NZ,LB333                ; LB333 instead, then.
+        ;; Return if A is non-zero and bit 4 of IX is set.
+		AND	A
+		JR	Z,CB2F8
+		BIT	4,(IX+$09)
+		RET	NZ
+        ;; NB: Fall through.
+
+        ;; C is sprite flags (offset 9)
+        ;; B is other flags (offset 4)
+CB2F8:		BIT	3,B
+		LD	B,$03
+		JR	NZ,LB304
+		DEC	B
+		BIT	2,C
+		JR	NZ,LB304
+		DEC	B
+LB304:
+        ;; If Heels is invuln, reset bit 0.
+        	XOR	A
+		LD	HL,Invuln
+		CP	(HL)
+		JR	Z,LB30D
+		RES	0,B
+LB30D:		INC	HL
+        ;; If Head is invuln, reset bit 1.
+		CP	(HL)
+		JR	Z,LB313
+		RES	1,B
+        ;; Another check.
+LB313:		LD	A,B
+		AND	A
+		RET	Z
+        ;; Update LB21A
+		LD	HL,LB21A
+		OR	(HL)
+		LD	(HL),A
+        ;; Another check.
+		DEC	HL
+		LD	A,(HL)
+		AND	A
+		RET	NZ
+        ;; Return if emperor
+		LD	A,(WorldMask)
+		CP	$1F
+		RET	Z
+        ;; Update a thing...
+		LD	(HL),$0C
+        ;; And do invulnerability if LB218 is non-zero.
+		LD	A,(LB218)
+		AND	A
+		CALL	NZ,BoostInvuln2
+		LD	B,$C6
+		JP	PlaySound 	; Tail call.
+
+        ;; TODO: Looks like it fadifies a thing.
+LB333:
+        ;; Set flags etc. for fading
+		LD	(IX+$0F),$08
+		LD	(IX+$04),$80
+        ;; Switch to fade function
+		LD	A,(IX+$0A)
+		AND	$80
+		OR	OBJFN_FADE
+		LD	(IX+$0A),A
+        ;; Clear bit 6 (Does what?)
+		RES	6,(IX+$09)
+		LD	A,(IX+$11)
+		JP	GetSpecial   	; Tail call
+
+LB34F:		BIT		3,(IY+$09)
 		JR		NZ,LB35E
 		BIT		3,(IX+$09)
 		RET		Z

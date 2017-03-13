@@ -42,8 +42,16 @@ CallObjFn:
         CALL ObjFnCrowny
         RET
 
-L87F1:
-        JP L880A                ; I think.
+GSP_2:
+        CALL PickUp2
+        CALL BoostDonuts
+        CALL BoostSpeed
+        CALL BoostSpring
+        CALL BoostInvuln
+        CALL BoostLives
+        CALL SaveContinue
+        CALL GetCrown
+        RET
 
 DoTurn:
         ;; TODO

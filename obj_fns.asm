@@ -47,14 +47,16 @@
 	;; Offset 7: Z coordinate, C0 = ground
 	;; Offset 8: Its sprite
 	;; Offset 9: Sprite flags:
+        ;;           Bit 0 - perhaps is playable character?
         ;;           Bit 1 set for other bit of double height?
         ;;           Bit 5 = has another object tacked after (double height?)
         ;;           Bit 7 = switched flag
 	;; Offset A: Top bit is flag that's checked against Phase, lower 6 bits are object function.
         ;;           Gets loaded into SpriteFlags
-	;; Offset B: Some form of direction bitmask?
+	;; Offset B: Special object id (second nybble of specials structure)
 	;; Offset C: Some form of direction bitmask?
         ;;           I think it's how we're being pushed. I think bit 5 means 'being stood on'.
+        ;; Offset D/E get zeroed on the floor.
         ;; Offset F: Animation code - top 5 bits are the animation, bottom 3 bits are the frame.
 	;; Offset 10: Direction code. I think this is not the bit mask.
 	;; Hmmm. May be 17 bytes? Object-copying code suggests 18 bytes.

@@ -159,11 +159,11 @@ GameOverScreen:	CALL	AltPlaySound
 		CALL	DrawHnH
 		CALL	GetScore
 		PUSH	HL
-		LD	A,(WorldMask) 	; FIXME: ?
-		OR	$E0
+		LD	A,(WorldMask)
+		OR	~$1F
 		INC	A
-		LD	A,$C4
-		JR	Z,GOS_2
+		LD	A,STR_EMPEROR
+		JR	Z,GOS_2 	; Jump if all crowns collected.
 		LD	A,H
 		ADD	A,$10
 		JR	NC,GOS_1

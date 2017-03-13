@@ -23,55 +23,59 @@ BoostSpring:	LD	A,(Character)
 		RET	Z
 		JR	BoostCountPlus  ; $01 = CNT_SPRING
 
-BoostInvuln:	LD	IX,FindSpecRet
-		LD	C,CNT_HEELS_INVULN
-		JR	BoostMaybeDbl
+BoostInvuln2:   LD      IX,FindSpecRet  ; Set the "plus" call to do nothing.
+BoostInvuln:    LD      C,CNT_HEELS_INVULN
+                JR      BoostMaybeDbl
+
+        ;; TODO: How do this ever get called?
 BoostLives:	LD	C,CNT_HEELS_LIVES
-BoostMaybeDbl:	LD	A,(Character)
-		CP	$03		; Head and Heels?
-		JR	Z,BoostCountDbl	; Then increment both
-		RRA
-		AND	$01		; If Head, add 1
-		ADD	A,C
-		JR	BoostCountPlus
-	
-	;; Boosts two subsequent counts. For use when Head and Heels are joined.
-BoostCountDbl:	LD	A,C
-		PUSH	AF
-		CALL	BoostCount
-		POP	AF
-		INC	A
-	;; NB: Fall through
+        ;; NB: Fall through
 
-	;; FIXME: Does some other thing before boosting the count.
-BoostCountPlus:	PUSH	AF
-		CALL	DoCopy	; FIXME: Calls (IX). Is that right?
-		POP	AF
-	;; NB: Fall through
+;; Boosts both characters counts if they're joined. Only works for
+;; invuln and lives.
+BoostMaybeDbl:  LD      A,(Character)
+                CP      $03             ; Head and Heels?
+                JR      Z,BoostCountDbl ; Then increment both
+                RRA
+                AND     $01             ; If Head, add 1
+                ADD     A,C
+                JR      BoostCountPlus
 
-	;; Boosts whichever count index is provided in A, and displays it.
-BoostCount:	CALL	GetCountAddr
-		CALL	AddBCD
-	;; NB: Fall through
+        ;; Boosts two subsequent counts. For use when Head and Heels are joined.
+BoostCountDbl:  LD      A,C
+                PUSH    AF
+                CALL    BoostCount
+                POP     AF
+                INC     A
+        ;; NB: Fall through
 
-	;; Number to print in A, location in C.
-ShowNum:	PUSH	AF
-		PUSH	BC
-		AND	A
-		LD	A,CTRL_ATTR1 		; When printing 0
-		JR	Z,SN_1
-		LD	A,CTRL_ATTR3 		; Otherwise
-SN_1:		CALL	PrintChar
-		POP	BC
-		LD	A,C
-		ADD	A,CTRL_POS_LIGHTNING 	; Position indexed into array...
-		CALL	PrintChar
-		POP	AF
-		JP	Print2DigitsR
+        ;; FIXME: Does some other thing before boosting the count.
+BoostCountPlus: PUSH    AF
+                CALL    DoCopy  ; Just used as a way to call IX.
+                POP     AF
+        ;; NB: Fall through
 
-	;; FIXME: Decode!
-	;; NB: Not directly called from any code I've seen!
-EndThing:	LD	A,D
+;; Boosts whichever count index is provided in A, and displays it.
+BoostCount:     CALL    GetCountAddr
+                CALL    AddBCD
+        ;; NB: Fall through
+
+;; Number to print in A, location in C.
+ShowNum:        PUSH    AF
+                PUSH    BC
+                AND     A
+                LD      A,CTRL_ATTR1            ; When printing 0
+                JR      Z,SN_1
+                LD      A,CTRL_ATTR3            ; Otherwise
+SN_1:           CALL    PrintChar
+                POP     BC
+                LD      A,C
+                ADD     A,CTRL_POS_LIGHTNING    ; Position indexed into array...
+                CALL    PrintChar
+                POP     AF
+                JP      Print2DigitsR           ; Tail call
+
+GetCrown:	LD	A,D
 		SUB	$09
 		LD	HL,WorldMask
 		CALL	SetBit
@@ -245,14 +249,14 @@ PrS_1:		PUSH	AF
 		JR	NZ,PrS_1
 		RET
 
-	;; Add A onto (HL), BCD-fashion, capped at 99.
-AddBCD:		ADD	A,(HL)
-		DAA
-		LD	(HL),A
-		RET	NC
-		LD	A,$99
-		LD	(HL),A
-		RET
+        ;; Add A onto (HL), BCD-fashion, capped at 99.
+AddBCD:         ADD     A,(HL)
+                DAA
+                LD      (HL),A
+                RET     NC
+                LD      A,$99
+                LD      (HL),A
+                RET
 
 	;; Decrement contents of HL, BCD-fashion, unless we've hit zero already.
 DecrementBCD:	LD	A,(HL)
@@ -264,21 +268,21 @@ DecrementBCD:	LD	A,(HL)
 		OR	$FF
 		RET
 
-	;; Given a count index in A, return the pick-up increment in A, and address in HL.
-	;; Leaves the count index in C.
-	;; Some special case, based on LB218...
-GetCountAddr:	LD	C,A
-		LD	B,$00
-		LD	HL,DefCounts
-		ADD	HL,BC
-		LD	A,(LB218)
-		AND	A
-		LD	A,(HL)
-		JR	Z,GCA_1
-		LD	A,$03
-GCA_1:		LD	HL,Speed 	; Points to start of array of counts
-		ADD	HL,BC
-		RET
+;; Given a count index in A, return the pick-up increment in A, and address in HL.
+;; Leaves the count index in C.
+;; If LB218 is non-zero, return 3 as the increment.
+GetCountAddr:   LD      C,A
+                LD      B,$00
+                LD      HL,DefCounts
+                ADD     HL,BC
+                LD      A,(LB218)
+                AND     A
+                LD      A,(HL)
+                JR      Z,GCA_1
+                LD      A,$03
+GCA_1:          LD      HL,Speed        ; Points to start of array of counts
+                ADD     HL,BC
+                RET
 
 	;; Indices for counts of main quantities we hold
 CNT_SPEED:		EQU $00
