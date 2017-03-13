@@ -1,5 +1,5 @@
 	;; 
-	;; status.asm
+	;; specials.asm
 	;;
 	;; Counts for lives etc.
 	;; 

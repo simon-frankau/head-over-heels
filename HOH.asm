@@ -599,7 +599,7 @@ ODW3:		DJNZ	ODW2
 
 #include "walls.asm"
 
-#include "status.asm"
+#include "specials.asm"
 
 L8ADC:	DEFB $00,$00
 L8ADE:	DEFB $00
