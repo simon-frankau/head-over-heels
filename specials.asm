@@ -214,31 +214,30 @@ PickUp:         LD      HL,Inventory
                 LD      B,$C2
                 JP      PlaySound
 
-BoostDonuts:	LD	A,(Character)
-		AND	$02
-		RET	Z		; Must be Head
-		LD	A,CNT_DONUTS
-		CALL	BoostCountPlus
-		LD	A,$02		; Pick up donuts
-		JR	PickUp
-	
-BoostSpeed:	LD	A,(Character)
-		AND	$02		; Must be Head
-		RET	Z
-		XOR	A		; Sets to CNT_SPEED
-		JR	BoostCountPlus
-	
-BoostSpring:	LD	A,(Character)
-		AND	$01		; Must be Heels
-		RET	Z
-		JR	BoostCountPlus  ; $01 = CNT_SPRING
+BoostDonuts:    LD      A,(Character)
+                AND     $02
+                RET     Z               ; Must be Head
+                LD      A,CNT_DONUTS
+                CALL    BoostCountPlus
+                LD      A,$02           ; Pick up donuts
+                JR      PickUp
+
+BoostSpeed:     LD      A,(Character)
+                AND     $02             ; Must be Head
+                RET     Z
+                XOR     A               ; Sets to CNT_SPEED
+                JR      BoostCountPlus
+
+BoostSpring:    LD      A,(Character)
+                AND     $01             ; Must be Heels
+                RET     Z
+                JR      BoostCountPlus  ; $01 = CNT_SPRING
 
 BoostInvuln2:   LD      IX,FindSpecRet  ; Set the "plus" call to do nothing.
 BoostInvuln:    LD      C,CNT_HEELS_INVULN
                 JR      BoostMaybeDbl
 
-        ;; TODO: How do this ever get called?
-BoostLives:	LD	C,CNT_HEELS_LIVES
+BoostLives:     LD      C,CNT_HEELS_LIVES
         ;; NB: Fall through
 
 ;; Boosts both characters counts if they're joined. Only works for
@@ -294,7 +293,6 @@ GetCrown:	LD	A,D
 		JP	CrownScreenCont         ; NB: Tail call
 
 	;; FIXME: Decode!
-	;; NB: Not directly called from any code I've seen!
 SaveContinue:	LD	B,$C2
 		CALL	PlaySound
 		CALL	GetContinueData

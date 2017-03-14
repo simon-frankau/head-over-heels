@@ -27,7 +27,7 @@ BottomsArr:     EQU Bottoms - 1
 ;; Takes an object pointer in IY, an object code in A, and initialises it.
 ;; Doesn't set flags, direction code, or coordinates.
 ;; Caller should call AddObject when you're done to copy it into the room.
-InitObj:        LD      (IY+$09),$00    ; TODO: Not sure of this field.
+InitObj:        LD      (IY+$09),$00    ; Sprite flags
         ;; Look up A in the ObjDefns table.
                 LD      L,A
                 LD      E,A
@@ -88,7 +88,7 @@ IO_2:           AND     ~$04            ; Clear bit 3.
                 LD      (IY-$01),A      ; Write stuff before start of sprite?!
                 LD      (IY-$02),$02
                 RET     C
-        ;; and set bit 4 if top bit was set.
+        ;; and set bit 4 (non-deadly?) if top bit was set.
                 SET     4,(IY+$09)
                 RET
 

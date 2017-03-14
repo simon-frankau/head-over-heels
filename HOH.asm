@@ -1064,7 +1064,7 @@ LA2A0:		DEFB $FF
 	
 LA2A1:	DEFB $02
 LA2A2:	DEFB $00
-LA2A3:	DEFB $00,$00,$00
+EntryPosn:	DEFB $00,$00,$00 ; Where we entered the room (for when we die).
 LA2A6:	DEFB $03
 Carrying:	DEFW $0000	 ; Pointer to carried object.
 	
@@ -1212,7 +1212,7 @@ HF_1:		LD	A,$05
 
 DeadlyFloorCase:LD	C,(IY+$09)
 		LD	B,(IY+$04)
-		CALL	CB2F8
+		CALL	DeadlyContact
 
 	;; Return with 0 in A, and carry flag set.
 RetZeroC:	XOR	A
@@ -1778,7 +1778,7 @@ SDO_2:          POP     HL
 LB217:	DEFB $00
 LB218:	DEFB $00
 LB219:	DEFB $00
-LB21A:	DEFB $00
+Dying:	DEFB $00                ; Mask of the characters who are dying
 LB21B:	DEFB $00
 	
 TableCall:	PUSH	AF
@@ -1887,13 +1887,15 @@ LB2B6:    AND             A,(IX+$0C)
                         LD              (IX+$0C),A
 LB2BC:    XOR             A
                         SUB             $01
-LB2BF:	PUSH	AF
+        ;; NB: Fall through
+
+LB2BF:		PUSH	AF
 		PUSH	IX
 		PUSH	IY
 		CALL	CB2CD
-		POP		IY
-		POP		IX
-		POP		AF
+		POP	IY
+		POP	IX
+		POP	AF
 		RET
 
         ;; IX and IY are both objects?
@@ -1912,41 +1914,49 @@ LB2DF:		LD	C,(IY+$09) 		; IY's sprite flags in C.
 		BIT	5,(IX+$04)              ; Bit 5 not set in IX's flags?
 		RET	Z			; Then return.
 		BIT	6,(IX+$04)		; Bit 6 set?
-		JR	NZ,LB333                ; LB333 instead, then.
+		JR	NZ,CollectSpecial       ; CollectSpecial instead, then.
         ;; Return if A is non-zero and bit 4 of IX is set.
 		AND	A
-		JR	Z,CB2F8
+		JR	Z,DeadlyContact
 		BIT	4,(IX+$09)
 		RET	NZ
         ;; NB: Fall through.
 
-        ;; C is sprite flags (offset 9)
-        ;; B is other flags (offset 4)
-CB2F8:		BIT	3,B
+;; TODO: Current theory...
+;; IY holds character sprite. We've hit a deadly floor or object.
+;; C is character's sprite flags (offset 9)
+;; B is character's other flags (offset 4)
+DeadlyContact:
+        ;; If we're double-height (i.e. joined), set bottom two bits
+	;; of B and jump.
+		BIT	3,B
 		LD	B,$03
-		JR	NZ,LB304
+		JR	NZ,DCO_1
 		DEC	B
+        ;; Otherwise, if bit 2 of C is set (we're Head), set to 2.
 		BIT	2,C
-		JR	NZ,LB304
+		JR	NZ,DCO_1
+        ;; Otherwise (we're Heels), set to 1.
 		DEC	B
-LB304:
+DCO_1:
+        ;; Now clear bits based on invulnerability...
         ;; If Heels is invuln, reset bit 0.
         	XOR	A
 		LD	HL,Invuln
 		CP	(HL)
-		JR	Z,LB30D
+		JR	Z,DCO_2
 		RES	0,B
-LB30D:		INC	HL
+DCO_2:		INC	HL
         ;; If Head is invuln, reset bit 1.
 		CP	(HL)
-		JR	Z,LB313
+		JR	Z,DCO_3
 		RES	1,B
-        ;; Another check.
-LB313:		LD	A,B
+        ;; No bits set = invulnerable, so return.
+DCO_3:		LD	A,B
 		AND	A
 		RET	Z
-        ;; Update LB21A
-		LD	HL,LB21A
+        ;; Update Dying - the mask of which characters should die.
+		LD	HL,Dying
 		OR	(HL)
 		LD	(HL),A
         ;; Another check.
@@ -1967,20 +1977,21 @@ LB313:		LD	A,B
 		LD	B,$C6
 		JP	PlaySound 	; Tail call.
 
-        ;; TODO: Looks like it fadifies a thing.
-LB333:
+;; Make the special object disappear and call the associated function.
+CollectSpecial:
         ;; Set flags etc. for fading
-		LD	(IX+$0F),$08
-		LD	(IX+$04),$80
+                LD      (IX+$0F),$08
+                LD      (IX+$04),$80
         ;; Switch to fade function
-		LD	A,(IX+$0A)
-		AND	$80
-		OR	OBJFN_FADE
-		LD	(IX+$0A),A
-        ;; Clear bit 6 (Does what?)
-		RES	6,(IX+$09)
-		LD	A,(IX+$11)
-		JP	GetSpecial   	; Tail call
+                LD      A,(IX+$0A)
+                AND     $80
+                OR      OBJFN_FADE
+                LD      (IX+$0A),A
+        ;; Clear special collectable item status.
+                RES     6,(IX+$09)
+        ;; Extract the item id for the call to GetSpecial.
+                LD      A,(IX+$11)
+                JP      GetSpecial      ; Tail call
 
 LB34F:		BIT		3,(IY+$09)
 		JR		NZ,LB35E

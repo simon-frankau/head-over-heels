@@ -38,10 +38,11 @@
 
 	;; Offset 0: 'B' list next item pointer
         ;; Offset 2: 'A' list next item pointer
-	;; Offset 4: Some flag - bit 6 and 7 causes skipping. Bit 6 = carryable?
+	;; Offset 4: Some flag - bit 6 and 7 causes skipping.
         ;;           Bits 0-2: ObjectShape (see GetNewCoords)
         ;;           Bit 3:    Tall (extra 6 height)
         ;;           Bit 4: Holds switch status for a switch.
+        ;;           Bit 6: Object is a special collectable item.
 	;; Offset 5: U coordinate
 	;; Offset 6: V coordinate
 	;; Offset 7: Z coordinate, C0 = ground
@@ -49,6 +50,8 @@
 	;; Offset 9: Sprite flags:
         ;;           Bit 0 - perhaps is playable character?
         ;;           Bit 1 set for other bit of double height?
+        ;;           Bit 2 = we're Head.
+        ;;           Bit 4 = non-deadlyness?
         ;;           Bit 5 = has another object tacked after (double height?)
         ;;           Bit 7 = switched flag
 	;; Offset A: Top bit is flag that's checked against Phase, lower 6 bits are object function.

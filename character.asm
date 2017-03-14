@@ -42,11 +42,11 @@ CharThing:	LD	A,(LA314)
 		JR	Z,EPIC_1
 		EXX
 		LD	HL,Character
-		LD	A,(LB21A)
+		LD	A,(Dying)
 		AND	(HL)
 		EXX
-		JP	NZ,CharThing2 		; NB: Tail call
-		CALL	CharThing2
+		JP	NZ,HandleDeath 		; NB: Tail call
+		CALL	HandleDeath
 EPIC_1:		LD	HL,LA296
 		LD	A,(HL)
 		AND	A
@@ -201,71 +201,82 @@ EPIC_14:	DEC	(HL)
 		LD	(LB218),A
 		JP	EPIC_5
 
-	
-CharThing2:	DEC	(HL)
+	;; TODO: Almost certainly, "die"
+;; HL holds LB219
+HandleDeath:	DEC	(HL)                    ; ??
 		JP	NZ,CharThing20 		; NB: Tail call
-		LD	HL,L0000
+        ;; Drop what you're carrying.
+		LD	HL,$0000
 		LD	(Carrying),HL
+        ;; Decrement lives counters.
 		LD	HL,Lives
-		LD	BC,(LB21A)
-		LD	B,$02
-		LD	D,$FF
-EPIC_16:	RR	C
-		JR	NC,EPIC_17
-		LD	A,(HL)
+		LD	BC,(Dying)
+		LD	B,$02   ; Run over both characters..
+		LD	D,$FF   ; D is set to $FF
+HD_1:		RR	C
+		JR	NC,HD_2 ; Skip if C bit not set.
+		LD	A,(HL)  ; Decrement lives counter.
 		SUB	$01
 		DAA
 		LD	(HL),A
-		JR	NZ,EPIC_17
-		LD	D,$00
-EPIC_17:	INC	HL
-		DJNZ	EPIC_16
+		JR	NZ,HD_2
+		LD	D,$00   ; D updated to $00 if any lives reduced.
+HD_2:		INC	HL
+		DJNZ	HD_1
+        ;; If no lives left, game over.
 		DEC	HL
 		LD	A,(HL)
 		DEC	HL
 		OR	(HL)
 		JP	Z,FinishGame
+        ;; No lives lost, then skip to the end.
 		LD	A,D
 		AND	A
-		JR	NZ,EPIC_24
+		JR	NZ,HD_9
+        ;; FIXME: Messy below here.
 		LD	HL,Lives
 		LD	A,(LA295)
 		AND	A
-		JR	Z,EPIC_21
+		JR	Z,HD_6
 		LD	A,(LA2A6)
 		CP	$03
-		JR	NZ,EPIC_19
+		JR	NZ,HD_4
+        ;; LA2A6 = Lives != 0 ? 1 : 2
 		LD	A,(HL)
 		AND	A
 		LD	A,$01
-		JR	NZ,EPIC_18
+		JR	NZ,HD_3
 		INC	A
-EPIC_18:	LD	(LA2A6),A
-		JR	EPIC_24
-EPIC_19:	RRA
-		JR	C,EPIC_20
+HD_3:		LD	(LA2A6),A
+		JR	HD_9
+        ;; 
+HD_4:		RRA
+		JR	C,HD_5
 		INC	HL
-EPIC_20:	LD	A,(HL)
+HD_5:		LD	A,(HL)
 		AND	A
-		JR	NZ,EPIC_23
+		JR	NZ,HD_8
 		LD	(LA295),A
-EPIC_21:	CALL	SwitchChar
+HD_6:		CALL	SwitchChar
 		LD	HL,L0000
 		LD	(LB219),HL
-EPIC_22:	LD	HL,LFB28
+HD_7:		LD	HL,LFB28
 		SET	0,(HL)
 		RET
-EPIC_23:	CALL	EPIC_22
-EPIC_24:	LD	A,(LA2A6)
+HD_8:		CALL	HD_7
+        ;; 
+HD_9:		LD	A,(LA2A6)
 		LD	(Character),A
 		CALL	CharThing3
+        ;; Restore the UVZ position of the character as we enter the room.
 		CALL	GetCharObj
 		LD	DE,L0005
 		ADD	HL,DE
 		EX	DE,HL
-		LD	HL,LA2A3
+		LD	HL,EntryPosn
 		LD	BC,L0003
 		LDIR
+        ;; TODO: Restore something, jump somewhere.
 		LD	A,(LA2A2)
 		LD	(LB218),A
 		JP	L70E6
@@ -274,7 +285,7 @@ CharThing18:	PUSH	HL
 		LD	HL,LA30A
 		JR	CharThing21 		; NB: Tail call
 	
-CharThing20:	LD	HL,(LB21A)
+CharThing20:	LD	HL,(Dying)
 	;; NB: Fall through
 	
 CharThing19:	PUSH	HL
@@ -305,7 +316,8 @@ EPIC_29:	POP	HL
 		CALL	StoreObjExtents
 		LD	HL,HeelsObj
 		JP	UnionAndDraw			; NB: Tail call
-	
+
+        ;; Put bit 0 of A into bit 2 of SwopPressed
 CharThing3:	AND	$01
 		RLCA
 		RLCA
@@ -894,7 +906,7 @@ EPIC_97:	LD	A,$80
 		POP	HL
 		LD	DE,L0005
 		ADD	HL,DE
-		LD	DE,LA2A3
+		LD	DE,EntryPosn
 		LD	BC,L0003
 		LDIR
 		LD	(IY+$0D),$00
@@ -906,7 +918,7 @@ EPIC_97:	LD	A,$80
 		CALL	CharThing16
 		XOR	A
 		LD	(LB219),A
-		LD	(LB21A),A
+		LD	(Dying),A
 		LD	(L7B8F),A
 		JP	SetObjList ; Switch to default object list
 	
