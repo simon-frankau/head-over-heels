@@ -1140,13 +1140,12 @@ LA355:	DEFB $03,$00,$1B,$80,$38,$00,$21,$00,$08,$00,$04,$00
 
 #include "character.asm"
 	
-LAA72:	DEFB $00
-LAA73:	DEFB $00
+ObjOnChar:	DEFW $0000        ; Pointer to an object above the character.
 
 CAA74:		CALL	CAA7E
 		LD		A,(IY+$07)
 		SUB		C
-		JP		LAB0B
+		JP		DoContact
 CAA7E:	LD		C,$C0
 		LD		A,(LA2BC)
 		AND		A
@@ -1231,138 +1230,166 @@ CAB06:		LD	A,(IY+$07)
 		SUB	$C0
         ;; NB: Fall through
 
-LAB0B:		LD	BC,L0000
-		LD	(LAA72),BC
+DoContact:
+        ;; Clear what's on character so far.
+                LD      BC,L0000
+                LD      (ObjOnChar),BC
         ;; If we've hit the floor, go to that case
-		JR	Z,HitFloor
+                JR      Z,HitFloor
         ;; Just above floor? Still call through
-		INC	A
-		JR	Z,NearHitFloor
-        ;; TODO
-		CALL	GetUVZExtentsE
-		LD	C,B
-		INC	C
-		EXX
-		LD	A,(IY+$0E)
-		AND	A
-		JR	Z,LAB64
-		LD	H,A
-		LD	L,(IY+$0D)
-		PUSH	HL
-		POP	IX
-		BIT	7,(IX+$04)
-		JR	NZ,LAB64
-		LD	A,(IX+$07)
-		SUB	$06
-		EXX
-		CP	B
-		EXX
-		JR	NZ,LAB64
-		CALL	CheckWeOverlap
-		JR	NC,LAB64
-LAB3F:		BIT	1,(IX+$09)
-		JR	Z,LAB4E
-		RES	5,(IX-$06)
-		LD	A,(IX-$07)
-		JR	LAB55
+                INC     A
+                JR      Z,NearHitFloor
+        ;; Set C to high-Z plus one (i.e. what we're resting on)
+                CALL    GetUVZExtentsE
+                LD      C,B
+                INC     C
+        ;; Looks like we use what we were on previously as our current
+        ;; "on" object - avoid recomputation and keeps the object
+        ;; consistent?
+        ;;
+        ;; Load the object charecter's on into IX. Go to ChkObjContact if null.
+                EXX
+                LD      A,(IY+$0E)
+                AND     A
+                JR      Z,ChkObjContact
+                LD      H,A
+                LD      L,(IY+$0D)
+                PUSH    HL
+                POP     IX
+        ;; Various other tests where we switch over to ChkObjContact.
+                BIT     7,(IX+$04)
+                JR      NZ,ChkObjContact
+        ;; Check we're still on it.
+                LD      A,(IX+$07)
+                SUB     $06
+                EXX
+                CP      B
+                EXX
+                JR      NZ,ChkObjContact
+                CALL    CheckWeOverlap
+                JR      NC,ChkObjContact
+        ;; We're still on the object we were on before.
+        ;; NB: Fall through
 
-LAB4E:		RES		5,(IX+$0C)
-		LD		A,(IX+$0B)
+;; Deal with contact between a character and a thing.
+;;
+;; IY is the character, IX is what it's resting on.
+DoObjContact:
+        ;; If it's the second part of a double-height...
+                BIT     1,(IX+$09)
+                JR      Z,DOC_1
+        ;; Reset bit 5 of Offset C
+                RES     5,(IX-$06)
+        ;; Load Offset B
+                LD      A,(IX-$07)
+                JR      DOC_2
+        ;; Otherwise, do the same, but single-height.
+DOC_1:          RES     5,(IX+$0C)
+                LD      A,(IX+$0B)
+        ;; Mask Offset C of IY with top 3 bits of Offset C of stood-on
+        ;; object.
+DOC_2:          OR      $E0
+                LD      C,A
+                LD      A,(IY+$0C)
+                AND     C
+                LD      (IY+$0C),A
+        ;; NB: Fall through.
 
-LAB55:		OR		$E0
-		LD		C,A
-		LD		A,(IY+$0C)
-		AND		C
-		LD		(IY+$0C),A
-LAB5F:	XOR		A
+LAB5F:		XOR	A
 		SCF
-		JP		LB2BF
-	;; Run through all the objects in the main object list
-LAB64:		LD	HL,ObjectLists + 2
-LAB67:		LD	A,(HL)
-		INC	HL
-		LD	H,(HL)
-		LD	L,A
-		OR	H
-		JR	Z,LABA6
-		PUSH	HL
-		POP	IX
-		BIT	7,(IX+$04)
-		JR	NZ,LAB67 	; Bit set? Skip this item
-		LD	A,(IX+$07)
-		SUB	$06
+		JP	LB2BF
+
+;; Run through all the objects in the main object list and check their
+;; contact with our object in IY.
+;;
+;; Object extents should be in primed registers.
+ChkObjContact:  LD      HL,ObjectLists + 2
+COC_1:          LD      A,(HL)
+                INC     HL
+                LD      H,(HL)
+                LD      L,A
+                OR      H
+                JR      Z,COC_4         ; Done - exit list.
+                PUSH    HL
+                POP     IX
+                BIT     7,(IX+$04)
+                JR      NZ,COC_1        ; Bit set? Skip this item
+                LD      A,(IX+$07)      ; Check Z coord against B'
+                SUB     $06
+                EXX
+                CP      B
+                JR      NZ,COC_3        ; Go to differing height case.
+                EXX
+                PUSH    HL
+                CALL    CheckWeOverlap
+                POP     HL
+                JR      NC,COC_1        ; Same height, overlap? Skip
+COC_2:          LD      (IY+$0D),L      ; Record what we're sitting on.
+                LD      (IY+$0E),H
+                JR      DoObjContact    ; Hit!
+        ;; At differing heights
+COC_3:          CP      C
+                EXX
+                JR      NZ,COC_1        ; Differs other way? Continue.
+        ;; It's on top of us, instead.
+                LD      A,(ObjOnChar+1)
+                AND     A
+                JR      NZ,COC_1        ; Some test makes us skip...
+                PUSH    HL
+                CALL    CheckWeOverlap
+                POP     HL
+                JR      NC,COC_1        ; If we don't overlap, skip
+                LD      (ObjOnChar),HL      ; Update a thing and carry on.
+                JR      COC_1
+        ;; Completed object list traversal
+COC_4:		LD	A,(LA2BC)
+		AND	A
+		JR	Z,COC_7
+		CALL	GetCharObjIX
+		LD	A,(Character)
+		CP	$03
+		LD	A,$F4
+		JR	Z,COC_5
+		LD	A,$FA
+COC_5:		ADD	A,(IX+$07)
 		EXX
 		CP	B
-		JR	NZ,LAB90
+		JR	NZ,COC_6
 		EXX
 		PUSH	HL
 		CALL	CheckWeOverlap
 		POP	HL
-		JR	NC,LAB67
-LAB88:		LD	(IY+$0D),L
-		LD	(IY+$0E),H
-		JR	LAB3F
-LAB90:		CP	C
+		JR	NC,COC_7
+		JR	COC_2
+COC_6:		CP	C
 		EXX
-		JR	NZ,LAB67
-		LD	A,(LAA73)
+		JR	NZ,COC_7
+		LD	A,(ObjOnChar+1)
 		AND	A
-		JR	NZ,LAB67
-		PUSH	HL
-		CALL	CheckWeOverlap
-		POP	HL
-		JR	NC,LAB67
-		LD	(LAA72),HL
-		JR	LAB67
-	;; Completed object list traversal
-LABA6:	LD		A,(LA2BC)
-		AND		A
-		JR		Z,LABE7
-		CALL	GetCharObjIX
-		LD		A,(Character)
-		CP		$03
-		LD		A,$F4
-		JR		Z,LABBA
-		LD		A,$FA
-LABBA:	ADD		A,(IX+$07)
-		EXX
-		CP		B
-		JR		NZ,LABCB
-		EXX
-		PUSH	HL
-		CALL	CheckWeOverlap
-		POP		HL
-		JR		NC,LABE7
-		JR		LAB88
-LABCB:	CP		C
-		EXX
-		JR		NZ,LABE7
-		LD		A,(LAA73)
-		AND		A
-		JR		NZ,LABE7
+		JR	NZ,COC_7
 		CALL	GetCharObjIX
 		CALL	CheckWeOverlap
-		JR		NC,LABE7
-		LD		(IY+$0D),$00
-		LD		(IY+$0E),$00
-		JR		LAC0E
-LABE7:	LD		HL,(LAA72)
-		LD		(IY+$0D),$00
-		LD		(IY+$0E),$00
-		LD		A,H
-		AND		A
-		RET		Z
+		JR	NC,COC_7
+		LD	(IY+$0D),$00
+		LD	(IY+$0E),$00
+		JR	COC_11
+COC_7:		LD	HL,(ObjOnChar)
+		LD	(IY+$0D),$00
+		LD	(IY+$0E),$00
+		LD	A,H
+		AND	A
+		RET	Z
 		PUSH	HL
-		POP		IX
-		BIT		1,(IX+$09)
-		JR		Z,LAC04
-		BIT		4,(IX-$07)
-		JR		LAC08
-LAC04:	BIT		4,(IX+$0B)
-LAC08:	JR		NZ,LAC0E
-		RES		4,(IY+$0C)
-LAC0E:	XOR		A
-		SUB		$01
+		POP	IX
+		BIT	1,(IX+$09)
+		JR	Z,COC_9
+		BIT	4,(IX-$07)
+		JR	COC_10
+COC_9:		BIT	4,(IX+$0B)
+COC_10:		JR	NZ,COC_11
+		RES	4,(IY+$0C)
+COC_11:		XOR	A
+		SUB	$01
 		RET
 
 	;; Called by the purse routine to find something to pick up.
@@ -1409,7 +1436,7 @@ CAC41:		CALL	GetUVZExtentsE
 		DEC	B
 		EXX
 		XOR	A
-		LD	(LAA72),A
+		LD	(ObjOnChar),A
 	;; Traverse main list of objects
 		LD	HL,ObjectLists + 2
 LAC4E:		LD	A,(HL)
@@ -1442,7 +1469,7 @@ LAC6D:		LD	A,(IY+$0B)
 LAC7F:		CP	B
 		EXX
 		JR	NZ,LAC4E
-		LD	A,(LAA72)
+		LD	A,(ObjOnChar)
 		AND	A
 		JR	NZ,LAC4E
 		PUSH	HL
@@ -1450,7 +1477,7 @@ LAC7F:		CP	B
 		POP	HL
 		JR	NC,LAC4E
 		LD	A,$FF
-		LD	(LAA72),A
+		LD	(ObjOnChar),A
 		JR	LAC4E
 	;; Finished traversing list
 LAC97:		LD	A,(LA2BC)
@@ -1474,7 +1501,7 @@ GetCharObjIX:	CALL	GetCharObj
 LACB6:	CP		B
 		EXX
 		JR		NZ,LACCC
-		LD		A,(LAA72)
+		LD		A,(ObjOnChar)
 		AND		A
 		JR		NZ,LACCC
 		CALL	GetCharObjIX
@@ -1482,7 +1509,7 @@ LACB6:	CP		B
 		JR		NC,LACCC
 		LD		A,$FF
 		JR		LACCF
-LACCC:	LD		A,(LAA72)
+LACCC:	LD		A,(ObjOnChar)
 LACCF:	AND		A
 		RET		Z
 		SCF

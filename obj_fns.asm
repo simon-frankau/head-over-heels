@@ -59,7 +59,8 @@
 	;; Offset B: Special object id (second nybble of specials structure)
 	;; Offset C: Some form of direction bitmask?
         ;;           I think it's how we're being pushed. I think bit 5 means 'being stood on'.
-        ;; Offset D/E get zeroed on the floor.
+        ;; Offset D&E: Object we're resting on.
+        ;; Offset D/E get zeroed on the floor. Forms a pointer?
         ;; Offset F: Animation code - top 5 bits are the animation, bottom 3 bits are the frame.
 	;; Offset 10: Direction code. I think this is not the bit mask.
 	;; Hmmm. May be 17 bytes? Object-copying code suggests 18 bytes.
