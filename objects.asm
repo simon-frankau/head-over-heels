@@ -343,7 +343,7 @@ OBJFN_SWITCH:   EQU 14
 OBJFN_HOMEIN:   EQU 15
                 DEFW ObjFnHomeIn
 OBJFN_HELIPLAT3:EQU 16
-                DEFW ObjFnHeliPlat3
+                DEFW ObjFnHeliplat3
 OBJFN_FADE:     EQU 17
                 DEFW ObjFnFade
 OBJFN_HELIPLAT: EQU 18

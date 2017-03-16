@@ -465,7 +465,7 @@ TurnRandomly:	PUSH	HL
 
 HeliPadDir:	DEFB 0
         ;; Running heliplat
-ObjFnHeliPlat3:	LD	A,$01
+ObjFnHeliplat3:	LD	A,$01
 		CALL	SetSound
 		CALL	FaceAndAnimate
 		LD	A,(IY+$11)

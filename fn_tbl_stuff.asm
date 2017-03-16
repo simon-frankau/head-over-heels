@@ -1,9 +1,7 @@
 	;;
 	;; fn_tbl_stuff.asm
 	;;
-	;; Some mysterious jump table stuff...
-	;;
-	;; FIXME!
+	;; Performs movement in a direction.
 	;;
 	;; Only exported value is FnTbl
 	;; Only call out is to DoTableCall... which calls right back!
@@ -16,132 +14,141 @@
 	;; DoorLocsCopy
 	;; LA2BF
 	;; LB218
-	
-FnTbl:		DEFB $FD
-		DEFW SomeTableFn0,SomeTableArg0
-		DEFB $FF
-		DEFW SomeTableFn1,L0000
-		DEFB $FB
-		DEFW SomeTableFn2,SomeTableArg2
-		DEFB $FF
-		DEFW SomeTableFn3,L0000
-		DEFB $FE
-		DEFW SomeTableFn4,SomeTableArg4
-		DEFB $FF
-		DEFW SomeTableFn5,L0000
-		DEFB $F7
-		DEFW SomeTableFn6,SomeTableArg6
-		DEFB $FF
-		DEFW SomeTableFn7,L0000
 
-SomeTableFn1:	EXX
-	;; Remove original return path, hit DoTableCall again.
-		POP	HL
-		POP	DE
-        ;; Call Fn0
-		XOR	A
-		CALL	DoTableCall
-		JR	C,STF1_1
-		EXX
-		DEC	D
-		DEC	E
-		EXX
-        ;; Call Fn2
-		LD	A,$02
-		CALL	DoTableCall
-		LD	A,$01
-		RET	NC
-		XOR	A
-		RET
-        ;; Call Fn2
-STF1_1:		LD	A,$02
-		CALL	DoTableCall
-		RET	C
-		AND	A
-		LD	A,$02
-		RET
+        ;; Table is indexed on a direction, as per LookupDir.
+        ;; First element is bit mask for directions.
+        ;; Second is the function to move that direction.
+        ;; Third element is ???
+FnTbl:          DEFB ~$02
+                DEFW Down,SomeTableArg0
+                DEFB ~$00
+                DEFW DownRight,L0000
+                DEFB ~$04
+                DEFW Right,SomeTableArg2
+                DEFB ~$00
+                DEFW UpRight,L0000
+                DEFB ~$01
+                DEFW Up,SomeTableArg4
+                DEFB ~$00
+                DEFW UpLeft,L0000
+                DEFB ~$08
+                DEFW Left,SomeTableArg6
+                DEFB ~$00
+                DEFW DownLeft,L0000
 
-SomeTableFn3:	EXX
-	;; Remove original return path, hit DoTableCall again.
-		POP	HL
-		POP	DE
-        ;; Call Fn4
-		LD	A,$04
-		CALL	DoTableCall
-		JR	C,STF3_1
-		EXX
-		INC	D
-		INC	E
-		EXX
-        ;; Call Fn2
-		LD	A,$02
-		CALL	DoTableCall
-		LD	A,$03
-		RET	NC
-		LD	A,$04
-		AND	A
-		RET
-        ;; Call Fn2
-STF3_1:		LD	A,$02
-		CALL	DoTableCall
-		RET	C
-		AND	A
-		LD	A,$02
-		RET
+        ;; Movement functions expects extents in primed registers.
+        ;; Returns direction actually travelled.
+        ;; TODO: And sets some flags?
 
-SomeTableFn5:	EXX
-	;; Remove original return path, hit DoTableCall again.
-		POP	HL
-		POP	DE
-        ;; Call Fn4
-		LD	A,$04
-		CALL	DoTableCall
-		JR	C,STF5_1
-		EXX
-		INC	D
-		INC	E
-		EXX
-        ;; Call Fn6
-		LD	A,$06
-		CALL	DoTableCall
-		LD	A,$05
-		RET	NC
-		LD	A,$04
-		AND	A
-		RET
-        ;; Call Fn6
-STF5_1:		LD	A,$06
-		CALL	DoTableCall
-		RET	C
-		LD	A,$06
-		RET
-	
-SomeTableFn7:	EXX
-	;; Remove original return path, hit DoTableCall again.
-		POP	HL
-		POP	DE
-        ;; Call Fn0
-		XOR	A
-		CALL	DoTableCall
-		JR	C,STF7_1
-		EXX
-		DEC	D
-		DEC	E
-		EXX
-        ;; Call Fn6
-		LD	A,$06
-		CALL	DoTableCall
-		LD	A,$07
-		RET	NC
-		XOR	A
-		RET
-        ;; Call Fn6
-STF7_1:		LD	A,$06
-		CALL	DoTableCall
-		RET	C
-		AND	A
-		LD	A,$06
-		RET
+DownRight:      EXX
+        ;; Remove original return path, hit DoTableCall again.
+                POP     HL
+                POP     DE
+        ;; Call Down
+                XOR     A
+                CALL    DoTableCall
+                JR      C,DR_1
+        ;; Update extents in DE
+                EXX
+                DEC     D
+                DEC     E
+                EXX
+        ;; Call Right
+                LD      A,$02
+                CALL    DoTableCall
+                LD      A,$01
+                RET     NC
+                XOR     A
+                RET
+        ;; Call Right
+DR_1:           LD      A,$02
+                CALL    DoTableCall
+                RET     C
+                AND     A
+                LD      A,$02
+                RET
+
+UpRight:        EXX
+        ;; Remove original return path, hit DoTableCall again.
+                POP     HL
+                POP     DE
+        ;; Call Up
+                LD      A,$04
+                CALL    DoTableCall
+                JR      C,UR_1
+                EXX
+                INC     D
+                INC     E
+                EXX
+        ;; Call Right
+                LD      A,$02
+                CALL    DoTableCall
+                LD      A,$03
+                RET     NC
+                LD      A,$04
+                AND     A
+                RET
+        ;; Call Right
+UR_1:           LD      A,$02
+                CALL    DoTableCall
+                RET     C
+                AND     A
+                LD      A,$02
+                RET
+
+UpLeft:         EXX
+        ;; Remove original return path, hit DoTableCall again.
+                POP     HL
+                POP     DE
+        ;; Call Up
+                LD      A,$04
+                CALL    DoTableCall
+                JR      C,UL_1
+                EXX
+                INC     D
+                INC     E
+                EXX
+        ;; Call Left
+                LD      A,$06
+                CALL    DoTableCall
+                LD      A,$05
+                RET     NC
+                LD      A,$04
+                AND     A
+                RET
+        ;; Call Left
+UL_1:           LD      A,$06
+                CALL    DoTableCall
+                RET     C
+                LD      A,$06
+                RET
+
+DownLeft:       EXX
+        ;; Remove original return path, hit DoTableCall again.
+                POP     HL
+                POP     DE
+        ;; Call Down
+                XOR     A
+                CALL    DoTableCall
+                JR      C,DL_1
+                EXX
+                DEC     D
+                DEC     E
+                EXX
+        ;; Call Left
+                LD      A,$06
+                CALL    DoTableCall
+                LD      A,$07
+                RET     NC
+                XOR     A
+                RET
+        ;; Call Left
+DL_1:           LD      A,$06
+                CALL    DoTableCall
+                RET     C
+                AND     A
+                LD      A,$06
+                RET
 
 SomeTableArg4:	INC	HL
 		INC	HL
@@ -275,202 +282,191 @@ SomeTableArg2:	CALL	TblFnCommon20
 		JP	Z,TblArgCommon2
 		JR	TblArgCommon4
 	
-SomeTableFn0:	CALL	TblFnCommon19
-		JR	Z,TblFnCommon2
-		CALL	TblFnCommon11
+Down:		CALL	InitMove
+		JR	Z,D_3
+		CALL	UD_fn
 		LD	A,$24
-		JR	C,TblFnCommon2b
+		JR	C,D_4
 		BIT	0,(IX-$01)
-		JR	Z,STF8_1
+		JR	Z,D_1
 		LD	A,(DoorLocsCopy + 3)
-		CALL	TblFnCommon17
-		JR	C,TblFnCommon2
-		CALL	TblFnCommon15
-		JR	C,TblFnCommon3
+		CALL	CommonFn
+		JR	C,D_3
+		CALL	UD_fn2
+		JR	C,D_5
 		LD	A,(MinU)
 		SUB	$04
-		JR	STF8_2
-STF8_1:		BIT	0,(IX-$02)
-		JR	Z,TblFnCommon2
+		JR	D_2
+D_1:		BIT	0,(IX-$02)
+		JR	Z,D_3
 		LD	A,(MinU)
-STF8_2:		CP	E
+D_2:		CP	E
 		RET	NZ
 		LD	A,$01
-	;; NB: Fall through
-	
-TblFnCommon1:	LD	(LB218),A
+	;; NB: Shared across the various cases:
+CommonRet:	LD	(LB218),A
 		SCF
 		RET
-
-TblFnCommon2:	LD	A,(MinU)
-TblFnCommon2b:	CP	E
+D_3:		LD	A,(MinU)
+D_4:		CP	E
 		RET	NZ
 		SCF
 		RET
-
-TblFnCommon3:	CALL	TblFnCommon16
-		JR	C,TblFnCommon2
-		CALL	TblFnCommon2
+D_5:		CALL	UD_fn3
+		JR	C,D_3
+		CALL	D_3
 	;; NB: Fall through
-	
-TblFnCommon4:	RET	NZ
+UD_fn4:		RET	NZ
 		LD	A,L
 		CP	$25
 		LD	A,$F7
-		JR	C,TblFnCommon5
+		JR	C,CommonFn2
 		LD	A,$FB
 	;; NB: Fall through
-	
-TblFnCommon5:	LD	(LA2BF),A
+CommonFn2:	LD	(LA2BF),A
 		XOR	A
 		SCF
 		RET
 
-SomeTableFn2:	CALL	TblFnCommon19
-		JR	Z,TblFnCommon6
-		CALL	TblFnCommon12
+Right:		CALL	InitMove
+		JR	Z,R_3
+		CALL	LR_fn
 		LD	A,$24
-		JR	C,TblFnCommon6b
+		JR	C,R_4
 		BIT	1,(IX-$01)
-		JR	Z,STF2_1
+		JR	Z,R_1
 		LD	A,(DoorLocsCopy + 2)
-		CALL	TblFnCommon17
-		JR	C,TblFnCommon6
-		CALL	TblFnCommon13
-		JR	C,TblFnCommon7
+		CALL	CommonFn
+		JR	C,R_3
+		CALL	LR_fn2
+		JR	C,R_5
 		LD	A,(MinV)
 		SUB	$04
-		JR	STF2_2
-STF2_1:		BIT	1,(IX-$02)
-		JR	Z,TblFnCommon6
+		JR	R_2
+R_1:		BIT	1,(IX-$02)
+		JR	Z,R_3
 		LD	A,(MinV)
-STF2_2:		CP	L
+R_2:		CP	L
 		RET	NZ
 		LD	A,$02
-		JR	TblFnCommon1
-	
-TblFnCommon6:	LD	A,(MinV)
-TblFnCommon6b:	CP	L
+		JR	CommonRet
+R_3:		LD	A,(MinV)
+R_4:		CP	L
 		RET	NZ
 		SCF
 		RET
-
-TblFnCommon7:	CALL	TblFnCommon14
-		JR	C,TblFnCommon6
-		CALL	TblFnCommon6
+R_5:		CALL	LR_fn3
+		JR	C,R_3
+		CALL	R_3
 	;; NB: Fall through
-	
-TblFnCommon8:	RET	NZ
+LR_fn4:		RET	NZ
 		LD	A,E
 		CP	$25
 		LD	A,$FE
-		JR	C,TblFnCommon5
+		JR	C,CommonFn2
 		LD	A,$FD
-		JR	TblFnCommon5
+		JR	CommonFn2
 
-SomeTableFn4:	CALL	TblFnCommon19
-		JR	Z,STF4_3
-		CALL	TblFnCommon11
+Up:		CALL	InitMove
+		JR	Z,U_3
+		CALL	UD_fn
 		LD	A,$2C
-		JR	C,STF4_4
+		JR	C,U_4
 		BIT	2,(IX-$01)
-		JR	Z,STF4_1
+		JR	Z,U_1
 		LD	A,(DoorLocsCopy + 1)
-		CALL	TblFnCommon17
-		JR	C,STF4_3
-		CALL	TblFnCommon15
-		JR	C,STF4_5
+		CALL	CommonFn
+		JR	C,U_3
+		CALL	UD_fn2
+		JR	C,U_5
 		LD	A,(MaxU)
 		ADD	A,$04
-		JR	STF4_2
-STF4_1:		BIT	2,(IX-$02)
-		JR	Z,STF4_3
+		JR	U_2
+U_1:		BIT	2,(IX-$02)
+		JR	Z,U_3
 		LD	A,(MaxU)
-STF4_2:		CP	D
+U_2:		CP	D
 		RET	NZ
 		LD	A,$03
-		JP	TblFnCommon1
-STF4_3:		LD	A,(MaxU)
-STF4_4:		CP	D
+		JP	CommonRet
+U_3:		LD	A,(MaxU)
+U_4:		CP	D
 		RET	NZ
 		SCF
 		RET
-STF4_5:		CALL	TblFnCommon16
-		JR	C,STF4_3
-		CALL	STF4_3
-		JP	TblFnCommon4
+U_5:		CALL	UD_fn3
+		JR	C,U_3
+		CALL	U_3
+		JP	UD_fn4
 
-SomeTableFn6:	CALL	TblFnCommon19
-		JR	Z,TblFnCommon9
-		CALL	TblFnCommon12
+Left:		CALL	InitMove
+		JR	Z,L_3
+		CALL	LR_fn
 		LD	A,$2C
-		JR	C,TblFnCommon9b
+		JR	C,L_4
 		BIT	3,(IX-$01)
-		JR	Z,STF6_1
+		JR	Z,L_1
 		LD	A,(DoorLocsCopy)
-		CALL	TblFnCommon17
-		JR	C,TblFnCommon9
-		CALL	TblFnCommon13
-		JR	C,TblFnCommon10
+		CALL	CommonFn
+		JR	C,L_3
+		CALL	LR_fn2
+		JR	C,L_5
 		LD	A,(MaxV)
 		ADD	A,$04
-		JR	STF6_2
-STF6_1:		BIT	3,(IX-$02)
-		JR	Z,TblFnCommon9
+		JR	L_2
+L_1:		BIT	3,(IX-$02)
+		JR	Z,L_3
 		LD	A,(MaxV)
-STF6_2:		CP	H
+L_2:		CP	H
 		RET	NZ
 		LD	A,$04
-		JP	TblFnCommon1
-
-TblFnCommon9:	LD	A,(MaxV)
-TblFnCommon9b:	CP	H
+		JP	CommonRet
+L_3:		LD	A,(MaxV)
+L_4:		CP	H
 		RET	NZ
 		SCF
 		RET
+L_5:		CALL	LR_fn3
+		JR	C,L_3
+		CALL	L_3
+		JP	LR_fn4
 
-TblFnCommon10:	CALL	TblFnCommon14
-		JR	C,TblFnCommon9
-		CALL	TblFnCommon9
-		JP	TblFnCommon8
-
-	;; Unused?
-TblFnCommon11:	LD	A,(MaxV)
+UD_fn:		LD	A,(MaxV)
 		CP	H
 		RET	C
 		LD	A,L
 		CP	A,(IX+$01)
 		RET
 
-TblFnCommon12:	LD	A,(MaxU)
+LR_fn:		LD	A,(MaxU)
 		CP	D
 		RET	C
 		LD	A,E
 		CP	A,(IX+$00)
 		RET
 
-TblFnCommon13:	LD	A,$2C
+LR_fn2:		LD	A,$2C
 		CP	D
 		RET	C
 		LD	A,E
 		CP	$24
 		RET
 
-TblFnCommon14:	LD	A,$30
+LR_fn3:		LD	A,$30
 		CP	D
 		RET	C
 		LD	A,E
 		CP	$20
 		RET
 
-TblFnCommon15:	LD	A,$2C
+UD_fn2:		LD	A,$2C
 		CP	H
 		RET	C
 		LD	A,L
 		CP	$24
 		RET
 
-TblFnCommon16:	LD	A,$30
+UD_fn3:		LD	A,$30
 		CP	H
 		RET	C
 		LD	A,L
@@ -479,22 +475,22 @@ TblFnCommon16:	LD	A,$30
 
 	;; Checks to see if A is between B and B + 3 / 9
 	;; (depending on if you're both head and heels currently)
-TblFnCommon17:	SUB	B
+CommonFn:	SUB	B
 		RET	C
 		PUSH	AF
 		LD	A,(Character)
 		CP	$03
-		JR	NZ,TFC17_1
+		JR	NZ,CF_1
 		POP	AF
 		CP	$03
 		CCF
 		RET
-TFC17_1:	POP	AF
+CF_1:		POP	AF
 		CP	$09
 		CCF
 		RET
 
-TblFnCommon19:	LD	IX,MinU
+InitMove:	LD	IX,MinU
 		BIT	0,(IY+$09)
 		RET	Z
 		LD	A,(IY+$0A)

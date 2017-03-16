@@ -18,7 +18,7 @@ CallObjFn:
         CALL ObjFnRandR
         CALL ObjFnSwitch
         CALL ObjFnHomeIn
-        CALL ObjFn16
+        CALL ObjFnHeliplat3
         CALL ObjFnFade
         CALL ObjFnHeliplat
         CALL ObjFn19
@@ -161,14 +161,14 @@ BO_2:
 
 SomeTableCall:
         CALL PostTableCall
-        CALL SomeTableFn0
-        CALL SomeTableFn1
-        CALL SomeTableFn2
-        CALL SomeTableFn3
-        CALL SomeTableFn4
-        CALL SomeTableFn5
-        CALL SomeTableFn6
-        CALL SomeTableFn7
+        CALL Up
+        CALL Down
+        CALL Left
+        CALL Right
+        CALL UpLeft
+        CALL UpRight
+        CALL DownLeft
+        CALL DownRight
         RET
 
 ;        CALL SomeTableArg0

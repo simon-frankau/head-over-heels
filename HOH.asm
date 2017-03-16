@@ -1102,22 +1102,23 @@ SDO_2:          POP     HL
 
 #include "depthcmp.asm"
 
-LB217:	DEFB $00
-LB218:	DEFB $00
-LB219:	DEFB $00
-Dying:	DEFB $00                ; Mask of the characters who are dying
-LB21B:	DEFB $00
-	
+LB217:		DEFB $00
+LB218:		DEFB $00
+LB219:		DEFB $00
+Dying:		DEFB $00                ; Mask of the characters who are dying
+Direction:	DEFB $00
+
+        ;; HL contains an object, A contains a direction
 TableCall:	PUSH	AF
 		CALL	GetUVZExtentsE
 		EXX
 		POP	AF
-		LD	(LB21B),A
+		LD	(Direction),A
 	;; NB: Fall through
 
         ;; Takes value in A etc. plus extra return value.
 DoTableCall:	CALL	SomeTableCall
-		LD	A,(LB21B)
+		LD	A,(Direction)
 		RET
 
 	;; Takes value in A, indexes into table, writes variable, makes call...
@@ -1337,7 +1338,7 @@ LB369:	BIT		7,(IX+$09)
 		RET
 
 #include "fn_tbl_stuff.asm"
-	
+
 #include "print_char.asm"
 
 	;; Called immediately after installing interrupt handler.
