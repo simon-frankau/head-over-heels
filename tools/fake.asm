@@ -42,6 +42,12 @@ CallObjFn:
         CALL ObjFnCrowny
         RET
 
+ObjFnDissolve:
+        JP ObjFnDissolve2
+
+ObjFnHeliplat2:
+        JP ObjFnHeliplat
+
 GSP_2:
         CALL PickUp2
         CALL BoostDonuts

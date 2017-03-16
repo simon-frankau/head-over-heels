@@ -19,7 +19,7 @@
 ;; * L0005
 ;; * LA2BB
 ;; * LookupDir
-;; * OBJFN_16
+;; * OBJFN_HELIPLAT3
 ;; * OBJFN_FADE
 ;; * OBJFN_FIRE
 ;; * ObjDir
@@ -56,13 +56,14 @@
         ;;           Bit 7 = switched flag
 	;; Offset A: Top bit is flag that's checked against Phase, lower 6 bits are object function.
         ;;           Gets loaded into SpriteFlags
-	;; Offset B: Special object id (second nybble of specials structure)
+	;; Offset B: Bottom 4 bits are roller direction
 	;; Offset C: Some form of direction bitmask?
         ;;           I think it's how we're being pushed. I think bit 5 means 'being stood on'.
         ;; Offset D&E: Object we're resting on.
         ;; Offset D/E get zeroed on the floor. Forms a pointer?
         ;; Offset F: Animation code - top 5 bits are the animation, bottom 3 bits are the frame.
 	;; Offset 10: Direction code. I think this is not the bit mask.
+        ;; Offset 11: Z limits for helipad, state for switch, special id for specials.
 	;; Hmmm. May be 17 bytes? Object-copying code suggests 18 bytes.
 
         ;; U/V coordinates: X/Y coordinates are used for screen space,
@@ -275,7 +276,7 @@ ObjFnHeliplat2:	LD 	A,$90
 
 ObjFnHeliplat:  LD	A,$52
 		LD	(IY+$11),A
-		LD	(IY+O_FUNC),OBJFN_16
+		LD	(IY+O_FUNC),OBJFN_HELIPLAT3
 		RET
 
 ObjFn19:	BIT	5,(IY+$0C)
@@ -285,18 +286,18 @@ ObjFn19:	BIT	5,(IY+$0C)
 
 ;; Rollers in the various directions
 ObjFnRollers1:  LD      A,~$01
-                JR      Write0B
+                JR      WriteRollerDir
 
 ObjFnRollers2:  LD      A,~$02
-                JR      Write0B
+                JR      WriteRollerDir
 
 ObjFnRollers3:  LD      A,~$08
-                JR      Write0B
+                JR      WriteRollerDir
 
 ObjFnRollers4:  LD      A,~$04
         ;; Fall through
 
-Write0B:        LD      (IY+$0B),A
+WriteRollerDir: LD      (IY+$0B),A
                 LD      (IY+O_FUNC),$00
                 RET
 
@@ -462,62 +463,73 @@ TurnRandomly:	PUSH	HL
 		CALL	ObjAgain6
 		JP	ObjDraw
 
-ObjFn16Val:		DEFB 0
-
-ObjFn16:	LD		A,$01
+HeliPadDir:	DEFB 0
+        ;; Running heliplat
+ObjFnHeliPlat3:	LD	A,$01
 		CALL	SetSound
 		CALL	FaceAndAnimate
-		LD		A,(IY+$11)
-		LD		B,A
-		BIT		3,A
-		JR		Z,OF16e
+		LD	A,(IY+$11)
+		LD	B,A
+		BIT	3,A     ; & 0x08?
+		JR	Z,HP_4
+        ;; Bit 3 is set...
+        ;; Calculate $C0 - (6 * A >> 4) - opposite direction in top bits!
 		RRA
 		RRA
-		AND		$3C
-		LD		C,A
+		AND	$3C
+		LD	C,A
 		RRCA
-		ADD		A,C
+		ADD	A,C
 		NEG
-		ADD		A,$C0
-		CP		A,(IY+O_Z)
-		JR		NC,OF16c
-		LD		HL,(CurrObject)
+		ADD	A,$C0
+		CP	A,(IY+O_Z)
+        ;; Above this level? Go to HP_2.
+		JR	NC,HP_2
+		LD	HL,(CurrObject)
 		CALL	CAC41
-		RES		4,(IY+$0B)
-		JR		NC,OF16b
-		JR		Z,OF16g
-OF16b:		CALL	UpdateObjExtents
-		DEC		(IY+O_Z)
-		JR		OF16g
-OF16c:		LD		HL,ObjFn16Val
-		LD		A,(HL)
-		AND		A
-		JR		NZ,OF16d
-		LD		(HL),$02
-OF16d:		DEC		(HL)
-		JR		NZ,OF16g
-		LD		A,B
-		XOR		$08
-		LD		(IY+$11),A
-		AND		$08
-		JR		OF16g
-OF16e:		AND		$07
-		ADD		A,A
-		LD		C,A
-		ADD		A,A
-		ADD		A,C
+		RES	4,(IY+$0B)
+		JR	NC,HP_1
+		JR	Z,HP_6
+        ;; Ascend.
+HP_1:		CALL	UpdateObjExtents
+		DEC	(IY+O_Z)
+		JR	HP_6
+        ;; I think we've hit our target level.
+HP_2:		LD	HL,HeliPadDir
+        ;; Every other time (alternates 0/1):
+		LD	A,(HL)
+		AND	A
+		JR	NZ,HP_3
+		LD	(HL),$02
+HP_3:		DEC	(HL)
+		JR	NZ,HP_6
+        ;; Flip the movement direction
+		LD	A,B
+		XOR	$08
+		LD	(IY+$11),A
+		AND	$08
+		JR	HP_6
+HP_4:
+        ;; Calculate $BF - 6 * (A & 7): convert height to Z coord.
+        	AND	$07
+		ADD	A,A
+		LD	C,A
+		ADD	A,A
+		ADD	A,C
 		NEG
-		ADD		A,$BF
-		CP		A,(IY+O_Z)
-		JR		C,OF16c
-		LD		HL,(CurrObject)
+		ADD	A,$BF
+        ;; Below this level? Go to HP_2
+		CP	A,(IY+O_Z)
+		JR	C,HP_2
+		LD	HL,(CurrObject)
 		CALL	CAB06
-		JR		NC,OF16f
-		JR		Z,OF16g
-OF16f:		CALL	UpdateObjExtents
-		RES		5,(IY+$0B)
-		INC		(IY+O_Z)
-OF16g:		JP		ObjDraw
+		JR	NC,HP_5
+		JR	Z,HP_6
+        ;; Descend
+HP_5:		CALL	UpdateObjExtents
+		RES	5,(IY+$0B)
+		INC	(IY+O_Z)
+HP_6:		JP	ObjDraw 		; NB: Tail call
 
 ;; An axis direction different to the current one.
 DirAxes:        CALL    Random
