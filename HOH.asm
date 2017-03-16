@@ -1109,7 +1109,7 @@ Dying:		DEFB $00                ; Mask of the characters who are dying
 Direction:	DEFB $00
 
         ;; HL contains an object, A contains a direction
-TableCall:	PUSH	AF
+Move:		PUSH	AF
 		CALL	GetUVZExtentsE
 		EXX
 		POP	AF
@@ -1117,21 +1117,21 @@ TableCall:	PUSH	AF
 	;; NB: Fall through
 
         ;; Takes value in A etc. plus extra return value.
-DoTableCall:	CALL	SomeTableCall
+DoMove:		CALL	DoMoveAux
 		LD	A,(Direction)
 		RET
 
 	;; Takes value in A, indexes into table, writes variable, makes call...
-SomeTableCall:	LD	DE,PostTableCall
+DoMoveAux:	LD	DE,PostMove
         ;; Pop this on the stack to be called upon return.
 		PUSH	DE
 		LD	C,A
 		ADD	A,A
 		ADD	A,A
 		ADD	A,C		; Multiply by 5
-		ADD	A,FnTbl & $FF
+		ADD	A,MoveTbl & $FF
 		LD	L,A
-		ADC	A,FnTbl >> 8
+		ADC	A,MoveTbl >> 8
 		SUB	L
 		LD	H,A		; Generate index into table
 		LD	A,(HL)
@@ -1149,7 +1149,7 @@ SomeTableCall:	LD	DE,PostTableCall
 		EXX			; Save regs, and...
 		RET			; tail call DE.
 
-PostTableCall:    EXX
+PostMove:    EXX
                         RET             Z
                         PUSH    HL
                         POP             IX

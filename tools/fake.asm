@@ -159,8 +159,8 @@ BO_2:
         CALL BlitMask5of5
         RET
 
-SomeTableCall:
-        CALL PostTableCall
+DoMoveAux:
+        CALL PostMove
         CALL Up
         CALL Down
         CALL Left

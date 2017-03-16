@@ -569,7 +569,7 @@ EPIC_67:	PUSH	AF
 		CP	$FF
 		JR	Z,EPIC_68
 		CALL	GetCharObj
-		CALL	TableCall	
+		CALL	Move	
 		JR	NC,EPIC_69
 		LD	A,(IY+$0B)
 		OR	$F0
@@ -619,7 +619,7 @@ EPIC_71:	LD	A,$81
 		RET	Z
 		CALL	GetCharObj
 		PUSH	HL
-		CALL	TableCall
+		CALL	Move
 		POP	HL
 		JP	NC,C8CD6
 		LD	A,$88

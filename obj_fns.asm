@@ -30,7 +30,7 @@
 ;; * RootDir
 ;; * SetSound
 ;; * StoreObjExtents
-;; * TableCall
+;; * Move
 ;; * UnionAndDraw
 ;; * WorldMask
 
@@ -195,7 +195,7 @@ ObjFnSub:	LD		A,(ObjDir)
 		CP		$FF
 		SCF
 		RET		Z
-		CALL	TableCallCurr
+		CALL	MoveCurr
 		RET		C
 		PUSH	AF
 		CALL	UpdateObjExtents
@@ -206,14 +206,14 @@ ObjFnSub:	LD		A,(ObjDir)
 		LD		HL,(ObjFn35Val)
 		INC		L
 		RET		Z
-		CALL	TableCallCurr
+		CALL	MoveCurr
 		RET		C
 		CALL	C8CD3
 		AND		A
 		RET
 
-TableCallCurr:	LD		HL,(CurrObject)
-		JP		TableCall
+MoveCurr:	LD		HL,(CurrObject)
+		JP		Move
 
 ObjFnSwitch:
         ;; First check if we're touched. If not, clear $11 and return.
@@ -712,7 +712,7 @@ ObjAgain6:	AND		A,(IY+$0C)
 		RET		Z
 		PUSH	AF
 		LD		(Collided),A
-		CALL	TableCallCurr
+		CALL	MoveCurr
 		POP		BC
 		CCF
 		JP		NC,OA6c
