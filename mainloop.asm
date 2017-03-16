@@ -26,10 +26,10 @@
 ;;  * FrameCounter
 
 ;; Main entry point
-Entry:		LD	SP,$FFF4
-		CALL	InitStuff
-		CALL	InitStick
-		JR	Main
+Entry:          LD      SP,$FFF4
+                CALL    InitStuff
+                CALL    InitStick
+                JR      Main
 
 RoomId:		DEFW $00
 Phase:		DEFB $00	; Top bit toggles every DoObjects loop.
@@ -61,51 +61,55 @@ MainB:		XOR	A
 		LD	(Phase),A
 		CALL	C7B91
 	;; The main game-playing loop
-MainLoop:	CALL	WaitFrame
-		CALL	CheckCtrls
-		CALL	MainLoop2
-		CALL	DoObjects
-		CALL	CheckPause
-		CALL	CheckSwop
+MainLoop:       CALL    WaitFrame
+                CALL    CheckCtrls
+                CALL    DoVictoryRoom
+                CALL    DoObjects
+                CALL    CheckPause
+                CALL    CheckSwop
         ;; Play sound if there is one.
-		LD	HL,SoundId
-		LD	A,(HL)
-		SUB	$01
-		LD	(HL),$00
-		LD	B,A
-		CALL	NC,PlaySound
-		JR	MainLoop
+                LD      HL,SoundId
+                LD      A,(HL)
+                SUB     $01
+                LD      (HL),$00
+                LD      B,A
+                CALL    NC,PlaySound
+                JR      MainLoop
 
-	;; Set zero flag if in victory room.
-InVictoryRoom:	LD	HL,(RoomId)
-		LD	BC,$8D30 ; Victory room
-		XOR	A
-		SBC	HL,BC
-		RET
+        ;; Set zero flag if in victory room.
+InVictoryRoom:  LD      HL,(RoomId)
+                LD      BC,$8D30 ; Victory room
+                XOR     A
+                SBC     HL,BC
+                RET
 
-	;; FIXME: ???
-MainLoop2:
+;; Do special-case stuff associated with being in the victory room.
+DoVictoryRoom:
         ;; Return if in victory room.
-        	CALL	InVictoryRoom
-		RET	NZ
-
-		LD	(SwopPressed),A
-		DEC	A
-		LD	(CurrDir),A
-		LD	HL,ObjFn36Val
-		DEC	(HL)
-		LD	A,(HL)
-		INC	A
-		JP	Z,FinishGame
-		LD	B,$C1
-		CP	$30
-		PUSH	AF
-		CALL	Z,PlaySound
-		POP	AF
-		AND	$01
-		LD	A,STR_FREEDOM
-		CALL	Z,PrintChar
-		RET
+                CALL    InVictoryRoom
+                RET     NZ
+        ;; A is $00. No swapping
+                LD      (SwopPressed),A
+        ;; No movement
+                DEC     A
+                LD      (CurrDir),A
+        ;; ???
+                LD      HL,ObjFn36Val
+                DEC     (HL)
+                LD      A,(HL)
+                INC     A
+                JP      Z,FinishGame
+        ;; Play sound
+                LD      B,$C1
+                CP      $30
+                PUSH    AF
+                CALL    Z,PlaySound
+        ;; Print message
+                POP     AF
+                AND     $01
+                LD      A,STR_FREEDOM
+                CALL    Z,PrintChar
+                RET
 
 	;; FIXME: ???
 L70BA:		LD	HL,RoomId+1
@@ -134,8 +138,10 @@ L70E1:		RRD
 		RLD
         ;; NB: Fall through
 
+;; TODO: Reset stack pointer and jump back into the main loop?
 L70E6:		LD	SP,$FFF4
 		JP	MainB
+
 L70EC:		CALL	CAD26
 		JR	L70E6
 

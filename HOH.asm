@@ -1431,10 +1431,14 @@ GSU_2:		EXX
 		RET
 
 	;; FIXME: Looks suspiciously like we're checking contact with objects.
-CAC41:		CALL	GetUVZExtentsE
+;; Object in IY
+CAC41:
+        ;; Put top of object in B'
+		CALL	GetUVZExtentsE
 		LD	B,C
 		DEC	B
 		EXX
+        ;; Clear the thing on top of us
 		XOR	A
 		LD	(ObjOnChar),A
 	;; Traverse main list of objects
@@ -1452,12 +1456,14 @@ LAC4E:		LD	A,(HL)
 		LD	A,(IX+$07)
 		EXX
 		CP	C
-		JR	NZ,LAC7F
+		JR	NZ,LAC7F 	; Jump if not at same height
 		EXX
 		PUSH	HL
 		CALL	CheckWeOverlap
 		POP	HL
 		JR	NC,LAC4E
+        ;; Top of us = bottom of them, we have a thing on top.
+        ;; Copy flag over and tail call.
 LAC6D:		LD	A,(IY+$0B)
 		OR	$E0
 		AND	$EF
@@ -1466,52 +1472,54 @@ LAC6D:		LD	A,(IY+$0B)
 		AND	C
 		LD	(IX+$0C),A
 		JP	LAB5F		; Tail call
+        ;; Case for not at the same height...
 LAC7F:		CP	B
 		EXX
 		JR	NZ,LAC4E
+        ;; Top of us is one pixel under bottom of them.
 		LD	A,(ObjOnChar)
 		AND	A
-		JR	NZ,LAC4E
+		JR	NZ,LAC4E ; Return if we have an object on top already.
 		PUSH	HL
 		CALL	CheckWeOverlap
 		POP	HL
 		JR	NC,LAC4E
 		LD	A,$FF
-		LD	(ObjOnChar),A
+		LD	(ObjOnChar),A ; Set ObjOnChar to $FF and carry on.
 		JR	LAC4E
 	;; Finished traversing list
-LAC97:		LD	A,(LA2BC)
+LAC97:		LD	A,(LA2BC) ; TODO: Whether other char is in same room?
 		AND	A
-		JR	Z,LACCC
-		CALL	GetCharObjIX
+		JR	Z,LACCC ; Some check...
+		CALL	GetCharObjIX ; Hmmm. Character check.
 		LD	A,(IX+$07)
 		EXX
 		CP	C
-		JR	NZ,LACB6
+		JR	NZ,LACB6 ; Our top != their bottom
 		EXX
 		CALL	CheckWeOverlap
-		JR	NC,LACCC
-		JR	LAC6D
-
+		JR	NC,LACCC ; Nothing on top
+		JR	LAC6D    ; Thing is on top.
+        
 GetCharObjIX:	CALL	GetCharObj
 		PUSH	HL
 		POP	IX
 		RET
 
-LACB6:	CP		B
+LACB6:		CP	B
 		EXX
-		JR		NZ,LACCC
-		LD		A,(ObjOnChar)
-		AND		A
-		JR		NZ,LACCC
+		JR	NZ,LACCC ; Nothing on top case
+		LD	A,(ObjOnChar)
+		AND	A
+		JR	NZ,LACCC ; Nothing on top case.
 		CALL	GetCharObjIX
 		CALL	CheckWeOverlap
-		JR		NC,LACCC
-		LD		A,$FF
-		JR		LACCF
-LACCC:	LD		A,(ObjOnChar)
-LACCF:	AND		A
-		RET		Z
+		JR	NC,LACCC
+		LD	A,$FF
+		JR	LACCF
+LACCC:		LD	A,(ObjOnChar)
+LACCF:		AND	A       ; Rather than setting ObjOnChar, we return it?
+		RET	Z
 		SCF
 		RET
 
