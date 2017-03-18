@@ -407,7 +407,7 @@ EPIC_40:	DEC	(IY+$07)
 EPIC_41:	XOR	A
 		LD	(LA29E),A
 		CALL	DoCarry
-		CALL	CharThing9
+		CALL	DoJump
 EPIC_42:	LD	A,(CurrDir)
 		RRA
 EPIC_43:	CALL	MoveChar
@@ -494,7 +494,7 @@ CharThing22:	LD	HL,LA29E
 		LD	(HL),$FF
 		JR	Z,CharThing24 		; NB: Tail call
 		CALL	DoCarry
-		CALL	CharThing9
+		CALL	DoJump
 		XOR	A
 		JR	CharThing24 		; NB: Tail call
 	
@@ -638,14 +638,14 @@ ResetTickTock:  LD      A,$02
 
 
 	
-CharThing9:	LD	A,(Character)
+DoJump:		LD	A,(Character)
 	;; Zero LA293 if it's Heels
 		LD	B,A
 		DEC	A
-		JR	NZ,EPIC_72
+		JR	NZ,DJ_1
 		XOR	A
 		LD	(LA293),A
-EPIC_72:	LD	A,(SavedObjListIdx)
+DJ_1:		LD	A,(SavedObjListIdx)
 		AND	A
 		RET	NZ
 	;; Return if jump not pressed.
@@ -658,50 +658,50 @@ EPIC_72:	LD	A,(SavedObjListIdx)
 		LD	H,(IY+$0E)
 		LD	A,H
 		OR	L
-		JR	Z,EPIC_75
+		JR	Z,DJ_5
 		PUSH	HL
 		POP	IX
 		BIT	0,(IX+$09)
-		JR	Z,EPIC_73
+		JR	Z,DJ_3
 		LD	A,(IX+$0B)
 		OR	$CF
 		INC	A
 		RET	NZ
-EPIC_73:	LD	A,(IX+$08)
+DJ_3:		LD	A,(IX+$08)
 		AND	$7F
 		CP	$57
-		JR	Z,EPIC_80
+		JR	Z,DJ_10
 		CP	$2B
-		JR	Z,EPIC_74
+		JR	Z,DJ_4
 		CP	$2C
-		JR	NZ,EPIC_75
-EPIC_74:	INC	C
-EPIC_75:	LD	A,(Character)
+		JR	NZ,DJ_5
+DJ_4:		INC	C
+DJ_5:		LD	A,(Character)
 		AND	$02
-		JR	NZ,EPIC_76
+		JR	NZ,DJ_6
 	;; No Head - use up a spring
 		PUSH	BC
 		LD	A,$01
 		CALL	DecCount
 		POP	BC
-		JR	Z,EPIC_77
+		JR	Z,DJ_7
 	;;  Head
-EPIC_76:	INC	C
-EPIC_77:	LD	A,C
+DJ_6:		INC	C
+DJ_7:		LD	A,C
 		ADD	A,A
 		ADD	A,A
 		ADD	A,$04
 		CP	$0C
-		JR	NZ,EPIC_78
+		JR	NZ,DJ_8
 		LD	A,$0A
-EPIC_78:	LD	(LA29F),A
+DJ_8:		LD	(LA29F),A
 		LD	A,$85
 		DEC	B
-		JR	NZ,EPIC_79
+		JR	NZ,DJ_9
 		LD	HL,LA293
 		LD	(HL),$07
-EPIC_79:	JP	SetOtherSound 	; NB: Tail call
-EPIC_80:	LD	HL,L080C
+DJ_9:		JP	SetOtherSound 	; NB: Tail call
+DJ_10:		LD	HL,L080C
 		LD	(LA296),HL
 		LD	B,$C7
 		JP	PlaySound
