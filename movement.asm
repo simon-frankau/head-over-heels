@@ -1,10 +1,10 @@
 	;;
-	;; fn_tbl_stuff.asm
+	;; movement.asm
 	;;
 	;; Performs movement in a direction.
 	;;
-	;; Only exported value is FnTbl
-	;; Only call out is to DoTableCall... which calls right back!
+	;; Only exported value is MoveTbl
+	;; Only call out is to DoMove... which calls right back!
 
 	;; Variables used in this file:
 	;; MinU
@@ -12,14 +12,14 @@
 	;; MaxU
 	;; MaxV
 	;; DoorLocsCopy
-	;; LA2BF
+	;; Movement
 	;; LB218
 
         ;; Table is indexed on a direction, as per LookupDir.
         ;; First element is bit mask for directions.
         ;; Second is the function to move that direction.
         ;; Third element is ???
-FnTbl:          DEFB ~$02
+MoveTbl:        DEFB ~$02
                 DEFW Down,SomeTableArg0
                 DEFB ~$00
                 DEFW DownRight,L0000
@@ -41,12 +41,12 @@ FnTbl:          DEFB ~$02
         ;; TODO: And sets some flags?
 
 DownRight:      EXX
-        ;; Remove original return path, hit DoTableCall again.
+        ;; Remove original return path, hit DoMove again.
                 POP     HL
                 POP     DE
         ;; Call Down
                 XOR     A
-                CALL    DoTableCall
+                CALL    DoMove
                 JR      C,DR_1
         ;; Update extents in DE
                 EXX
@@ -55,26 +55,26 @@ DownRight:      EXX
                 EXX
         ;; Call Right
                 LD      A,$02
-                CALL    DoTableCall
+                CALL    DoMove
                 LD      A,$01
                 RET     NC
                 XOR     A
                 RET
         ;; Call Right
 DR_1:           LD      A,$02
-                CALL    DoTableCall
+                CALL    DoMove
                 RET     C
                 AND     A
                 LD      A,$02
                 RET
 
 UpRight:        EXX
-        ;; Remove original return path, hit DoTableCall again.
+        ;; Remove original return path, hit DoMove again.
                 POP     HL
                 POP     DE
         ;; Call Up
                 LD      A,$04
-                CALL    DoTableCall
+                CALL    DoMove
                 JR      C,UR_1
                 EXX
                 INC     D
@@ -82,7 +82,7 @@ UpRight:        EXX
                 EXX
         ;; Call Right
                 LD      A,$02
-                CALL    DoTableCall
+                CALL    DoMove
                 LD      A,$03
                 RET     NC
                 LD      A,$04
@@ -90,19 +90,19 @@ UpRight:        EXX
                 RET
         ;; Call Right
 UR_1:           LD      A,$02
-                CALL    DoTableCall
+                CALL    DoMove
                 RET     C
                 AND     A
                 LD      A,$02
                 RET
 
 UpLeft:         EXX
-        ;; Remove original return path, hit DoTableCall again.
+        ;; Remove original return path, hit DoMove again.
                 POP     HL
                 POP     DE
         ;; Call Up
                 LD      A,$04
-                CALL    DoTableCall
+                CALL    DoMove
                 JR      C,UL_1
                 EXX
                 INC     D
@@ -110,7 +110,7 @@ UpLeft:         EXX
                 EXX
         ;; Call Left
                 LD      A,$06
-                CALL    DoTableCall
+                CALL    DoMove
                 LD      A,$05
                 RET     NC
                 LD      A,$04
@@ -118,18 +118,18 @@ UpLeft:         EXX
                 RET
         ;; Call Left
 UL_1:           LD      A,$06
-                CALL    DoTableCall
+                CALL    DoMove
                 RET     C
                 LD      A,$06
                 RET
 
 DownLeft:       EXX
-        ;; Remove original return path, hit DoTableCall again.
+        ;; Remove original return path, hit DoMove again.
                 POP     HL
                 POP     DE
         ;; Call Down
                 XOR     A
-                CALL    DoTableCall
+                CALL    DoMove
                 JR      C,DL_1
                 EXX
                 DEC     D
@@ -137,14 +137,14 @@ DownLeft:       EXX
                 EXX
         ;; Call Left
                 LD      A,$06
-                CALL    DoTableCall
+                CALL    DoMove
                 LD      A,$07
                 RET     NC
                 XOR     A
                 RET
         ;; Call Left
 DL_1:           LD      A,$06
-                CALL    DoTableCall
+                CALL    DoMove
                 RET     C
                 AND     A
                 LD      A,$06
@@ -323,7 +323,7 @@ UD_fn4:		RET	NZ
 		JR	C,CommonFn2
 		LD	A,$FB
 	;; NB: Fall through
-CommonFn2:	LD	(LA2BF),A
+CommonFn2:	LD	(Movement),A
 		XOR	A
 		SCF
 		RET

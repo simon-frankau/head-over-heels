@@ -8,7 +8,7 @@
 
 ;; Called functions and accessed values:
 ;; * AnimateObj
-;; * C8CD3
+;; * UpdateCurrPos
 ;; * Random
 ;; * SetFacingDirEx
 ;; * CAB06
@@ -56,7 +56,7 @@
         ;;           Bit 7 = switched flag
 	;; Offset A: Top bit is flag that's checked against Phase, lower 6 bits are object function.
         ;;           Gets loaded into SpriteFlags
-	;; Offset B: Bottom 4 bits are roller direction
+	;; Offset B: Bottom 4 bits are roller direction... last move dir for updated things.
 	;; Offset C: Some form of direction bitmask?
         ;;           I think it's how we're being pushed. I think bit 5 means 'being stood on'.
         ;; Offset D&E: Object we're resting on.
@@ -201,14 +201,14 @@ ObjFnSub:	LD		A,(ObjDir)
 		CALL	UpdateObjExtents
 		POP		AF
 		PUSH	AF
-		CALL	C8CD3
+		CALL	UpdateCurrPos
 		POP		AF
 		LD		HL,(ObjFn35Val)
 		INC		L
 		RET		Z
 		CALL	MoveCurr
 		RET		C
-		CALL	C8CD3
+		CALL	UpdateCurrPos
 		AND		A
 		RET
 
@@ -723,7 +723,7 @@ ObjAgain6:	AND		A,(IY+$0C)
 		LD		(Collided),A
 OA6b:		CALL	UpdateObjExtents
 		POP		AF
-		CALL	C8CD3
+		CALL	UpdateCurrPos
 		SCF
 		RET
 OA6c:		LD		A,(ObjDir)

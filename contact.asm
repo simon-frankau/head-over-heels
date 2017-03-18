@@ -10,8 +10,8 @@ CAA74:		CALL	CAA7E
 		LD		A,(IY+$07)
 		SUB		C
 		JP		DoContact
-CAA7E:	LD		C,$C0
-		LD		A,(LA2BC)
+CAA7E:		LD		C,$C0
+		LD		A,(SavedObjListIdx)
 		AND		A
 		RET		Z
 		LD		IX,DoorLocsCopy
@@ -46,7 +46,7 @@ HitFloor:	SCF
 		JR	Z,FloorCheck 	; Floor check for non-player objects
         ;; Right, player has hit floor.
         ;; Some check?
-		LD	A,(LA2BC)
+		LD	A,(SavedObjListIdx)
 		AND	A
 		JR	NZ,RetZeroC
         ;; Then handle the possibilities
@@ -206,7 +206,7 @@ COC_3:          CP      C
                 LD      (ObjOnChar),HL      ; Update a thing and carry on.
                 JR      COC_1
         ;; Completed object list traversal
-COC_4:		LD	A,(LA2BC)
+COC_4:		LD	A,(SavedObjListIdx)
 		AND	A
 		JR	Z,COC_7
 		CALL	GetCharObjIX
@@ -352,7 +352,7 @@ LAC7F:		CP	B
 		LD	(ObjOnChar),A ; Set ObjOnChar to $FF and carry on.
 		JR	LAC4E
 	;; Finished traversing list
-LAC97:		LD	A,(LA2BC) ; TODO: Whether other char is in same room?
+LAC97:		LD	A,(SavedObjListIdx) ; TODO: Whether other char is in same room?
 		AND	A
 		JR	Z,LACCC ; Some check...
 		CALL	GetCharObjIX ; Hmmm. Character check.

@@ -268,7 +268,7 @@ C7B43:		LD	(Character),A
 		JR	L7B59		; Tail call
 
 L7B56:		CALL	CharThing
-L7B59:		LD	A,(LA2BC)
+L7B59:		LD	A,(SavedObjListIdx)
 		AND	A
 		JR	NZ,L7B56
 		POP	AF
@@ -477,65 +477,84 @@ MulAccBCD:      LD      A,E
                 JR      NZ,MulAccBCD
                 RET
 
-	;; Given a direction bitmask in A, return a direction code.
-LookupDir:	AND		$0F
-		ADD		A,DirTable & $FF
-		LD		L,A
-		ADC		A,DirTable >> 8
-		SUB		L
-		LD		H,A
-		LD		A,(HL)
-		RET
+;; Given a direction bitmask in A, return a direction code.
+LookupDir:      AND     $0F
+                ADD     A,DirTable & $FF
+                LD      L,A
+                ADC     A,DirTable >> 8
+                SUB     L
+                LD      H,A
+                LD      A,(HL)
+                RET
 
-	;; Input into this look-up table is the 4-bit bitmask:
-	;; Left Right Down Up.
-	;;
-	;; Combinations are mapped to the following directions:
-	;;
-	;; $05 $04 $03
-	;; $06 $FF $02
-	;; $07 $00 $01
-	;;
-DirTable:	DEFB $FF,$00,$04,$FF,$06,$07,$05,$06
-		DEFB $02,$01,$03,$02,$FF,$00,$04,$FF
-	
-	
-C8CAB:	LD		L,A
-		ADD		A,A
-		ADD		A,L
-		ADD		A,$BB
-		LD		L,A
-		ADC		A,$8C
-		SUB		L
-		LD		H,A
-		LD		C,(HL)
-		INC		HL
-		LD		B,(HL)
-		INC		HL
-		LD		A,(HL)
-		RET
-L8CBB:	DEFB $FF,$00,$0D,$FF,$FF,$09,$00,$FF,$0B,$01,$FF,$0A,$01,$00,$0E,$01
-L8CCB:	DEFB $01,$06,$00,$01,$07,$FF,$01,$05
-C8CD3:	LD		HL,(CurrObject)
-C8CD6:	PUSH	HL
-		CALL	C8CAB
-		LD		DE,L000B
-		POP		HL
-		ADD		HL,DE
-		XOR		(HL)
-		AND		$0F
-		XOR		(HL)
-		LD		(HL),A
-		LD		DE,LFFFA
-		ADD		HL,DE
-		LD		A,(HL)
-		ADD		A,C
-		LD		(HL),A
-		INC		HL
-		LD		A,(HL)
-		ADD		A,B
-		LD		(HL),A
-		RET
+;; Input into this look-up table is the 4-bit bitmask:
+;; Left Right Down Up.
+;;
+;; Bits are low if direction is pressed.
+;;
+;; Combinations are mapped to the following directions:
+;;
+;; $05 $04 $03
+;; $06 $FF $02
+;; $07 $00 $01
+;;
+DirTable:       DEFB $FF,$00,$04,$FF,$06,$07,$05,$06
+                DEFB $02,$01,$03,$02,$FF,$00,$04,$FF
+
+;; A has a direction, returns Y delta in C, X delta in B, and
+;; third entry is the DirTable inverse mapping.
+DirDeltas:      LD              L,A
+                ADD             A,A
+                ADD             A,L
+                ADD             A,DirTable2 & $FF
+                LD              L,A
+                ADC             A,DirTable2 >> 8
+                SUB             L
+                LD              H,A
+                LD              C,(HL)
+                INC             HL
+                LD              B,(HL)
+                INC             HL
+                LD              A,(HL)
+                RET
+
+        ;; First byte is Y delta, second X, third is reverse lookup?
+DirTable2:      DEFB $FF,$00,$0D        ; ~F2
+                DEFB $FF,$FF,$09        ; ~F6
+                DEFB $00,$FF,$0B        ; ~F4
+                DEFB $01,$FF,$0A        ; ~F5
+                DEFB $01,$00,$0E        ; ~F1
+                DEFB $01,$01,$06        ; ~F9
+                DEFB $00,$01,$07        ; ~F8
+                DEFB $FF,$01,$05        ; ~FA
+
+UpdateCurrPos:  LD	HL,(CurrObject)
+        ;; Fall through
+
+        ;; Takes direction in A.
+UpdatePos:      PUSH    HL
+                CALL    DirDeltas
+        ;; Store the bottom 4 bits of A (dir bitmap) in Object + $0B
+                LD      DE,$0B
+                POP     HL
+                ADD     HL,DE
+                XOR     (HL)
+                AND     $0F
+                XOR     (HL)
+                LD      (HL),A
+        ;; Update U coordinate with Y delta.
+                LD      DE,-$06
+                ADD     HL,DE
+                LD      A,(HL)
+                ADD     A,C
+                LD      (HL),A
+        ;; Update V coordinate with X delta.
+                INC     HL
+                LD      A,(HL)
+                ADD     A,B
+                LD      (HL),A
+                RET
+
 C8CF0:	INC		(HL)
 		LD		A,(HL)
 		ADD		A,L
@@ -833,8 +852,8 @@ ReinitThing:	DEFB $03	; Three bytes to reinit with
 LA29E:		DEFB $00
 LA29F:		DEFB $00
 LA2A0:		DEFB $FF
-	
-LA2A1:	DEFB $02
+
+TickTock:	DEFB $02        ; Phase for moving
 LA2A2:	DEFB $00
 EntryPosn:	DEFB $00,$00,$00 ; Where we entered the room (for when we die).
 LA2A6:	DEFB $03
@@ -848,10 +867,10 @@ FiredObj:	DEFB $00,$00,$00,$00,$20
 		DEFB $08,$00,$00
 	
 LA2BB:	DEFB $0F
-LA2BC:	DEFB $00
+SavedObjListIdx:	DEFB $00
 OtherSoundId:	DEFB $00
 SoundId:	DEFB $00	 ; Id of sound, +1 (0 = no sound)
-LA2BF:	DEFB $FF
+Movement:	DEFB $FF
 	
 HeelsObj:	DEFB $00
 LA2C1:	DEFB $00,$00,$00,$08
@@ -1193,7 +1212,7 @@ LB288:    BIT             0,(IY+$09)
                         CP              E
                         RET             Z
 
-LB292:    LD              A,(LA2BC)
+LB292:    LD              A,(SavedObjListIdx)
                         AND             A
                         RET             Z
                         CALL    DoCopy
@@ -1337,7 +1356,7 @@ LB369:	BIT		7,(IX+$09)
 		LD		(IX+$0B),$FF
 		RET
 
-#include "fn_tbl_stuff.asm"
+#include "movement.asm"
 
 #include "print_char.asm"
 

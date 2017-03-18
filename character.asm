@@ -17,7 +17,7 @@
 
 	;; Unknown functions that are called:
 	;; C72A0
-	;; C8CD6
+	;; UpdatePos
 	;; C8CF0
 	;; C8D7F
 	;; LA316
@@ -76,11 +76,11 @@ EPIC_1:		LD	HL,LA296
 		LD	A,$03
 		CALL	C,DecCount
 EPIC_2:		LD	A,$FF
-		LD	(LA2BF),A
+		LD	(Movement),A
 		LD	A,(LB218)
 		AND	A
 		JR	Z,EPIC_4
-		LD	A,(LA2BC)
+		LD	A,(SavedObjListIdx)
 		AND	A
 		JR	Z,EPIC_3
 		LD	A,(LA2BB)
@@ -113,7 +113,7 @@ DoFire:		LD	A,(FirePressed)
 		LD	A,(Character)
 		OR	~2
 		INC	A
-		LD	HL,LA2BC
+		LD	HL,SavedObjListIdx
 		OR	(HL)
 		JR	NZ,NopeFire 	; Skips if not Head (alone) or FIXME
 		LD	A,(Inventory)
@@ -333,7 +333,7 @@ CharThing4:	CALL	GetCharObj
 		POP	IY
 		LD	A,$3F
 		LD	(OtherSoundId),A
-		LD	A,(LA2BC)
+		LD	A,(SavedObjListIdx)
 		CALL	SetObjList
 		CALL	GetCharObj
 		CALL	StoreObjExtents
@@ -341,7 +341,7 @@ CharThing4:	CALL	GetCharObj
 		LD	A,(HL)
 		AND	A
 		JR	Z,EPIC_37
-		LD	A,(LA2BC)
+		LD	A,(SavedObjListIdx)
 		AND	A
 		JR	Z,EPIC_31
 		LD	(HL),$00
@@ -410,7 +410,7 @@ EPIC_41:	XOR	A
 		CALL	CharThing9
 EPIC_42:	LD	A,(CurrDir)
 		RRA
-EPIC_43:	CALL	CharThing7
+EPIC_43:	CALL	MoveChar
 		CALL	CharThing6
 		EX	AF,AF'
 		LD	A,(LA2A0)
@@ -466,11 +466,11 @@ EPIC_52:	LD	A,(Character)
 		LD	(LA2DA),A
 	;; NB: Fall through
 	
-CharThing26:	LD	A,(LA2BF)
+CharThing26:	LD	A,(Movement)
 		LD	(IY+$0C),A
 		CALL	GetCharObj
 		CALL	Relink
-		CALL	CharThing16
+		CALL	SaveObjListIdx
 		XOR	A
 		CALL	SetObjList 		; Switch to default object list
 		CALL	GetCharObj
@@ -503,7 +503,7 @@ CharThing23:	XOR	A
 		INC	A
 	;; NB: Fall through
 CharThing24:	LD	C,A
-		CALL	CharThing8
+		CALL	ResetTickTock
 		RES	5,(IY+$0B)
 		LD	A,(Character)
 		AND	$02
@@ -528,7 +528,7 @@ EPIC_61:	LD	A,$83
 		CALL	SetOtherSound
 		LD	A,(CurrDir)
 		RRA
-EPIC_62:	CALL	CharThing7
+EPIC_62:	CALL	MoveChar
 EPIC_63:	CALL	CharThing6
 		LD	BC,L1B21
 		JP	C,CharThing25
@@ -546,11 +546,11 @@ EPIC_65:	RRA
 		RET
 
 
-	;; Another character-updating function
-CharThing7:	OR	$F0
+;; Move the character.
+MoveChar:	OR	$F0
 		CP	$FF
 		LD	(LA2A0),A
-		JR	Z,EPIC_66
+		JR	Z,MC_1
 		EX	AF,AF'
 		XOR	A
 		LD	(LA2A0),A
@@ -560,74 +560,81 @@ CharThing7:	OR	$F0
 		LD	HL,LA2BB
 		CP	(HL)
 		LD	(HL),A
-		JR	Z,EPIC_67
-EPIC_66:	CALL	CharThing8
+		JR	Z,MC_2
+MC_1:		CALL	ResetTickTock
 		LD	A,$FF
-EPIC_67:	PUSH	AF
+MC_2:		PUSH	AF
 		AND	A,(IY+$0C)
 		CALL	LookupDir
 		CP	$FF
-		JR	Z,EPIC_68
+		JR	Z,MC_3
 		CALL	GetCharObj
 		CALL	Move	
-		JR	NC,EPIC_69
+		JR	NC,MC_5
 		LD	A,(IY+$0B)
 		OR	$F0
 		INC	A
 		LD	A,$88
 		CALL	NZ,SetOtherSound
-EPIC_68:	POP	AF
+MC_3:		POP	AF
 		LD	A,(IY+$0B)
 		OR	$0F
 		LD	(IY+$0B),A
 		RET
-EPIC_69:	CALL	GetCharObj
-		CALL	C8CD6
-		POP	BC
-		LD	HL,LA2A1
-		LD	A,(HL)
-		AND	A
-		JR	Z,EPIC_70
-		DEC	(HL)
-		RET
+        ;; Direction bitmask is on stack. "Move" has been called.
+        ;; Update position and do the speed-related movement when when
+        ;; TickTock hits zero.
+MC_5:           CALL    GetCharObj
+                CALL    UpdatePos
+                POP     BC
+                LD      HL,TickTock
+                LD      A,(HL)
+                AND     A
+                JR      Z,MC_6
+                DEC     (HL)
+                RET
+        ;; Do a bit more movement if we're Heels or have speed.
+        ;; Direction bitmask is in B
+MC_6:           LD      HL,Speed ; We're fast if we have Speed or are Heels...
+                LD      A,(Character)
+                AND     $01
+                OR      (HL)
+                RET     Z
+        ;; Deal with speed counter every other time
+                LD      HL,SpeedModulo
+                DEC     (HL)
+                PUSH    BC
+                JR      NZ,MC_7
+                LD      (HL),$02
+                LD      A,(Character)
+                RRA
+                JR      C,MC_7
+        ;; Use up speed if heels not present
+                LD      A,$00
+                CALL    DecCount
+        ;; Do the sound bit...
+MC_7:           LD      A,$81
+                CALL    SetOtherSound
+        ;; Convert bitmap to direction.
+                POP     AF
+                CALL    LookupDir
+        ;; Return if not moving...
+                CP      $FF
+                RET     Z
+        ;; And do a bit of movement.
+                CALL    GetCharObj
+                PUSH    HL
+                CALL    Move
+                POP     HL
+                JP      NC,UpdatePos
+        ;; Failing to move...
+                LD      A,$88
+                JP      SetOtherSound   ; NB: Tail call
 
-EPIC_70:	LD	HL,Speed ; FIXME: Fast if have Speed or are Heels...
-		LD	A,(Character)
-		AND	$01
-		OR	(HL)
-		RET	Z
-
-	;; Deal with speed every other frame
-		LD	HL,SpeedModulo
-		DEC	(HL)
-		PUSH	BC
-		JR	NZ,EPIC_71
-		LD	(HL),$02
-		LD	A,(Character)
-		RRA
-		JR	C,EPIC_71
-	;; Use up speed if heels not present
-		LD	A,$00
-		CALL	DecCount
-
-EPIC_71:	LD	A,$81
-		CALL	SetOtherSound
-		POP	AF
-		CALL	LookupDir
-	;; Return if nothing pressed
-		CP	$FF
-		RET	Z
-		CALL	GetCharObj
-		PUSH	HL
-		CALL	Move
-		POP	HL
-		JP	NC,C8CD6
-		LD	A,$88
-		JP	SetOtherSound 	; NB: Tail call
-
-CharThing8:	LD	A,$02
-		LD	(LA2A1),A
-		RET
+;; The TickTock counter cycles down from 2. Reset it.
+ResetTickTock:  LD      A,$02
+                LD      (TickTock),A
+                RET
 
 
 	
@@ -638,7 +645,7 @@ CharThing9:	LD	A,(Character)
 		JR	NZ,EPIC_72
 		XOR	A
 		LD	(LA293),A
-EPIC_72:	LD	A,(LA2BC)
+EPIC_72:	LD	A,(SavedObjListIdx)
 		AND	A
 		RET	NZ
 	;; Return if jump not pressed.
@@ -729,7 +736,7 @@ PurseNope:	JP	NC,NopeNoise 		; Tail call
 		POP	AF
 		POP	HL
 		JP	RemoveObject		; Tail call
-DropCarried:	LD	A,(LA2BC)
+DropCarried:	LD	A,(SavedObjListIdx)
 		AND	A
 		JP	NZ,NopeNoise 		; FIXME: Can't drop if ???
 		LD	C,(IY+$07)
@@ -915,15 +922,15 @@ EPIC_97:	LD	A,$80
 		LD	(IY+$0C),$FF
 		POP	HL
 		CALL	Enlist
-		CALL	CharThing16
+		CALL	SaveObjListIdx
 		XOR	A
 		LD	(LB219),A
 		LD	(Dying),A
 		LD	(L7B8F),A
 		JP	SetObjList ; Switch to default object list
 	
-CharThing16:	LD	A,(ObjListIdx)
-		LD	(LA2BC),A
+SaveObjListIdx:	LD	A,(ObjListIdx)
+		LD	(SavedObjListIdx),A
 		RET
 
 	

@@ -267,7 +267,7 @@ CheckSwop:	LD		A,(SwopPressed)
 		RRA
 		RET		NC 		; Return if not pressed...
 	;; FIXME: Don't know what these variables are that prevent us swopping
-		LD		A,(LA2BC)
+		LD		A,(SavedObjListIdx)
 		LD		HL,LB219
 		OR		(HL)
 		LD		HL,(LA296)
