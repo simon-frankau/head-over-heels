@@ -20,7 +20,7 @@
 	;; UpdatePos
 	;; C8CF0
 	;; C8D7F
-	;; LA316
+	;; WiggleEyebrows
 	;; CAA74
 	;; CAC41
 	;; SetObjList
@@ -35,7 +35,7 @@
 	;; Think it involves general movement/firing etc.
 CharThing:	LD	A,(LA314)
 		RLA
-		CALL	C,LA316
+		CALL	C,WiggleEyebrows
 		LD	HL,LB219
 		LD	A,(HL)
 		AND	A
@@ -486,7 +486,7 @@ CharThing5:	LD	HL,LA315
 		CP	$03
 		RET	NZ
 		LD	(HL),$40
-EPIC_55:	JP	LA316
+EPIC_55:	JP	WiggleEyebrows
 	
 CharThing22:	LD	HL,LA29E
 		LD	A,(HL)

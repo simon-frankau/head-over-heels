@@ -894,40 +894,59 @@ LA2FC:	DEFB $00,$24,$A4,$A5,$25
 LA301:	DEFB $A5,$A6,$26,$26,$A6,$A6,$26,$26,$00
 LA30A:	DEFB $00,$26,$A6,$26,$A6,$A5,$25
 LA311:	DEFB $24,$A5,$00
-LA314:	DEFB $00
-LA315:	DEFB $40
-LA316:	LD		HL,LA314
-		LD		A,$80
-		XOR		(HL)
-		LD		(HL),A
-		LD		A,(LC043)
-		BIT		0,A
-		LD		HL,LD12D
-		LD		DE,LA355
-		JR		Z,LA32E
-		DEC		HL
-		LD		DE,LA349
-LA32E:	PUSH	DE
-		PUSH	HL
-		CALL	CA339
-		LD		DE,L0048
-		POP		HL
-		ADD		HL,DE
-		POP		DE
-CA339:	LD		C,$06
-LA33B:	LD		B,$02
-LA33D:	LD		A,(DE)
-		XOR		(HL)
-		LD		(HL),A
-		INC		DE
-		INC		HL
-		DJNZ	LA33D
-		INC		HL
-		DEC		C
-		JR		NZ,LA33B
-		RET
-LA349:	DEFB $00,$C0,$01,$D8,$00,$1C,$00,$84,$00,$10,$00,$20
-LA355:	DEFB $03,$00,$1B,$80,$38,$00,$21,$00,$08,$00,$04,$00
+        
+LA314:		DEFB $00
+LA315:		DEFB $40
+
+        ;; Start on 5th row of SPR_HEAD2
+HEAD_OFFSET:    EQU (7 * 48 + 4) * 3 + 1
+
+WiggleEyebrows:
+        ;; Toggle top bit of LA314.
+                LD      HL,LA314 ; TODO
+                LD      A,$80
+                XOR     (HL)
+                LD      (HL),A
+        ;; Check bit 0 of LC043 for source choice.
+                LD      A,(LC043) ; TODO
+                BIT     0,A
+        ;; Set up destination
+                LD      HL,IMG_3x24 - MAGIC_OFFSET + HEAD_OFFSET
+                LD      DE,XORs + 12 ; Reset means second image
+                JR      Z,WE_1
+                DEC     HL
+                LD      DE,XORs ; Set means first image, dest 1 byte less.
+        ;; Run XORify twice, at HL, and HL+0x48 (the other part of SPR_HEAD2).
+WE_1:           PUSH    DE
+                PUSH    HL
+                CALL    XORify
+                LD      DE,L0048
+                POP     HL
+                ADD     HL,DE
+                POP     DE
+        ;; NB: Fall through
+
+;; Source DE, dest HL, xor 2 bytes of 3 in, 6 times.
+;; Used to XOR over 2 of three columns of a 3x24 sprite.
+XORify:         LD      C,$06
+        ;; C times, repeat the loop below, then HL++.
+XOR_1:          LD      B,$02
+        ;; XOR (DE++) over (HL++), B times.
+XOR_2:          LD      A,(DE)
+                XOR     (HL)
+                LD      (HL),A
+                INC     DE
+                INC     HL
+                DJNZ    XOR_2
+                INC     HL
+                DEC     C
+                JR      NZ,XOR_1
+                RET
+
+        ;; Two images, of bits to flip to wiggle eyebrows, one facing
+        ;; left, one right.
+XORs:
+#insert "img_2x6.bin"
 
 #include "character.asm"
 

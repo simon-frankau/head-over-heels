@@ -16,5 +16,7 @@ lua xbmify.lua 1 ../img_chars.bin > ../out/img_chars.xbm
 
 lua xbmify.lua 2 ../img_walls.bin > ../out/img_walls.xbm
 
+lua xbmify.lua 2 ../img_2x6.bin > ../out/img_2x6.xbm
+
 scr2gif ../screen.scr
 mv ../screen.gif ../out
