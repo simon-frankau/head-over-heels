@@ -555,20 +555,31 @@ UpdatePos:      PUSH    HL
                 LD      (HL),A
                 RET
 
-C8CF0:	INC		(HL)
-		LD		A,(HL)
-		ADD		A,L
-		LD		E,A
-		ADC		A,H
-		SUB		E
-		LD		D,A
-		LD		A,(DE)
-		AND		A
-		RET		NZ
-		LD		(HL),$01
-		INC		HL
-		LD		A,(HL)
+;; Takes a pointer in HL to an index which is incremented into a byte
+;; array that follows it. Next item is returned in A. Array is
+;; terminated with 0, at which point we read the first item
+;; again.
+ReadLoop:
+        ;; On to the next item.
+		INC	(HL)
+        ;; DE = HL + *HL
+		LD	A,(HL)
+		ADD	A,L
+		LD	E,A
+		ADC	A,H
+		SUB	E
+		LD	D,A
+        ;; if (*DE != 0) return
+		LD	A,(DE)
+		AND	A
+		RET	NZ
+        ;; Otherwise, go back to the first item:
+        ;; *HL = 1 (reset it?) and return *(HL+1)
+		LD	(HL),$01
+		INC	HL
+		LD	A,(HL)
 		RET
+
 L8CFF:	LD		A,(HL)
 		INC		(HL)
 		ADD		A,A
@@ -853,10 +864,10 @@ LA29E:		DEFB $00
 LA29F:		DEFB $00
 LA2A0:		DEFB $FF
 
-TickTock:	DEFB $02        ; Phase for moving
-LA2A2:	DEFB $00
+TickTock:	DEFB $02         ; Phase for moving
+LA2A2:		DEFB $00
 EntryPosn:	DEFB $00,$00,$00 ; Where we entered the room (for when we die).
-LA2A6:	DEFB $03
+LA2A6:		DEFB $03
 Carrying:	DEFW $0000	 ; Pointer to carried object.
 	
 FiredObj:	DEFB $00,$00,$00,$00,$20
@@ -884,26 +895,27 @@ LA2D7:	DEFB $28,$0B,$C0
 LA2DA:	DEFB $1F,$25,$00,$FF,$FF
 LA2DF:	DEFB $00,$00
 LA2E1:	DEFB $00,$00,$00
-	
-LA2E4:	DEFB $00,$18,$19,$18,$1A,$00
-LA2EA:	DEFB $00,$1B,$1C,$1B,$1D,$00
-LA2F0:	DEFB $00
-LA2F1:	DEFB $1E,$1F,$1E,$20,$00
-LA2F6:	DEFB $00,$21,$22,$21,$23,$00
-LA2FC:	DEFB $00,$24,$A4,$A5,$25
-LA301:	DEFB $A5,$A6,$26,$26,$A6,$A6,$26,$26,$00
-LA30A:	DEFB $00,$26,$A6,$26,$A6,$A5,$25
-LA311:	DEFB $24,$A5,$00
-        
-LA314:		DEFB $00
-LA315:		DEFB $40
+
+HeelsLoop:      DEFB $00,SPR_HEELS1,SPR_HEELS2,SPR_HEELS1,SPR_HEELS3,$00
+HeelsBLoop:     DEFB $00,SPR_HEELSB1,SPR_HEELSB2,SPR_HEELSB1,SPR_HEELSB3,$00
+HeadLoop:       DEFB $00,SPR_HEAD1,SPR_HEAD2,SPR_HEAD1,SPR_HEAD3,$00
+HeadBLoop:      DEFB $00,SPR_HEADB1,SPR_HEADB2,SPR_HEADB1,SPR_HEADB3,$00
+VapeLoop1:      DEFB $00, SPR_VAPE1, $80 | SPR_VAPE1
+                DEFB $80 | SPR_VAPE2, SPR_VAPE2, $80 | SPR_VAPE2
+                DEFB $80 | SPR_VAPE3, SPR_VAPE3, SPR_VAPE3, $80 | SPR_VAPE3, $80 | SPR_VAPE3
+                DEFB SPR_VAPE3, SPR_VAPE3, $00
+VapeLoop2:      DEFB $00, SPR_VAPE3, $80 | SPR_VAPE3, SPR_VAPE3, $80 | SPR_VAPE3
+                DEFB $80 | SPR_VAPE2, SPR_VAPE2, SPR_VAPE1, $80 | SPR_VAPE2, $00
+
+WiggleState:    DEFB $00
+WiggleCounter:  DEFB $40
 
         ;; Start on 5th row of SPR_HEAD2
 HEAD_OFFSET:    EQU (7 * 48 + 4) * 3 + 1
 
 WiggleEyebrows:
-        ;; Toggle top bit of LA314.
-                LD      HL,LA314 ; TODO
+        ;; Toggle top bit of WiggleState.
+                LD      HL,WiggleState
                 LD      A,$80
                 XOR     (HL)
                 LD      (HL),A

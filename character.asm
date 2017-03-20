@@ -18,7 +18,7 @@
 	;; Unknown functions that are called:
 	;; C72A0
 	;; UpdatePos
-	;; C8CF0
+	;; ReadLoop
 	;; C8D7F
 	;; WiggleEyebrows
 	;; CAA74
@@ -33,9 +33,12 @@
 	
 	;; Something of an epic function...
 	;; Think it involves general movement/firing etc.
-CharThing:	LD	A,(LA314)
+CharThing:
+        ;; If currently wiggled, unwiggle.
+		LD	A,(WiggleState)
 		RLA
 		CALL	C,WiggleEyebrows
+        ;; TODO...
 		LD	HL,LB219
 		LD	A,(HL)
 		AND	A
@@ -282,18 +285,18 @@ HD_9:		LD	A,(LA2A6)
 		JP	L70E6
 
 CharThing18:	PUSH	HL
-		LD	HL,LA30A
+		LD	HL,VapeLoop2
 		JR	CharThing21 		; NB: Tail call
 	
 CharThing20:	LD	HL,(Dying)
 	;; NB: Fall through
 	
 CharThing19:	PUSH	HL
-		LD	HL,LA2FC
+		LD	HL,VapeLoop1
 	;; NB: Fall through
 
 CharThing21:	LD	IY,HeelsObj
-		CALL	C8CF0
+		CALL	ReadLoop
 		POP	HL
 		PUSH	HL
 		BIT	1,L
@@ -420,35 +423,35 @@ EPIC_43:	CALL	MoveChar
 		LD	HL,Character
 		BIT	0,(HL)
 		JR	Z,EPIC_44
-		LD	(LA2E4),A
-		LD	(LA2EA),A
+		LD	(HeelsLoop),A
+		LD	(HeelsBLoop),A
 EPIC_44:	BIT	1,(HL)
 		JR	Z,EPIC_45
-		LD	(LA2F0),A
-		LD	(LA2F6),A
+		LD	(HeadLoop),A
+		LD	(HeadBLoop),A
 EPIC_45:	EX	AF,AF'
 		LD	BC,L1B21
 		JR	C,EPIC_50
-		CALL	CharThing5
+		CALL	DoWiggle
 		LD	BC,L181F
 		JR	EPIC_50
 EPIC_46:	EX	AF,AF'
-		LD	HL,LA2E4
-		LD	DE,LA2F0
+		LD	HL,HeelsLoop
+		LD	DE,HeadLoop
 		JR	NC,EPIC_47
-		LD	HL,LA2EA
-		LD	DE,LA2F6
+		LD	HL,HeelsBLoop
+		LD	DE,HeadBLoop
 EPIC_47:	PUSH	DE
 		LD	A,(Character)
 		RRA
 		JR	NC,EPIC_48
-		CALL	C8CF0
+		CALL	ReadLoop
 		LD	(LA2C8),A
 EPIC_48:	POP	HL
 		LD	A,(Character)
 		AND	$02
 		JR	Z,EPIC_49
-		CALL	C8CF0
+		CALL	ReadLoop
 		LD	(LA2DA),A
 EPIC_49:	SET	5,(IY+$0B)
 		JR	CharThing26
@@ -476,18 +479,22 @@ CharThing26:	LD	A,(Movement)
 		CALL	GetCharObj
 		CALL	UnionAndDraw
 		JP	PlayOtherSound 		; NB: Tail call
-	
-CharThing5:	LD	HL,LA315
-		DEC	(HL)
-		LD	A,$03
-		SUB	(HL)
-		RET	C
-		JR	Z,EPIC_55
-		CP	$03
-		RET	NZ
-		LD	(HL),$40
-EPIC_55:	JP	WiggleEyebrows
-	
+
+DoWiggle:
+        ;; Decrement counter and return if >= 3.
+                LD      HL,WiggleCounter
+                DEC     (HL)
+                LD      A,$03
+                SUB     (HL)
+                RET     C
+        ;; If it's 3, wiggle.
+                JR      Z,DW_1
+                CP      $03
+                RET     NZ
+        ;; If it's 0, reset counter and unwiggle
+                LD      (HL),$40
+DW_1:           JP      WiggleEyebrows          ; NB: Tail call.
+
 CharThing22:	LD	HL,LA29E
 		LD	A,(HL)
 		AND	A
@@ -811,9 +818,9 @@ GetCharObj:	LD	HL,Character
 
 	
 CharThing15:	XOR	A 	; FIXME: Unused?
-		LD	(LA2FC),A
+		LD	(VapeLoop1),A
 		LD	(LA296),A
-		LD	(LA30A),A
+		LD	(VapeLoop2),A
 		LD	A,$08
 		LD	(FiredObj+$0F),A
 		CALL	SetCharThing
