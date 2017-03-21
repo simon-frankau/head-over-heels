@@ -39,7 +39,7 @@
 	;; Offset 0: 'B' list next item pointer
         ;; Offset 2: 'A' list next item pointer
 	;; Offset 4: Some flag - bit 6 and 7 causes skipping.
-        ;;           Bits 0-2: ObjectShape (see GetNewCoords)
+        ;;           Bits 0-2: Object shape - see GetUVZExtents
         ;;           Bit 3:    Tall (extra 6 height)
         ;;           Bit 4: Holds switch status for a switch.
         ;;           Bit 6: Object is a special collectable item.

@@ -142,7 +142,7 @@ L70E1:		RRD
 L70E6:		LD	SP,$FFF4
 		JP	MainB
 
-L70EC:		CALL	CAD26
+L70EC:		CALL	Teleport
 		JR	L70E6
 
 	;; Wait for the frame counter to reduce to zero

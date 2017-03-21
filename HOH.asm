@@ -964,13 +964,6 @@ XORs:
 
 #include "contact.asm"
 
-LAD4C:	DEFW $8A40,$7150,$8940,$0480,$BA70,$1300,$4100,$2980
-	DEFW $A100,$2600,$8100,$E980,$8400,$B100,$8500,$EF20
-	DEFW $A400,$00F0,$A500,$88D0,$BCD0,$DED0,$2DB0,$8BD0
-	DEFW $1190,$E1C0,$00B0,$E2C0,$10B0,$C100,$8BF0,$00F0
-	DEFW $9730,$EF20,$1D00,$A800,$BA70,$4E00,$8800,$1B30
-	DEFW $4C00,$3930,$8B30,$8D30
-
 ;; Width of sprite in bytes.
 SpriteWidth:    DEFB $04
 ;; Current sprite we're drawing.

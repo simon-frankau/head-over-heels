@@ -389,7 +389,7 @@ LACCF:		AND	A       ; Rather than setting ObjOnChar, we return it?
 
 	;; Takes object point in IX and checks to see if we overlap with it.
 	;; FIXME: May assume our coordinates are in DE',HL'.
-CheckWeOverlap:	CALL	CACE6
+CheckWeOverlap:	CALL	GetUVExt
 	;; NB: Fall through
 	
 	;; Assuming X and Y extents in DE,HL and DE',HL', check two boundaries overlap.
@@ -414,65 +414,94 @@ CheckOverlap:
 		CP	H
 		RET
 
-CACE6:		LD		A,(IX+$04)
-		BIT		1,A
-		JR		NZ,LAD03
-		RRA
-		LD		A,$03
-		ADC		A,$00
-		LD		C,A
-		ADD		A,(IX+$05)
-		LD		D,A
-		SUB		C
-		SUB		C
-		LD		E,A
-		LD		A,C
-		ADD		A,(IX+$06)
-		LD		H,A
-		SUB		C
-		SUB		C
-		LD		L,A
-		RET
-LAD03:	RRA
-		JR		C,LAD16
-		LD		A,(IX+$05)
-		ADD		A,$04
-		LD		D,A
-		SUB		$08
-		LD		E,A
-		LD		L,(IX+$06)
-		LD		H,L
-		INC		H
-		DEC		L
-		RET
-LAD16:	LD		A,(IX+$06)
-		ADD		A,$04
-		LD		H,A
-		SUB		$08
-		LD		L,A
-		LD		E,(IX+$05)
-		LD		D,E
-		INC		D
-		DEC		E
-		RET
 
-CAD26:		LD	BC,(RoomId)
-		LD	HL,LAD4C
-		CALL	CAD35
-		LD	(RoomId),DE
-		RET
+
+;; Given an object in IX, returns its U and V extents.
+;; Very like GetUVZExtents... but different?!
+;;
+;; D = high U, E = low U
+;; H = high V, L = low V
+;;
+;; Values are based on the bottom 2 flag bits
+;; Flag   U      V
+;; 0     0 -6  +0 -6
+;; 1    +0 -8  +0 -8
+;; 2    +4 -4  +1 -1
+;; 3    +1 -1  +4 -4
+GetUVExt:
+        ;; Check bit 1 of object shape.
+                LD      A,(IX+$04)
+                BIT     1,A
+                JR      NZ,GUVE_1
+        ;; Bit was reset: Case 0/1
+        ;; C = 3 + bottom bit of object shape
+                RRA
+                LD      A,$03
+                ADC     A,$00
+                LD      C,A
+        ;; D = U coord, E = U coord - 2 * C
+                ADD     A,(IX+$05)
+                LD      D,A
+                SUB     C
+                SUB     C
+                LD      E,A
+        ;; H = V coord, L = V coord - 2 * C
+                LD      A,C
+                ADD     A,(IX+$06)
+                LD      H,A
+                SUB     C
+                SUB     C
+                LD      L,A
+                RET
+GUVE_1:
+        ;; Jump if bottom bit set.
+                RRA
+                JR      C,GUVE_2
+        ;; Case 2
+        ;; D = U coord + 4, E = U coord - 4
+                LD      A,(IX+$05)
+                ADD     A,$04
+                LD      D,A
+                SUB     $08
+                LD      E,A
+        ;; L = V coord - 1, H = V coord + 1
+                LD      L,(IX+$06)
+                LD      H,L
+                INC     H
+                DEC     L
+                RET
+GUVE_2:
+        ;; Case 3
+        ;; H = V coord + 4, L = V coord - 4
+                LD      A,(IX+$06)
+                ADD     A,$04
+                LD      H,A
+                SUB     $08
+                LD      L,A
+        ;; D = U coord + 1, E = U coord - 1
+                LD      E,(IX+$05)
+                LD      D,E
+                INC     D
+                DEC     E
+                RET
+
+;; Swap RoomId with the room at the other end of the teleport.
+Teleport:       LD      BC,(RoomId)
+                LD      HL,Teleports
+                CALL    FindPair
+                LD      (RoomId),DE
+                RET
 
 ;; Scans array from HL, looking for BC, scanning in pairs. If the
-;; first is equal, it returns the second. If the second is equal,
-;; it returns it.
-
-CAD35:		CALL	CmpBCHL
-		JR	Z,CmpBCHL
-		PUSH	DE
-		CALL	CmpBCHL
-		POP	DE
-		JR	NZ,CAD35
-		RET
+;; first is equal, it returns the second in DE. If the second is equal,
+;; it returns the first.
+FindPair:       CALL    CmpBCHL
+                JR      Z,CmpBCHL
+                PUSH    DE
+                CALL    CmpBCHL
+                POP     DE
+                JR      NZ,FindPair
+                RET
 
 ;; Loads (HL) into DE, incrementing HL. Compares BC with DE, sets Z if equal.
 CmpBCHL:        LD      A,C
@@ -485,3 +514,26 @@ CmpBCHL:        LD      A,C
                 LD      A,B
                 CP      D
                 RET
+
+Teleports:      DEFW $8A40,$7150
+                DEFW $8940,$0480
+                DEFW $BA70,$1300
+                DEFW $4100,$2980
+                DEFW $A100,$2600
+                DEFW $8100,$E980
+                DEFW $8400,$B100
+                DEFW $8500,$EF20
+                DEFW $A400,$00F0
+                DEFW $A500,$88D0
+                DEFW $BCD0,$DED0
+                DEFW $2DB0,$8BD0
+                DEFW $1190,$E1C0
+                DEFW $00B0,$E2C0
+                DEFW $10B0,$C100
+                DEFW $8BF0,$00F0
+                DEFW $9730,$EF20
+                DEFW $1D00,$A800
+                DEFW $BA70,$4E00
+                DEFW $8800,$1B30
+                DEFW $4C00,$3930
+                DEFW $8B30,$8D30
