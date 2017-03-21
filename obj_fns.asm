@@ -17,7 +17,7 @@
 ;; * CurrObject
 ;; * GetCharObj
 ;; * L0005
-;; * LA2BB
+;; * CharDir
 ;; * LookupDir
 ;; * OBJFN_HELIPLAT3
 ;; * OBJFN_FADE
@@ -144,7 +144,7 @@ ObjFn35b:	LD		A,(ObjDir)
 		LD		A,(IY+$0C)
 		AND		$20
 		RET		NZ
-		LD		BC,(LA2BB)
+		LD		BC,(CharDir)
 		JR		ObjFnEnd
 
 ObjFn32:	LD		A,(ObjDir)

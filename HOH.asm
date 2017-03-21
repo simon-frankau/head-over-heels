@@ -241,9 +241,9 @@ InitNewGame:	XOR	A
 		LD	(LB218),A
 		LD	(Continues),A
 		LD	A,$18
-		LD	(LA2C8),A
+		LD	(HeelsFrame),A
 		LD	A,$1F
-		LD	(LA2DA),A
+		LD	(HeadFrame),A
 		CALL	InitNewGame1
 		CALL	Reinitialise
 		DEFW	StatusReinit
@@ -862,7 +862,7 @@ ReinitThing:	DEFB $03	; Three bytes to reinit with
 	
 LA29E:		DEFB $00
 LA29F:		DEFB $00
-LA2A0:		DEFB $FF
+IsStill:	DEFB $FF        ; $00 if moving, $FF if still
 
 TickTock:	DEFB $02         ; Phase for moving
 LA2A2:		DEFB $00
@@ -877,7 +877,7 @@ FiredObj:	DEFB $00,$00,$00,$00,$20
 		DEFB $FF,$FF,$00,$00
 		DEFB $08,$00,$00
 	
-LA2BB:	DEFB $0F
+CharDir:	DEFB $0F        ; Bitmask of direction, suitable for passing to LookupDir.
 SavedObjListIdx:	DEFB $00
 OtherSoundId:	DEFB $00
 SoundId:	DEFB $00	 ; Id of sound, +1 (0 = no sound)
@@ -886,13 +886,13 @@ Movement:	DEFB $FF
 HeelsObj:	DEFB $00
 LA2C1:	DEFB $00,$00,$00,$08
 LA2C5:	DEFB $28,$0B,$C0
-LA2C8:	DEFB $18,$21,$00,$FF,$FF
+HeelsFrame:	DEFB $18,$21,$00,$FF,$FF
 LA2CD:	DEFB $00,$00,$00,$00
 LA2D1:	DEFB $00
 	
 HeadObj:	DEFB $00,$00,$00,$00,$08
 LA2D7:	DEFB $28,$0B,$C0
-LA2DA:	DEFB $1F,$25,$00,$FF,$FF
+HeadFrame:	DEFB $1F,$25,$00,$FF,$FF
 LA2DF:	DEFB $00,$00
 LA2E1:	DEFB $00,$00,$00
 

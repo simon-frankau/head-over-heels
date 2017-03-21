@@ -284,7 +284,7 @@ CheckSwop:	LD		A,(SwopPressed)
 
 	;; FIXME: Lots to reverse here
 SwitchChar:	CALL	SwitchHelper
-		LD	BC,(LA2BB)
+		LD	BC,(CharDir)
 		JR	NC,SwC_1
 		LD	(HL),C
 SwC_1:		INC	HL
@@ -348,7 +348,7 @@ SwC_7:		LD	(Character),A
 		JR	C,SwC_8
 		INC	HL
 SwC_8:		LD	A,(HL)
-		LD	(LA2BB),A
+		LD	(CharDir),A
 		LD	A,(LA295)
 		AND	A
 		JP	NZ,DrawScreenPeriphery

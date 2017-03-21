@@ -17,17 +17,9 @@
 
 	;; Unknown functions that are called:
 	;; C72A0
-	;; UpdatePos
-	;; ReadLoop
 	;; C8D7F
-	;; WiggleEyebrows
 	;; CAA74
 	;; CAC41
-	;; SetObjList
-	;; Enlist
-	;; EnlistAux
-	;; Relink
-	;; Unlink
 	;; LB21C
 	
 	
@@ -86,7 +78,7 @@ EPIC_2:		LD	A,$FF
 		LD	A,(SavedObjListIdx)
 		AND	A
 		JR	Z,EPIC_3
-		LD	A,(LA2BB)
+		LD	A,(CharDir)
 		SCF
 		RLA
 		LD	(CurrDir),A
@@ -139,7 +131,7 @@ DoFire:		LD	A,(FirePressed)
 		LD	(FiredObj+$0A),A
 	;; FIXME: Initialise other fields...
 		LD	(IY+$04),$00
-		LD	A,(LA2BB)
+		LD	A,(CharDir)
 		LD	(FiredObj+$0B),A
 		LD	(IY+$0C),$FF
 		LD	(IY+$0F),$20
@@ -302,7 +294,7 @@ CharThing21:	LD	IY,HeelsObj
 		BIT	1,L
 		JR	Z,EPIC_29
 		PUSH	AF
-		LD	(LA2DA),A
+		LD	(HeadFrame),A
 		RES	3,(IY+$16)
 		LD	HL,HeadObj
 		CALL	StoreObjExtents
@@ -313,7 +305,7 @@ EPIC_29:	POP	HL
 		RR	L
 		RET	NC
 		XOR	$80
-		LD	(LA2C8),A
+		LD	(HeelsFrame),A
 		RES	3,(IY+$04)
 		LD	HL,HeelsObj
 		CALL	StoreObjExtents
@@ -370,8 +362,8 @@ EPIC_33:	RES	4,(IY+$0B)
 EPIC_34:	LD	A,(Character)
 		AND	$02
 		JR	NZ,EPIC_36
-EPIC_35:	LD	A,(LA2BB)
-		JP	EPIC_43
+EPIC_35:	LD	A,(CharDir)
+		JP	HandleMove
 EPIC_36:	LD	A,(CurrDir)
 		RRA
 		CALL	LookupDir
@@ -413,72 +405,89 @@ EPIC_41:	XOR	A
 		CALL	DoJump
 EPIC_42:	LD	A,(CurrDir)
 		RRA
-EPIC_43:	CALL	MoveChar
-		CALL	CharThing6
-		EX	AF,AF'
-		LD	A,(LA2A0)
-		INC	A
-		JR	NZ,EPIC_46
-		XOR	A
-		LD	HL,Character
-		BIT	0,(HL)
-		JR	Z,EPIC_44
-		LD	(HeelsLoop),A
-		LD	(HeelsBLoop),A
-EPIC_44:	BIT	1,(HL)
-		JR	Z,EPIC_45
-		LD	(HeadLoop),A
-		LD	(HeadBLoop),A
-EPIC_45:	EX	AF,AF'
-		LD	BC,L1B21
-		JR	C,EPIC_50
-		CALL	DoWiggle
-		LD	BC,L181F
-		JR	EPIC_50
-EPIC_46:	EX	AF,AF'
-		LD	HL,HeelsLoop
-		LD	DE,HeadLoop
-		JR	NC,EPIC_47
-		LD	HL,HeelsBLoop
-		LD	DE,HeadBLoop
-EPIC_47:	PUSH	DE
-		LD	A,(Character)
-		RRA
-		JR	NC,EPIC_48
-		CALL	ReadLoop
-		LD	(LA2C8),A
-EPIC_48:	POP	HL
-		LD	A,(Character)
-		AND	$02
-		JR	Z,EPIC_49
-		CALL	ReadLoop
-		LD	(LA2DA),A
-EPIC_49:	SET	5,(IY+$0B)
-		JR	CharThing26
-EPIC_50:	SET	5,(IY+$0B)
-	;; NB: Fall through
+        ;; Fall through
 
-CharThing25:	LD	A,(Character)
-		RRA
-		JR	NC,EPIC_52
-		LD	(IY+$08),B
-EPIC_52:	LD	A,(Character)
-		AND	$02
-		JR	Z,CharThing26 		; NB: Tail call
-		LD	A,C
-		LD	(LA2DA),A
-	;; NB: Fall through
-	
-CharThing26:	LD	A,(Movement)
-		LD	(IY+$0C),A
-		CALL	GetCharObj
-		CALL	Relink
-		CALL	SaveObjListIdx
-		XOR	A
-		CALL	SetObjList 		; Switch to default object list
-		CALL	GetCharObj
-		CALL	UnionAndDraw
-		JP	PlayOtherSound 		; NB: Tail call
+;; Do the actual movement stuff. Direction in A.
+HandleMove:     CALL    MoveChar
+                CALL    Orient
+                EX      AF,AF'
+                LD      A,(IsStill)
+                INC     A
+                JR      NZ,HM_3         ; Jump to HM_3 for moving case.
+        ;; Character-is-still case.
+        ;; Reset the animation loops for whichever Character is running now.
+                XOR     A
+                LD      HL,Character
+                BIT     0,(HL)
+                JR      Z,HM_1
+                LD      (HeelsLoop),A
+                LD      (HeelsBLoop),A
+HM_1:           BIT     1,(HL)
+                JR      Z,HM_2
+                LD      (HeadLoop),A
+                LD      (HeadBLoop),A
+        ;; If facing towards us, do wiggle. Set BC appropriately.
+HM_2:           EX      AF,AF'
+                LD      BC,SPR_HEELSB1 << 8 | SPR_HEADB1
+                JR      C,HM_7
+                CALL    DoWiggle
+                LD      BC,SPR_HEELS1 << 8 | SPR_HEAD2
+                JR      HM_7
+        ;; Choose animation frame for movement.
+        ;; A' carry -> facing away.
+HM_3:           EX      AF,AF'
+                LD      HL,HeelsLoop
+                LD      DE,HeadLoop
+                JR      NC,HM_4
+                LD      HL,HeelsBLoop
+                LD      DE,HeadBLoop
+HM_4:           PUSH    DE
+        ;; Update HeelsFrame if Character contains Heels
+                LD      A,(Character)
+                RRA
+                JR      NC,HM_5
+                CALL    ReadLoop
+                LD      (HeelsFrame),A
+HM_5:           POP     HL
+        ;; Update HeadFrame if Character contains Head.
+                LD      A,(Character)
+                AND     $02
+                JR      Z,HM_6
+                CALL    ReadLoop
+                LD      (HeadFrame),A
+        ;; TODO: Set some bit.
+HM_6:           SET     5,(IY+$0B)
+                JR      UpdateChar              ; NB: Tail call.
+        ;; TODO: Also set some bit.
+HM_7:           SET     5,(IY+$0B)
+        ;; NB: Fall through
+
+;; Update the character animation frames to values in BC, and then
+;; call UpdateChar.
+UpdateCharFrame:LD      A,(Character)
+                RRA
+                JR      NC,UCF_1
+        ;; Heels case.
+                LD      (IY+$08),B
+UCF_1:          LD      A,(Character)
+                AND     $02
+                JR      Z,UpdateChar           ; NB: Tail call
+        ;; Head case.
+                LD      A,C
+                LD      (HeadFrame),A
+        ;; NB: Fall through
+
+;; Actually resort and redraw the character in IY.
+UpdateChar:     LD      A,(Movement)
+                LD      (IY+$0C),A
+                CALL    GetCharObj
+                CALL    Relink
+                CALL    SaveObjListIdx
+                XOR     A
+                CALL    SetObjList              ; Switch to default object list
+                CALL    GetCharObj
+                CALL    UnionAndDraw
+                JP      PlayOtherSound          ; NB: Tail call
 
 DoWiggle:
         ;; Decrement counter and return if >= 3.
@@ -528,7 +537,7 @@ EPIC_59:	INC	(IY+$07)
 		AND	A
 		JR	Z,EPIC_63
 		DEC	(HL)
-		LD	A,(LA2BB)
+		LD	A,(CharDir)
 		JR	EPIC_62
 EPIC_60:	INC	(IY+$07)
 EPIC_61:	LD	A,$83
@@ -536,35 +545,36 @@ EPIC_61:	LD	A,$83
 		LD	A,(CurrDir)
 		RRA
 EPIC_62:	CALL	MoveChar
-EPIC_63:	CALL	CharThing6
-		LD	BC,L1B21
-		JP	C,CharThing25
-		LD	BC,L184D
-		JP	CharThing25
+EPIC_63:	CALL	Orient
+		LD	BC,SPR_HEELSB1 << 8 | SPR_HEADB1
+		JP	C,UpdateCharFrame
+		LD	BC,SPR_HEELS1 << 8 | SPR_HEAD
+		JP	UpdateCharFrame
 
-CharThing6:	LD	A,(LA2BB)
-		CALL	LookupDir
-		RRA
-		RES	4,(IY+$04)
-		RRA
-		JR	C,EPIC_65
-		SET	4,(IY+$04)
-EPIC_65:	RRA
-		RET
-
+;; Sets bit 4 of offset 4 if $02 bit is set (sprite needs flip),
+;; returns with carry if facing away.
+Orient:         LD      A,(CharDir)
+                CALL    LookupDir
+                RRA
+                RES     4,(IY+$04)
+                RRA
+                JR      C,O_1
+                SET     4,(IY+$04)
+O_1:            RRA
+                RET
 
 ;; Move the character.
 MoveChar:	OR	$F0
 		CP	$FF
-		LD	(LA2A0),A
+		LD	(IsStill),A
 		JR	Z,MC_1
 		EX	AF,AF'
 		XOR	A
-		LD	(LA2A0),A
+		LD	(IsStill),A
 		LD	A,$80
 		CALL	SetOtherSound
 		EX	AF,AF'
-		LD	HL,LA2BB
+		LD	HL,CharDir
 		CP	(HL)
 		LD	(HL),A
 		JR	Z,MC_2
@@ -914,7 +924,7 @@ EPIC_96:	POP	AF
 		SUB	L
 		LD	H,A
 		LD	A,(HL)
-		LD	(LA2BB),A
+		LD	(CharDir),A
 EPIC_97:	LD	A,$80
 		LD	(LB218),A
 		POP	HL
