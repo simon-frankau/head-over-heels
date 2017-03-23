@@ -46,7 +46,7 @@ C7BBF:		CALL	Reinitialise
 		JR	L7C14
 L7BDC:		CALL	C728C
 		JR	NZ,L7C10
-		CALL	C72A3
+		CALL	RestoreStuff2
 		CALL	C774D
 		LD	HL,HeelsObj
 		CALL	GetUVZExtentsB
@@ -71,7 +71,7 @@ L7C0C:		LD	A,$01
 L7C10:		CALL	BuildRoom
 		XOR	A
 L7C14:		LD	(LA295),A
-		JP	C7C1A
+		JP	GetScreenEdges
 
 
 	;;    ^
@@ -79,21 +79,21 @@ L7C14:		LD	(LA295),A
 	;;  /   \
 	;; H     L
 	
-C7C1A:		LD	HL,(MinU)
+GetScreenEdges:	LD	HL,(MinU)
 		LD	A,(HasDoor)
 		PUSH	AF
 		BIT	1,A
-		JR	Z,L7C29
+		JR	Z,GSE_1
 		DEC	H
 		DEC	H
 		DEC	H
 		DEC	H
-L7C29:		RRA
+GSE_1:		RRA
 		LD		A,L
-		JR		NC,L7C30
+		JR		NC,GSE_2
 		SUB		$04
 		LD		L,A
-L7C30:		SUB		H
+GSE_2:		SUB		H
 	;; X coordinate of the play area bottom corner is in A.
 	;; 
 	;; We write out the corner position, and the appropriate

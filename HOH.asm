@@ -28,107 +28,115 @@ ColBufLen:	EQU $94
 DoorwayBuf:	EQU $F9D8
 
 #include "mainloop.asm"
-        
-C72A0:	XOR		A
-		JR		L72A9
-C72A3:	LD		A,$FF
-		LD		HL,L7305
-		PUSH	HL
-L72A9:	LD		HL,L7355
-		LD		DE,L72EB
-		JR		L72BC
-L72B1:	XOR		A
-		LD		HL,L7B78
-		PUSH	HL
-		LD		HL,L734B
-		LD		DE,L72F3
-L72BC:	PUSH	DE
-		LD		(L7348+1),HL
-		CALL	C7314
-		LD		(L72F0),HL
-		AND		A
-		LD		HL,LFB28
-		JR		NZ,L72CD
-		EX		DE,HL
-L72CD:	EX		AF,AF'
-		CALL	C7321
-		INC		B
-		NOP
-		DEC		SP
-		LD		(HL),B
-		CALL	C7321
-		DEC		E
-		NOP
-		LD		(HL),A
-		XOR		A
-		CALL	C7321
-		ADD		HL,DE
-		NOP
-		AND		D
-		AND		D
-		CALL	C7321
-		RET		P
-		INC		BC
-		LD		B,B
-		CP		D
-		RET
-L72EB:	CALL	C7321
-		LD		(DE),A
-		NOP			
-L72F0:		RET		NZ 		; Self-modifying code
-		AND		D
-		RET
-L72F3:	PUSH	DE
-		CALL	GetCharObj
-		EX		DE,HL
-		LD		BC,L0012
-		PUSH	BC
-		LDIR
-		CALL	C7314
-		POP		BC
-		POP		DE
-		LDIR
-L7305:		LD		HL,(LAF92) 	; NB: Referenced as data.
-		LD		(ObjDest),HL
-		LD		HL,ObjectLists + 4
-		LD		BC,L0008
-		JP		FillZero
-	
-C7314:		LD		HL,Character
-		BIT		0,(HL) 		; Heels?
-		LD		HL,HeelsObj	; No Heels case
-		RET		Z
-		LD		HL,HeadObj 	; Have Heels case
-		RET
 
-C7321:	POP		IX
-		LD		C,(IX+$00)
-		INC		IX
-		LD		B,(IX+$00)
-		INC		IX
-		EX		AF,AF'
-		AND		A
-		JR		Z,L733B
-		LD		E,(IX+$00)
-		INC		IX
-		LD		D,(IX+$00)
-		JR		L7343
-L733B:	LD		L,(IX+$00)
-		INC		IX
-		LD		H,(IX+$00)
-L7343:	INC		IX
-		EX		AF,AF'
-		PUSH	IX
-L7348:	JP		L7355	; Self-modifying code
-L734B:	LD		A,(DE)
-		LDI
-		DEC		HL
-		LD		(HL),A
-		INC		HL
-		JP		PE,L734B
-		RET
-L7355:	LDIR
-		RET
+SaveStuff:      XOR     A
+                JR      CopyStuff2
+
+RestoreStuff2:  LD      A,$FF
+                LD      HL,ClearObjLists
+                PUSH    HL
+        ;; Fall through
+
+CopyStuff2:     LD      HL,HL2DE
+                LD      DE,CopyChar
+                JR      CopyStuff
+
+RestoreStuff:   XOR     A
+                LD      HL,L7B78 ; Set the function to call after.
+                PUSH    HL
+                LD      HL,DE2HL
+                LD      DE,LoadCharObjs
+        ;; Fall through
+
+;; Take the copy function to use in HL, and function to call
+;; afterwards in DE. Copies various chunks of data to/from buffer at
+;; LFB28.
+CopyStuff:      PUSH    DE
+                LD      (COD_JP+1),HL
+                CALL    GetOtherChar
+                LD      (CC_Ptr),HL
+                AND     A
+                LD      HL,LFB28
+                JR      NZ,CS_1
+                EX      DE,HL
+CS_1:           EX      AF,AF'
+                CALL    CopyData
+                DEFW    $0004, RoomId
+                CALL    CopyData
+                DEFW    $001D, ObjListIdx
+                CALL    CopyData
+                DEFW    $0019, LA2A2
+                CALL    CopyData
+                DEFW    $03F0, LBA40
+                RET
+
+;; Runs CopyData on a character object.
+CopyChar:       CALL    CopyData
+                DEFW    $0012           ; Size of an object.
+CC_Ptr:         DEFW    HeelsObj        ; Self-modifying code
+                RET
+
+;; Takes pointer in DE, and copies data out to current character, then
+;; the other character.
+LoadCharObjs:   PUSH    DE
+                CALL    GetCharObj
+                EX      DE,HL
+                LD      BC,L0012
+                PUSH    BC
+                LDIR
+                CALL    GetOtherChar
+                POP     BC
+                POP     DE
+                LDIR
+        ;; Fall through.
+
+ClearObjLists:  LD      HL,(LAF92)      ; NB: Referenced as data.
+                LD      (ObjDest),HL
+                LD      HL,ObjectLists + 4
+                LD      BC,L0008
+                JP      FillZero
+
+;; Get the character object associated with the one we're not playing now?
+GetOtherChar:   LD      HL,Character
+                BIT     0,(HL)          ; Heels?
+                LD      HL,HeelsObj     ; No Heels case
+                RET     Z
+                LD      HL,HeadObj      ; Have Heels case
+                RET
+
+;; Given a pointer on the stack, load values into C, B, and if A' is
+;; non-zero, then E, D, otherwise L, H. Push updated pointer.
+;;
+;; Then call the currently-selected function, which may be LDIR, or a
+;; kind of reverse LDIR (DE to HL).
+CopyData:       POP     IX
+                LD      C,(IX+$00)
+                INC     IX
+                LD      B,(IX+$00)
+                INC     IX
+                EX      AF,AF'
+                AND     A
+                JR      Z,COD_1
+                LD      E,(IX+$00)
+                INC     IX
+                LD      D,(IX+$00)
+                JR      COD_2
+COD_1:          LD      L,(IX+$00)
+                INC     IX
+                LD      H,(IX+$00)
+COD_2:          INC     IX
+                EX      AF,AF'
+                PUSH    IX
+COD_JP:         JP      HL2DE           ; Self-modifying code
+DE2HL:          LD      A,(DE)
+                LDI
+                DEC     HL
+                LD      (HL),A
+                INC     HL
+                JP      PE,DE2HL
+                RET
+HL2DE:          LDIR
+                RET
 
 ;; Given a fetched 3-bit value in A... returns 0 in A. I assume there
 ;; was support for multiple door sprites, that got nixed at some
@@ -275,7 +283,7 @@ L7B59:		LD	A,(SavedObjListIdx)
 		XOR	$03
 		LD	(Character),A
 		CALL	CharThing3
-		JP	C72A0		; Tail call
+		JP	SaveStuff	; Tail call
 
 InitContinue:	CALL	Reinitialise
 		DEFW	StatusReinit
@@ -287,7 +295,7 @@ L7B78:		CALL	C774D
 		CALL	Reinitialise
 		DEFW	ReinitThing
 		CALL	SetCharThing
-		CALL	C7C1A
+		CALL	GetScreenEdges
 		CALL	DrawBlacked
 		XOR	A
 		LD	(LA295),A
@@ -1192,95 +1200,105 @@ DoMoveAux:	LD	DE,PostMove
 		EXX			; Save regs, and...
 		RET			; tail call DE.
 
-PostMove:    EXX
-                        RET             Z
-                        PUSH    HL
-                        POP             IX
-                        BIT             2,C
-                        JR              NZ,LB269
-                        LD              HL,ObjectLists ; TODO: Another object list traversal
-LB257:    LD              A,(HL)
-                        INC             HL
-                        LD              H,(HL)
-                        LD              L,A
-                        OR              H
-                        JR              Z,LB282
-                        PUSH    HL
-                        CALL    DoCopy
-                        POP             HL
-                        JR              C,LB2A0
-                        JR              NZ,LB257
-                        JR              LB282
-LB269:    LD              HL,LAF80
-LB26C:    LD              A,(HL)
-                        INC             HL
-                        LD              H,(HL)
-                        LD              L,A
-                        OR              H
-                        JR              Z,LB27C
-                        PUSH    HL
-                        CALL    DoCopy
-                        POP             HL
-                        JR              C,LB2A2
-                        JR              NZ,LB26C
-LB27C:    CALL	GetCharObj
-                        LD              E,L
-                        JR              LB288
-LB282:    CALL    GetCharObj
-                        LD              E,L
-                        INC             HL
-                        INC             HL
-LB288:    BIT             0,(IY+$09)
-                        JR              Z,LB292
-                        LD              A,YL
-                        CP              E
-                        RET             Z
-
-LB292:    LD              A,(SavedObjListIdx)
-                        AND             A
-                        RET             Z
-                        CALL    DoCopy
-                        RET             NC
-                        CALL    GetCharObj
-                        INC             HL
-                        INC             HL
-LB2A0:    DEC             HL
-                        DEC             HL
-LB2A2:    PUSH    HL
-                        POP             IX
-                        LD              A,(LB217)
-                        BIT             1,(IX+$09)
-                        JR              Z,LB2B6
-                        AND             A,(IX-$06)
-                        LD              (IX-$06),A
-                        JR              LB2BC
-LB2B6:    AND             A,(IX+$0C)
-                        LD              (IX+$0C),A
-LB2BC:    XOR             A
-                        SUB             $01
+PostMove:       EXX
+                RET     Z
+                PUSH    HL
+                POP     IX
+                BIT     2,C
+                JR      NZ,PM_2
+        ;; Object list traversal time!
+                LD      HL,ObjectLists
+PM_1:           LD      A,(HL)
+                INC     HL
+                LD      H,(HL)
+                LD      L,A
+                OR      H
+                JR      Z,PM_5
+                PUSH    HL
+                CALL    DoCopy  ; JP (IX)
+                POP     HL
+                JR      C,PM_8  ; Found case
+                JR      NZ,PM_1 ; Loop case
+                JR      PM_5    ; Break case
+        ;; Bit 2 of C was set - other object list traversal.
+PM_2:           LD      HL,ObjectLists + 2
+PM_3:           LD      A,(HL)
+                INC     HL
+                LD      H,(HL)
+                LD      L,A
+                OR      H
+                JR      Z,PM_4
+                PUSH    HL
+                CALL    DoCopy  ; JP (IX)
+                POP     HL
+                JR      C,PM_9  ; Other found case
+                JR      NZ,PM_3 ; Loop case
+PM_4:           CALL	GetCharObj ; Break case...
+                LD      E,L
+                JR      PM_6
+        ;; Exit point for first loop, line up with exit point for second loop...
+PM_5:           CALL    GetCharObj
+                LD      E,L
+                INC     HL
+                INC     HL
+        ;; HL points 2 into object
+PM_6:           BIT     0,(IY+$09)
+                JR      Z,PM_7
+                LD      A,YL
+                CP      E
+                RET     Z
+PM_7:           LD      A,(SavedObjListIdx)
+                AND     A
+                RET     Z
+                CALL    DoCopy  ; JP (IX)
+                RET     NC
+        ;; Adjust pointer and fall through...
+                CALL    GetCharObj
+                INC     HL
+                INC     HL
+        ;; Exit point for second loop, adjust to merge with exit point from first...
+PM_8:           DEC     HL
+                DEC     HL
+        ;; FIXME
+PM_9:           PUSH    HL
+                POP     IX
+                LD      A,(LB217)
+                BIT     1,(IX+$09) ; Second of double-height character?
+                JR      Z,PM_10
+        ;; Adjust first, then.
+                AND     A,(IX+$0C-18)
+                LD      (IX+$0C-18),A
+                JR      PM_11
+        ;; Otherwise, adjust it.
+PM_10:          AND     A,(IX+$0C)
+                LD      (IX+$0C),A
+        ;; Call "Contact" with $FF in A.
+PM_11:          XOR     A
+                SUB     $01
         ;; NB: Fall through
 
-LB2BF:		PUSH	AF
+;; Handle contact between a pair of objects in IX and IY
+Contact:        PUSH	AF
 		PUSH	IX
 		PUSH	IY
-		CALL	CB2CD
+		CALL	ContactAux
 		POP	IY
 		POP	IX
 		POP	AF
 		RET
 
-        ;; IX and IY are both objects?
-        ;; Something is in A.
-CB2CD:		BIT	0,(IY+$09)
-		JR	NZ,LB2DF 		; Bit 0 set on IY? Proceed.
+;; IX and IY are both objects, may be characters.
+;; Something is in A.
+ContactAux:     BIT	0,(IY+$09)
+		JR	NZ,CA_1 		; Bit 0 set on IY? Proceed.
 		BIT	0,(IX+$09)
-		JR	Z,LB34F 		; Bit 0 not set on IX? LB34F instead.
+		JR	Z,ContactNonChar 	; Bit 0 not set on IX? ContactNonChar instead.
         ;; Swap IY and IX.
 		PUSH	IY
 		EX	(SP),IX
 		POP	IY
         ;; At this point, bit 0 set on IY.
-LB2DF:		LD	C,(IY+$09) 		; IY's sprite flags in C.
+CA_1:		LD	C,(IY+$09) 		; IY's sprite flags in C.
 		LD	B,(IY+$04)		; IY's flags in B.
 		BIT	5,(IX+$04)              ; Bit 5 not set in IX's flags?
 		RET	Z			; Then return.
@@ -1364,18 +1382,23 @@ CollectSpecial:
                 LD      A,(IX+$11)
                 JP      GetSpecial      ; Tail call
 
-LB34F:		BIT		3,(IY+$09)
-		JR		NZ,LB35E
+;; Contact between two non-character objects.
+ContactNonChar:	BIT		3,(IY+$09)
+		JR		NZ,CNC_1
 		BIT		3,(IX+$09)
 		RET		Z
 		PUSH	IY
 		POP		IX
-LB35E:	BIT		1,(IX+$09)
-		JR		Z,LB369
-		LD		DE,LFFEE
+        ;; Object in IX has bit 3 of sprite flags set.
+        ;; If we're second part of double-height object, find the first part.
+CNC_1:		BIT		1,(IX+$09)
+		JR		Z,CNC_2
+		LD		DE,-18
 		ADD		IX,DE
-LB369:	BIT		7,(IX+$09)
+        ;; Return if bit 7 reset
+CNC_2:		BIT		7,(IX+$09)
 		RET		Z
+        ;; Set bit 6, clear movement (?)
 		SET		6,(IX+$09)
 		LD		(IX+$0B),$FF
 		RET

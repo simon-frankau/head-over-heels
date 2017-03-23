@@ -16,10 +16,8 @@
 	;; * DrawCarriedObject
 
 	;; Unknown functions that are called:
-	;; C72A0
 	;; C8D7F
 	;; CAA74
-	;; CAC41
 	;; LB21C
 	
 	
@@ -182,7 +180,7 @@ EPIC_10:	LD	HL,LFB49
 EPIC_11:	LD	HL,L0000
 		LD	(LA2CD),HL
 		LD	(LA2DF),HL
-		CALL	C72A0
+		CALL	SaveStuff
 EPIC_12:	LD	HL,L0000
 		LD	(Carrying),HL
 		JP	L70BA
@@ -343,7 +341,7 @@ CharThing4:	CALL	GetCharObj
 		JR	EPIC_37
 EPIC_31:	DEC	(HL)
 		CALL	GetCharObj
-		CALL	CAC41
+		CALL	ChkSatOn
 		JR	C,EPIC_32
 		DEC	(IY+$07)
 		LD	A,$84
@@ -391,7 +389,7 @@ EPIC_39:	LD	A,$86
 		SET	4,(IY+$0C)
 		JR	NZ,EPIC_41
 		CALL	GetCharObj
-		CALL	CAC41
+		CALL	ChkSatOn
 		JR	NC,EPIC_40
 		JR	NZ,EPIC_40
 		LD	A,$88
@@ -760,7 +758,7 @@ DropCarried:	LD	A,(SavedObjListIdx)
 		LD	B,$03
 CarryLoop:	CALL	GetCharObj
 		PUSH	BC
-		CALL	CAC41
+		CALL	ChkSatOn
 		POP	BC
 		JR	C,NoDrop
 		DEC	(IY+$07)

@@ -352,7 +352,7 @@ SwC_8:		LD	A,(HL)
 		LD	A,(LA295)
 		AND	A
 		JP	NZ,DrawScreenPeriphery
-		JR	L72B1
+		JR	RestoreStuff
 
 SwitchGet:	PUSH	AF
 		RL	E

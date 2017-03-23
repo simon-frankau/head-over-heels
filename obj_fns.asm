@@ -12,7 +12,7 @@
 ;; * Random
 ;; * SetFacingDirEx
 ;; * CAB06
-;; * CAC41
+;; * ChkSatOn
 ;; * Character
 ;; * CurrObject
 ;; * GetCharObj
@@ -486,7 +486,7 @@ ObjFnHeliplat3:	LD	A,$01
         ;; Above this level? Go to HP_2.
 		JR	NC,HP_2
 		LD	HL,(CurrObject)
-		CALL	CAC41
+		CALL	ChkSatOn
 		RES	4,(IY+$0B)
 		JR	NC,HP_1
 		JR	Z,HP_6
@@ -765,7 +765,7 @@ OA9c:		PUSH	AF
 		RET
 
 ObjAgain10:	LD		HL,(CurrObject)
-		CALL	CAC41
+		CALL	ChkSatOn
 		RES		4,(IY+$0B)
 		JR		NC,OA10b
 		CCF

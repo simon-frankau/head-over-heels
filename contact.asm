@@ -4,7 +4,7 @@
 	;; Handles checking contact between things
 	;;
 
-ObjOnChar:	DEFW $0000        ; Pointer to an object above the character.
+ObjContact:	DEFW $0000        ; Pointer to an object contacting the character.
 
 CAA74:		CALL	CAA7E
 		LD		A,(IY+$07)
@@ -97,7 +97,7 @@ CAB06:		LD	A,(IY+$07)
 DoContact:
         ;; Clear what's on character so far.
                 LD      BC,L0000
-                LD      (ObjOnChar),BC
+                LD      (ObjContact),BC
         ;; If we've hit the floor, go to that case
                 JR      Z,HitFloor
         ;; Just above floor? Still call through
@@ -111,27 +111,27 @@ DoContact:
         ;; "on" object - avoid recomputation and keeps the object
         ;; consistent?
         ;;
-        ;; Load the object charecter's on into IX. Go to ChkObjContact if null.
+        ;; Load the object character's on into IX. Go to ChkSitOn if null.
                 EXX
                 LD      A,(IY+$0E)
                 AND     A
-                JR      Z,ChkObjContact
+                JR      Z,ChkSitOn
                 LD      H,A
                 LD      L,(IY+$0D)
                 PUSH    HL
                 POP     IX
-        ;; Various other tests where we switch over to ChkObjContact.
+        ;; Various other tests where we switch over to ChkSitOn.
                 BIT     7,(IX+$04)
-                JR      NZ,ChkObjContact
+                JR      NZ,ChkSitOn
         ;; Check we're still on it.
                 LD      A,(IX+$07)
                 SUB     $06
                 EXX
                 CP      B
                 EXX
-                JR      NZ,ChkObjContact
+                JR      NZ,ChkSitOn
                 CALL    CheckWeOverlap
-                JR      NC,ChkObjContact
+                JR      NC,ChkSitOn
         ;; We're still on the object we were on before.
         ;; NB: Fall through
 
@@ -159,85 +159,91 @@ DOC_2:          OR      $E0
                 LD      (IY+$0C),A
         ;; NB: Fall through.
 
-LAB5F:		XOR	A
+DoAltContact:	XOR	A
 		SCF
-		JP	LB2BF
+		JP	Contact
 
 ;; Run through all the objects in the main object list and check their
-;; contact with our object in IY.
+;; contact with our object in IY, see if it's sitting on them or
+;; touching them.
 ;;
 ;; Object extents should be in primed registers.
-ChkObjContact:  LD      HL,ObjectLists + 2
-COC_1:          LD      A,(HL)
+ChkSitOn:       LD      HL,ObjectLists + 2
+CSIT_1:         LD      A,(HL)
                 INC     HL
                 LD      H,(HL)
                 LD      L,A
                 OR      H
-                JR      Z,COC_4         ; Done - exit list.
+                JR      Z,CSIT_4         ; Done - exit list.
                 PUSH    HL
                 POP     IX
                 BIT     7,(IX+$04)
-                JR      NZ,COC_1        ; Bit set? Skip this item
-                LD      A,(IX+$07)      ; Check Z coord against B'
+                JR      NZ,CSIT_1        ; Bit set? Skip this item
+                LD      A,(IX+$07)      ; Check Z coord of top of obj against bottom of IY
                 SUB     $06
                 EXX
                 CP      B
-                JR      NZ,COC_3        ; Go to differing height case.
+                JR      NZ,CSIT_3        ; Go to differing height case.
                 EXX
                 PUSH    HL
                 CALL    CheckWeOverlap
                 POP     HL
-                JR      NC,COC_1        ; Same height, overlap? Skip
-COC_2:          LD      (IY+$0D),L      ; Record what we're sitting on.
+                JR      NC,CSIT_1        ; Same height, overlap? Skip
+CSIT_2:         LD      (IY+$0D),L      ; Record what we're sitting on.
                 LD      (IY+$0E),H
                 JR      DoObjContact    ; Hit!
-        ;; At differing heights
-COC_3:          CP      C
+        ;; Not stacked...
+CSIT_3:         CP      C               ; TODO: Compares with C, not B
                 EXX
-                JR      NZ,COC_1        ; Differs other way? Continue.
-        ;; It's on top of us, instead.
-                LD      A,(ObjOnChar+1)
+                JR      NZ,CSIT_1        ; Differs other way? Continue.
+        ;; Same height instead.
+                LD      A,(ObjContact+1) ; TODO: +1
                 AND     A
-                JR      NZ,COC_1        ; Some test makes us skip...
+                JR      NZ,CSIT_1        ; Some test makes us skip...
                 PUSH    HL
                 CALL    CheckWeOverlap
                 POP     HL
-                JR      NC,COC_1        ; If we don't overlap, skip
-                LD      (ObjOnChar),HL      ; Update a thing and carry on.
-                JR      COC_1
+                JR      NC,CSIT_1        ; If we don't overlap, skip
+                LD      (ObjContact),HL ; Store the object we're touching, carry on.
+                JR      CSIT_1
         ;; Completed object list traversal
-COC_4:		LD	A,(SavedObjListIdx)
+CSIT_4:		LD	A,(SavedObjListIdx)
 		AND	A
-		JR	Z,COC_7
+		JR	Z,CSIT_7
 		CALL	GetCharObjIX
+        ;; Get Z coord of top of the character into A.
 		LD	A,(Character)
 		CP	$03
-		LD	A,$F4
-		JR	Z,COC_5
-		LD	A,$FA
-COC_5:		ADD	A,(IX+$07)
+		LD	A,-12
+		JR	Z,CSIT_5
+		LD	A,-6
+CSIT_5:		ADD	A,(IX+$07)
 		EXX
+        ;; Compare against bottom of us.
 		CP	B
-		JR	NZ,COC_6
+		JR	NZ,CSIT_6
+        ;; We're on it, if we overlap.
 		EXX
 		PUSH	HL
 		CALL	CheckWeOverlap
 		POP	HL
-		JR	NC,COC_7
-		JR	COC_2
-COC_6:		CP	C
+		JR	NC,CSIT_7
+		JR	CSIT_2
+CSIT_6:		CP	C
 		EXX
-		JR	NZ,COC_7
-		LD	A,(ObjOnChar+1)
+		JR	NZ,CSIT_7
+        ;; Same height, making it pushable.
+		LD	A,(ObjContact+1)
 		AND	A
-		JR	NZ,COC_7
+		JR	NZ,CSIT_7 		; Give up if already in contact.
 		CALL	GetCharObjIX
 		CALL	CheckWeOverlap
-		JR	NC,COC_7
+		JR	NC,CSIT_7
 		LD	(IY+$0D),$00
 		LD	(IY+$0E),$00
-		JR	COC_11
-COC_7:		LD	HL,(ObjOnChar)
+		JR	CSIT_11
+        ;; Nothing found case...
+CSIT_7:		LD	HL,(ObjContact)
 		LD	(IY+$0D),$00
 		LD	(IY+$0E),$00
 		LD	A,H
@@ -246,13 +252,13 @@ COC_7:		LD	HL,(ObjOnChar)
 		PUSH	HL
 		POP	IX
 		BIT	1,(IX+$09)
-		JR	Z,COC_9
+		JR	Z,CSIT_9
 		BIT	4,(IX-$07)
-		JR	COC_10
-COC_9:		BIT	4,(IX+$0B)
-COC_10:		JR	NZ,COC_11
+		JR	CSIT_10
+CSIT_9:		BIT	4,(IX+$0B)
+CSIT_10:	JR	NZ,CSIT_11
 		RES	4,(IY+$0C)
-COC_11:		XOR	A
+CSIT_11:	XOR	A
 		SUB	$01
 		RET
 
@@ -294,9 +300,9 @@ GSU_2:		EXX
 		JR	NC,GSU_1
 		RET
 
-	;; FIXME: Looks suspiciously like we're checking contact with objects.
-;; Object in IY
-CAC41:
+;; Object in IY, extents in primed registers.
+;; Very similar to ChkSitOn. Checks to see if stuff is on us.
+ChkSatOn:
         ;; Put top of object in B'
 		CALL	GetUVZExtentsE
 		LD	B,C
@@ -304,117 +310,115 @@ CAC41:
 		EXX
         ;; Clear the thing on top of us
 		XOR	A
-		LD	(ObjOnChar),A
+		LD	(ObjContact),A
 	;; Traverse main list of objects
 		LD	HL,ObjectLists + 2
-LAC4E:		LD	A,(HL)
+CSAT_1:		LD	A,(HL)
 		INC	HL
 		LD	H,(HL)
 		LD	L,A
 		OR	H
-		JR	Z,LAC97		; Reached end?
+		JR	Z,CSAT_4		; Reached end?
 		PUSH	HL
 		POP	IX
 		BIT	7,(IX+$04)
-		JR	NZ,LAC4E 	; Skip if bit set
+		JR	NZ,CSAT_1 	; Skip if bit set
 		LD	A,(IX+$07)
 		EXX
-		CP	C
-		JR	NZ,LAC7F 	; Jump if not at same height
+		CP	C               ; Compare IY top with bottom of this object.
+		JR	NZ,CSAT_3 	; Jump if not at same height
 		EXX
 		PUSH	HL
 		CALL	CheckWeOverlap
 		POP	HL
-		JR	NC,LAC4E
+		JR	NC,CSAT_1
         ;; Top of us = bottom of them, we have a thing on top.
-        ;; Copy flag over and tail call.
-LAC6D:		LD	A,(IY+$0B)
+        ;; Copy our movement over to the block on top.
+CSAT_2:		LD	A,(IY+$0B)
 		OR	$E0
 		AND	$EF
 		LD	C,A
 		LD	A,(IX+$0C)
 		AND	C
 		LD	(IX+$0C),A
-		JP	LAB5F		; Tail call
-        ;; Case for not at the same height...
-LAC7F:		CP	B
+		JP	DoAltContact	; Tail call
+        ;; Not stacked
+CSAT_3:		CP	B
 		EXX
-		JR	NZ,LAC4E
-        ;; Top of us is one pixel under bottom of them.
-		LD	A,(ObjOnChar)
+		JR	NZ,CSAT_1
+        ;; Same height instead
+		LD	A,(ObjContact)
 		AND	A
-		JR	NZ,LAC4E ; Return if we have an object on top already.
+		JR	NZ,CSAT_1 	; Continue if we're already in contact
 		PUSH	HL
 		CALL	CheckWeOverlap
 		POP	HL
-		JR	NC,LAC4E
+		JR	NC,CSAT_1
 		LD	A,$FF
-		LD	(ObjOnChar),A ; Set ObjOnChar to $FF and carry on.
-		JR	LAC4E
-	;; Finished traversing list
-LAC97:		LD	A,(SavedObjListIdx) ; TODO: Whether other char is in same room?
+		LD	(ObjContact),A 	; Set ObjContact to $FF and carry on.
+		JR	CSAT_1
+	;; Finished traversing list. Check the character object.
+CSAT_4:		LD	A,(SavedObjListIdx) 	; Are we in the same list?
 		AND	A
-		JR	Z,LACCC ; Some check...
-		CALL	GetCharObjIX ; Hmmm. Character check.
+		JR	Z,CSAT_7 		; If not, give up.
+		CALL	GetCharObjIX 		; Fetch character's bottom height.
 		LD	A,(IX+$07)
 		EXX
-		CP	C
-		JR	NZ,LACB6 ; Our top != their bottom
+		CP	C        		; Is the character sitting on us?
+		JR	NZ,CSAT_5 		; If no, go to CSAT_5.
 		EXX
 		CALL	CheckWeOverlap
-		JR	NC,LACCC ; Nothing on top
-		JR	LAC6D    ; Thing is on top.
+		JR	NC,CSAT_7 ; Nothing on top
+		JR	CSAT_2    ; Thing is on top.
         
 GetCharObjIX:	CALL	GetCharObj
 		PUSH	HL
 		POP	IX
 		RET
 
-LACB6:		CP	B
+CSAT_5:		CP	B
 		EXX
-		JR	NZ,LACCC ; Nothing on top case
-		LD	A,(ObjOnChar)
+		JR	NZ,CSAT_7 ; Nothing on top case
+		LD	A,(ObjContact)
 		AND	A
-		JR	NZ,LACCC ; Nothing on top case.
+		JR	NZ,CSAT_7 ; Nothing on top case.
 		CALL	GetCharObjIX
 		CALL	CheckWeOverlap
-		JR	NC,LACCC
+		JR	NC,CSAT_7
 		LD	A,$FF
-		JR	LACCF
-LACCC:		LD	A,(ObjOnChar)
-LACCF:		AND	A       ; Rather than setting ObjOnChar, we return it?
+		JR	CSAT_8
+CSAT_7:		LD	A,(ObjContact)
+CSAT_8:		AND	A       ; Rather than setting ObjContact, we return it?
 		RET	Z
 		SCF
 		RET
 
-	;; Takes object point in IX and checks to see if we overlap with it.
-	;; FIXME: May assume our coordinates are in DE',HL'.
-CheckWeOverlap:	CALL	GetUVExt
-	;; NB: Fall through
-	
-	;; Assuming X and Y extents in DE,HL and DE',HL', check two boundaries overlap.
-	;; Sets carry flag if they do.
+;; Takes object point in IX and checks to see if we overlap with it.
+;; Assumes our extents are in DE',HL'.
+CheckWeOverlap: CALL    GetUVExt
+        ;; NB: Fall through
+
+;; Assuming X and Y extents in DE,HL and DE',HL', check two boundaries overlap.
+;; Sets carry flag if they do.
 CheckOverlap:
-	;; Check E < D' and E' < D
-		LD	A,E
-		EXX
-		CP	D
-		LD	A,E
-		EXX
-		RET	NC
-		CP	D
-		RET	NC
-	;; Check L < H' and L' < H
-		LD	A,L
-		EXX
-		CP	H
-		LD	A,L
-		EXX
-		RET	NC
-		CP	H
-		RET
-
-
+        ;; Check E < D' and E' < D
+                LD      A,E
+                EXX
+                CP      D
+                LD      A,E
+                EXX
+                RET     NC
+                CP      D
+                RET     NC
+        ;; Check L < H' and L' < H
+                LD      A,L
+                EXX
+                CP      H
+                LD      A,L
+                EXX
+                RET     NC
+                CP      H
+                RET
 
 ;; Given an object in IX, returns its U and V extents.
 ;; Very like GetUVZExtents... but different?!
