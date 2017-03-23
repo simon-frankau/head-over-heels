@@ -183,7 +183,7 @@ EPIC_11:	LD	HL,L0000
 		CALL	SaveStuff
 EPIC_12:	LD	HL,L0000
 		LD	(Carrying),HL
-		JP	L70BA
+		JP	GoToRoom
 EPIC_13:	DEC	(HL)
 		LD	HL,(Character)
 		JP	CharThing18 		; NB: Tail call
@@ -253,7 +253,7 @@ HD_5:		LD	A,(HL)
 HD_6:		CALL	SwitchChar
 		LD	HL,L0000
 		LD	(LB219),HL
-HD_7:		LD	HL,LFB28
+HD_7:		LD	HL,OtherState
 		SET	0,(HL)
 		RET
 HD_8:		CALL	HD_7
@@ -272,7 +272,7 @@ HD_9:		LD	A,(LA2A6)
         ;; TODO: Restore something, jump somewhere.
 		LD	A,(LA2A2)
 		LD	(LB218),A
-		JP	L70E6
+		JP	RoomLongJmp
 
 CharThing18:	PUSH	HL
 		LD	HL,VapeLoop2

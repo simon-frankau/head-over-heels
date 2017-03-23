@@ -6,15 +6,15 @@
 
 ;; Exported functions:
 ;;  * SetCharThing
-;;  * C728C
+;;  * IsSharedRoom
 ;;  * SetSens
 ;;  * InVictoryRoom
 ;;  * NopeNoise
 ;;  * FirePresed
-;;  * L70BA
+;;  * GoToRoom
 ;;  * FinishGame
 ;;  * SwitchChar
-;;  * L70E6
+;;  * RoomLongJmp
 
 ;; Exported variables:
 ;;  * RoomId
@@ -57,9 +57,9 @@ MainContinue:	CALL	AltPlaySound
 MainStart:	CALL	CrownScreen
 		LD	A,$40
 		LD	(ObjFn36Val),A
-MainB:		XOR	A
+MainGoRoom:	XOR	A
 		LD	(Phase),A
-		CALL	C7B91
+		CALL	EnterRoom2
 	;; The main game-playing loop
 MainLoop:       CALL    WaitFrame
                 CALL    CheckCtrls
@@ -112,38 +112,38 @@ DoVictoryRoom:
                 RET
 
 	;; FIXME: ???
-L70BA:		LD	HL,RoomId+1
+GoToRoom:	LD	HL,RoomId+1
 		LD	A,(LB218)
 		DEC	A
 		CP	$06
-		JR	Z,L70EC
-		JR	NC,L70E6
+		JR	Z,TeleportRoom
+		JR	NC,RoomLongJmp
 		CP	$04
-		JR	C,L70CF
+		JR	C,GTR_1
 		ADD	A,A
 		XOR	$02
 		DEC	HL
-L70CF:		LD	C,$01
+GTR_1:		LD	C,$01
 		BIT	1,A
-		JR	NZ,L70D7
+		JR	NZ,GTR_2
 		LD	C,$FF
-L70D7:		RRA
-		JR	C,L70E1
+GTR_2:		RRA
+		JR	C,GTR_3
 		RLD
 		ADD	A,C
 		RRD
-		JR	L70E6
-L70E1:		RRD
+		JR	RoomLongJmp
+GTR_3:		RRD
 		ADD	A,C
 		RLD
         ;; NB: Fall through
 
-;; TODO: Reset stack pointer and jump back into the main loop?
-L70E6:		LD	SP,$FFF4
-		JP	MainB
+;; Perform a longjmp to the enter-a-room code.
+RoomLongJmp:    LD      SP,$FFF4
+                JP      MainGoRoom
 
-L70EC:		CALL	Teleport
-		JR	L70E6
+TeleportRoom:   CALL    Teleport
+                JR      RoomLongJmp
 
 	;; Wait for the frame counter to reduce to zero
 WaitFrame:	LD	A,(FrameCounter)
@@ -382,8 +382,9 @@ SCF_2:		RES	1,(IY+$1B)
 		SET	1,(IY+$1B)
 		RET
 
-C728C:		LD	HL,(RoomId)
-		LD	DE,(LFB28)
+;; Returns whether or not we're in the same room as the other character.
+IsSharedRoom:	LD	HL,(RoomId)
+		LD	DE,(OtherState)
 		AND	A
 		SBC	HL,DE
 		RET

@@ -324,7 +324,7 @@ SC_2:		LD	A,(IX+$00)
 		LD	HL,LFB49
 		LD	BC,L0004
 		LDIR
-		LD	HL,LFB28
+		LD	HL,OtherState
 		JR	SC_4
 SC_3:		LD	HL,LA2A2
 		LD	BC,L0004
@@ -393,7 +393,7 @@ DC_4:		LD	BC,L0003
 		DEC	C
 		JP	M,DC_5
 		XOR	$03
-		LD	(LFB28),A
+		LD	(OtherState),A
 		PUSH	HL
 		CALL	C7B43
 		POP	HL

@@ -50,13 +50,13 @@ RestoreStuff:   XOR     A
 
 ;; Take the copy function to use in HL, and function to call
 ;; afterwards in DE. Copies various chunks of data to/from buffer at
-;; LFB28.
+;; OtherState.
 CopyStuff:      PUSH    DE
                 LD      (COD_JP+1),HL
                 CALL    GetOtherChar
                 LD      (CC_Ptr),HL
                 AND     A
-                LD      HL,LFB28
+                LD      HL,OtherState
                 JR      NZ,CS_1
                 EX      DE,HL
 CS_1:           EX      AF,AF'
@@ -268,8 +268,8 @@ InitNewGame:	XOR	A
 
 C7B43:		LD	(Character),A
 		PUSH	AF
-		LD	(LFB28),A
-		CALL	C7BBF
+		LD	(OtherState),A
+		CALL	EnterRoom
 		XOR	A
 		LD	(LA297),A
 		CALL	CharThing15
@@ -1073,18 +1073,19 @@ C356_2:         ADD     A,B             ; B = (Flag & 0x20) ? 8 : 4
 #include "get_sprite.asm"
 	
 DoorwayFlipped:	DEFB $00
-LAF5B:	DEFB $1B		; Reinitialisation size
 
-	DEFB $00
-	DEFW LBA40
-	DEFW ObjectLists + 0
-	DEFW ObjectLists + 2
-	DEFW $0000
-	DEFW $0000
-	DEFW $0000,$0000
-	DEFW $0000,$0000
-	DEFW $0000,$0000
-	DEFW $0000,$0000
+ObjVars:        DEFB $1B                ; Reinitialisation size
+
+                DEFB $00
+                DEFW LBA40
+                DEFW ObjectLists + 0
+                DEFW ObjectLists + 2
+                DEFW $0000
+                DEFW $0000
+                DEFW $0000,$0000
+                DEFW $0000,$0000
+                DEFW $0000,$0000
+                DEFW $0000,$0000
 
         ;; The index into ObjectLists.
 ObjListIdx:     DEFB $00
@@ -1095,14 +1096,14 @@ ObjListAPtr:    DEFW ObjectLists
 ObjListBPtr:    DEFW ObjectLists + 2
         ;; Each list consists of a pair of pointers to linked lists of
         ;; objects (ListA and ListB). They're opposite directions in a
-	;; doubly-linked list, and each side has a head node, it seems.
+        ;; doubly-linked list, and each side has a head node, it seems.
 ObjectLists:    DEFW $0000,$0000 ; 0 - Usual list
                 DEFW $0000,$0000 ; 1 - Next room in V direction
                 DEFW $0000,$0000 ; 2 - Next room in U direction
                 DEFW $0000,$0000 ; 3 - Far
                 DEFW $0000,$0000 ; 4 - Near
 
-LAF92:	DEFW LBA40
+LAF92:		DEFW LBA40
 SortObj:	DEFW $0000
 
         ;; Given an index in A, set the object list index and pointers.

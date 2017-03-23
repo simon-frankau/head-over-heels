@@ -8,44 +8,44 @@
 L7B8F:	DEFB $00
 WorldIdSnd:	DEFB $00
 
-	;; NB: Called from main loop...
-C7B91:		CALL	C7BBF
-		LD	A,(MENU_SOUND)
-		AND	A
-		JR	NZ,L7BAD
-		LD	A,(WorldId)
-		CP	$07
-		JR	NZ,L7BA4
-		LD	A,(WorldIdSnd)
-L7BA4:		LD	(WorldIdSnd),A
-		OR	$40
-		LD	B,A
-		CALL	PlaySound
-L7BAD:		CALL	DrawBlacked
-		CALL	CharThing15
-	;; NB: Fall through
+;; Enter the room, and then also make the sound and display it.
+EnterRoom2:     CALL    EnterRoom
+                LD      A,(MENU_SOUND)
+                AND     A
+                JR      NZ,ER2_2
+                LD      A,(WorldId)
+                CP      $07
+                JR      NZ,ER2_1
+                LD      A,(WorldIdSnd)
+ER2_1:          LD      (WorldIdSnd),A
+                OR      $40
+                LD      B,A
+                CALL    PlaySound
+ER2_2:          CALL    DrawBlacked
+                CALL    CharThing15
+        ;; NB: Fall through
 
 ;; Apply the attributes to make the screen visible, and draw the bits
 ;; around the edge.
-RevealScreen:	LD	A,(AttribScheme)
-		CALL	UpdateAttribs
-		CALL	PrintStatus
-		JP	DrawScreenPeriphery		; Tail call
+RevealScreen:   LD      A,(AttribScheme)
+                CALL    UpdateAttribs
+                CALL    PrintStatus
+                JP      DrawScreenPeriphery             ; Tail call
 
-C7BBF:		CALL	Reinitialise
-		DEFW	LAF5B
+EnterRoom:	CALL	Reinitialise
+		DEFW	ObjVars
 		CALL	Reinitialise
 		DEFW	ReinitThing
 		LD	A,(Character)
 		CP	$03
-		JR	NZ,L7BDC
-		LD	HL,LFB28
+		JR	NZ,ER_1
+		LD	HL,OtherState
 		SET	0,(HL)
 		CALL	BuildRoom
 		LD	A,$01
-		JR	L7C14
-L7BDC:		CALL	C728C
-		JR	NZ,L7C10
+		JR	ER_5
+ER_1:		CALL	IsSharedRoom
+		JR	NZ,ER_4
 		CALL	RestoreStuff2
 		CALL	C774D
 		LD	HL,HeelsObj
@@ -54,23 +54,23 @@ L7BDC:		CALL	C728C
 		LD	HL,HeadObj
 		CALL	GetUVZExtentsB
 		CALL	CheckOverlap
-		JR	NC,L7C0C
+		JR	NC,ER_3
 		LD	A,(Character)
 		RRA
-		JR	C,L7C00
+		JR	C,ER_2
 		EXX
-L7C00:		LD	A,B
+ER_2:		LD	A,B
 		ADD	A,$05
 		EXX
 		CP	B
-		JR	C,L7C0C
+		JR	C,ER_3
 		LD	A,$FF
 		LD	(L7B8F),A
-L7C0C:		LD	A,$01
-		JR	L7C14
-L7C10:		CALL	BuildRoom
+ER_3:		LD	A,$01
+		JR	ER_5
+ER_4:		CALL	BuildRoom
 		XOR	A
-L7C14:		LD	(LA295),A
+ER_5:		LD	(LA295),A
 		JP	GetScreenEdges
 
 

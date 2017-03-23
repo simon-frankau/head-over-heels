@@ -67,7 +67,7 @@ Buffer:	EQU $BF20               ; Buffer area used by controls and sprite-rotati
 LC000:	EQU $C000
 LC043:	EQU $C043
 LC0C0:	EQU $C0C0
-LFB28:	EQU $FB28
+OtherState:	EQU $FB28       ; Where the other character's state is held. Starts with room id.
 LFB49:	EQU $FB49
 LFEFE:	EQU $FEFE
 LFF7F:	EQU $FF7F
