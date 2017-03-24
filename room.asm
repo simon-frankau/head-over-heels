@@ -88,8 +88,9 @@ DoorLocsCopy:	DEFB $00, $00, $00, $00
         ;; Locations of the 4 doors along their respective walls.
 DoorLocs:       DEFB $00, $00, $00, $00
 DoorHeight:	DEFB $C0
-C774D:		LD		A,$FF
-		LD		(SkipObj),A
+
+BuildRoom2:	LD	A,$FF
+		LD	(SkipObj),A
 	;; NB: Fall through
 
         ;; Set up a room.

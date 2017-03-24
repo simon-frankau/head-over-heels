@@ -47,7 +47,7 @@ EnterRoom:	CALL	Reinitialise
 ER_1:		CALL	IsSharedRoom
 		JR	NZ,ER_4
 		CALL	RestoreStuff2
-		CALL	C774D
+		CALL	BuildRoom2
 		LD	HL,HeelsObj
 		CALL	GetUVZExtentsB
 		EXX

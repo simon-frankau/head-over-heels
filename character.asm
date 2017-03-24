@@ -17,7 +17,7 @@
 
 	;; Unknown functions that are called:
 	;; C8D7F
-	;; CAA74
+	;; DoorContact
 	;; LB21C
 	
 	
@@ -374,7 +374,7 @@ EPIC_37:	SET	4,(IY+$0B)
 		LD	A,(LB218)
 		AND	A
 		JR	NZ,EPIC_38
-		CALL	CAA74
+		CALL	DoorContact
 		JP	NC,CharThing23 		; NB: Tail call
 		JP	NZ,CharThing22		; NB: Tail call
 EPIC_38:	LD	A,(LB218)
@@ -787,7 +787,7 @@ CarryLoop:	CALL	GetCharObj
 		LD	BC,CARRY_POSN
 		CALL	Clear3x24 		; Clear out the what's-carried display
 		CALL	GetCharObj
-		CALL	CAA74
+		CALL	DoorContact
 		CALL	GetCharObj
 		JP	StoreObjExtents
 NoDrop:		LD	(IY+$07),C 		; Restore old value

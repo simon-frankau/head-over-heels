@@ -291,7 +291,7 @@ InitContinue:	CALL	Reinitialise
 		CALL	UpdateAttribs	; Blacked-out attributes
 		JP	DoContinue	; Tail call
 
-L7B78:		CALL	C774D
+L7B78:		CALL	BuildRoom2
 		CALL	Reinitialise
 		DEFW	ReinitThing
 		CALL	SetCharThing
@@ -569,77 +569,83 @@ UpdatePos:      PUSH    HL
 ;; again.
 ReadLoop:
         ;; On to the next item.
-		INC	(HL)
+                INC     (HL)
         ;; DE = HL + *HL
-		LD	A,(HL)
-		ADD	A,L
-		LD	E,A
-		ADC	A,H
-		SUB	E
-		LD	D,A
+                LD      A,(HL)
+                ADD     A,L
+                LD      E,A
+                ADC     A,H
+                SUB     E
+                LD      D,A
         ;; if (*DE != 0) return
-		LD	A,(DE)
-		AND	A
-		RET	NZ
+                LD      A,(DE)
+                AND     A
+                RET     NZ
         ;; Otherwise, go back to the first item:
         ;; *HL = 1 (reset it?) and return *(HL+1)
-		LD	(HL),$01
-		INC	HL
-		LD	A,(HL)
-		RET
+                LD      (HL),$01
+                INC     HL
+                LD      A,(HL)
+                RET
 
-L8CFF:	LD		A,(HL)
-		INC		(HL)
-		ADD		A,A
-		ADD		A,L
-		LD		E,A
-		ADC		A,H
-		SUB		E
-		LD		D,A
-		INC		DE
-		LD		A,(DE)
-		AND		A
-		JR		Z,L8D11
-		EX		DE,HL
-		LD		E,A
-		INC		HL
-		LD		D,(HL)
-		RET
-L8D11:	LD		(HL),$01
-		INC		HL
-		LD		E,(HL)
-		INC		HL
-		LD		D,(HL)
-		RET
+;; Word version of ReadLoop. Apparently unused?
+ReadLoopW:      LD              A,(HL)
+                INC             (HL)
+        ;; DE = HL + 2 * *HL++
+                ADD             A,A
+                ADD             A,L
+                LD              E,A
+                ADC             A,H
+                SUB             E
+                LD              D,A
+        ;; Zero index should be *after* HL, not at HL.
+                INC             DE
+        ;; Entry is zero? Jump to loop-to-start case.
+                LD              A,(DE)
+                AND             A
+                JR              Z,RLW_1
+        ;; Otherwise, return result in DE.
+                EX              DE,HL
+                LD              E,A
+                INC             HL
+                LD              D,(HL)
+                RET
+        ;; Loop-to-start: Set next time to index 1, return first entry.
+RLW_1:          LD              (HL),$01
+                INC             HL
+                LD              E,(HL)
+                INC             HL
+                LD              D,(HL)
+                RET
 
-        ;; Looks suspiciously like a crazy PRNG?
-Random:		LD		HL,(L8D49)
-		LD		D,L
-		ADD		HL,HL
-		ADC		HL,HL
-		LD		C,H
-		LD		HL,(L8D47)
-		LD		B,H
-		RL		B
-		LD		E,H
-		RL		E
-		RL		D
-		ADD		HL,BC
-		LD		(L8D47),HL
-		LD		HL,(L8D49)
-		ADC		HL,DE
-		RES		7,H
-		LD		(L8D49),HL
-		JP		M,L8D43
-		LD		HL,L8D47
-L8D3F:		INC		(HL)
-		INC		HL
-		JR		Z,L8D3F
-L8D43:		LD		HL,(L8D47)
-		RET
+;; Build-your-own pseudo-random number generator...
+Random:         LD      HL,(Rand2)
+                LD      D,L
+                ADD     HL,HL
+                ADC     HL,HL
+                LD      C,H
+                LD      HL,(Rand1)
+                LD      B,H
+                RL      B
+                LD      E,H
+                RL      E
+                RL      D
+                ADD     HL,BC
+                LD      (Rand1),HL
+                LD      HL,(Rand2)
+                ADC     HL,DE
+                RES     7,H
+                LD      (Rand2),HL
+                JP      M,RND_2
+                LD      HL,Rand1
+RND_1:          INC     (HL)
+                INC     HL
+                JR      Z,RND_1
+RND_2:          LD      HL,(Rand1)
+                RET
 
-L8D47:	DEFB $4A,$6F
-L8D49:	DEFB $6E,$21
+Rand1:          DEFW $6F4A
+Rand2:          DEFW $216E
 
 	;; Pointer to object in HL
 RemoveObject:	PUSH	HL
@@ -650,7 +656,7 @@ RemoveObject:	PUSH	HL
 		CALL	Unlink
 		POP	IY
 		POP	HL
-		CALL	C8D6F
+		CALL	DrawObject
 		POP	IX
 		SET	7,(IX+$04)
 	;; Transfer top bit of Phase to IX+$0A
@@ -662,17 +668,20 @@ RemoveObject:	PUSH	HL
 		LD	(IX+$0A),A
 		RET
 
-C8D6F:	PUSH	IY
-		INC		HL
-		INC		HL
-		CALL	GetObjExtents2
-		EX		DE,HL
-		LD		H,B
-		LD		L,C
-		CALL	CheckAndDraw
-		POP		IY
-		RET
-	
+DrawObject:     PUSH    IY
+        ;; Bump to an obj+2 pointer for call to GetObjExtents2.
+                INC     HL
+                INC     HL
+                CALL    GetObjExtents2
+        ;; Move X extent from BC to HL, Y extent from HL to DE.
+                EX      DE,HL
+                LD      H,B
+                LD      L,C
+        ;; Then draw where the thing is.
+                CALL    CheckAndDraw
+                POP     IY
+                RET
+
 InsertObject:	PUSH	HL
 		PUSH	HL
 		PUSH	IY
@@ -681,7 +690,7 @@ InsertObject:	PUSH	HL
 		CALL	EnlistAux
 		POP	IY
 		POP	HL
-		CALL	C8D6F
+		CALL	DrawObject
 		POP	IX
 		RES	7,(IX+$04)
 		LD	(IX+$0B),$FF

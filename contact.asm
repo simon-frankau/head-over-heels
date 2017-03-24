@@ -6,32 +6,42 @@
 
 ObjContact:	DEFW $0000        ; Pointer to an object contacting the character.
 
-CAA74:		CALL	CAA7E
-		LD		A,(IY+$07)
-		SUB		C
-		JP		DoContact
-CAA7E:		LD		C,$C0
-		LD		A,(SavedObjListIdx)
-		AND		A
-		RET		Z
-		LD		IX,DoorLocsCopy
-		LD		C,(IX+$00)
-		LD		A,(MaxV)
-		SUB		$03
-		CP		A,(IY+$06)
-		RET		C
-		LD		C,(IX+$02)
-		LD		A,(MinV)
-		ADD		A,$02
-		CP		A,(IY+$06)
-		RET		NC
-		LD		C,(IX+$01)
-		LD		A,(MaxU)
-		SUB		$03
-		CP		A,(IY+$05)
-		RET		C
-		LD		C,(IX+$03)
-		RET
+;; Takes object (character?) in IY
+DoorContact:    CALL    GetDoorHeight
+                LD      A,(IY+$07)
+                SUB     C
+        ;; Call with A containing height above door.
+                JP      DoContact ; NB: Tail call
+
+;; Takes object in IY, returns height of relevant door.
+GetDoorHeight:
+        ;; Return $C0 if SavedObjListIdx == 0.
+                LD      C,$C0
+                LD      A,(SavedObjListIdx)
+                AND     A
+                RET     Z
+                LD      IX,DoorLocsCopy
+        ;; Return IX+$00 if near MaxV
+                LD      C,(IX+$00)
+                LD      A,(MaxV)
+                SUB     $03
+                CP      A,(IY+$06)
+                RET     C
+        ;; Return IX+$02 if near near MinV
+                LD      C,(IX+$02)
+                LD      A,(MinV)
+                ADD     A,$02
+                CP      A,(IY+$06)
+                RET     NC
+        ;; Return IX+$01 if near MaxU
+                LD      C,(IX+$01)
+                LD      A,(MaxU)
+                SUB     $03
+                CP      A,(IY+$05)
+                RET     C
+        ;; Otherwise, IX+$03
+                LD      C,(IX+$03)
+                RET
 
 NearHitFloor:	CP	$FF     	; This way, only get the start.
 	;; NB: Fall through.
@@ -90,10 +100,11 @@ FloorCheck:	LD	A,(FloorCode)
 		JR	RetZeroC
 
         ;; Object (character?) in IY.
-CAB06:		LD	A,(IY+$07)
+DoContact2:	LD	A,(IY+$07)
 		SUB	$C0
         ;; NB: Fall through
 
+;; A contains height difference
 DoContact:
         ;; Clear what's on character so far.
                 LD      BC,L0000

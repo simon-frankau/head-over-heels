@@ -11,7 +11,7 @@
 ;; * UpdateCurrPos
 ;; * Random
 ;; * SetFacingDirEx
-;; * CAB06
+;; * DoContact2
 ;; * ChkSatOn
 ;; * Character
 ;; * CurrObject
@@ -522,7 +522,7 @@ HP_4:
 		CP	A,(IY+O_Z)
 		JR	C,HP_2
 		LD	HL,(CurrObject)
-		CALL	CAB06
+		CALL	DoContact2
 		JR	NC,HP_5
 		JR	Z,HP_6
         ;; Descend
@@ -740,7 +740,7 @@ ObjAgain8:	BIT		4,(IY+$0C)
         ;; NB: Fall through
 
 ObjAgain9:	LD		HL,(CurrObject)
-		CALL	CAB06
+		CALL	DoContact2
 		JR		NC,OA9c
 		CCF
 		JR		NZ,OA9b
