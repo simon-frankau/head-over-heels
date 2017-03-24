@@ -42,7 +42,7 @@ CopyStuff2:     LD      HL,HL2DE
                 JR      CopyStuff
 
 RestoreStuff:   XOR     A
-                LD      HL,L7B78 ; Set the function to call after.
+                LD      HL,FinishRestore ; Set the function to call after.
                 PUSH    HL
                 LD      HL,DE2HL
                 LD      DE,LoadCharObjs
@@ -259,26 +259,25 @@ InitNewGame:	XOR	A
 		LD	HL,L8940
 		LD	(RoomId),HL
 		LD	A,$01
-		CALL	C7B43
+		CALL	InitThings
 		LD	HL,L8A40
 		LD	(RoomId),HL
 		XOR	A
 		LD	(LB218),A
 		RET
 
-C7B43:		LD	(Character),A
+InitThings:	LD	(Character),A
 		PUSH	AF
 		LD	(OtherState),A
 		CALL	EnterRoom
 		XOR	A
 		LD	(LA297),A
 		CALL	CharThing15
-		JR	L7B59		; Tail call
-
-L7B56:		CALL	CharThing
-L7B59:		LD	A,(SavedObjListIdx)
+		JR	IT_2
+IT_1:		CALL	CharThing
+IT_2:		LD	A,(SavedObjListIdx)
 		AND	A
-		JR	NZ,L7B56
+		JR	NZ,IT_1
 		POP	AF
 		XOR	$03
 		LD	(Character),A
@@ -291,7 +290,7 @@ InitContinue:	CALL	Reinitialise
 		CALL	UpdateAttribs	; Blacked-out attributes
 		JP	DoContinue	; Tail call
 
-L7B78:		CALL	BuildRoom2
+FinishRestore:	CALL	BuildRoom2
 		CALL	Reinitialise
 		DEFW	ReinitThing
 		CALL	SetCharThing

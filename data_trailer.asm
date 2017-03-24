@@ -69,7 +69,8 @@ BkgndData:	DEFB $FD,$4E,$06,$FD,$46,$07,$AF,$ED,$42,$17,$FD,$AE,$00,$E6,$01,$EB
 	DEFB $FD,$75,$08,$FD,$74,$09,$FD,$CB,$00,$5E,$C8,$FD,$21,$1B,$C5,$FD
 XBA30:	DEFB $35,$04,$C0,$CD,$CB,$C1,$A7,$20,$04,$FD,$B6,$03,$C0,$7E,$E6,$0F
 
-	
+        ;; Is this part of the 128K code? I suspect the references to
+	;; it are as data, not code.
 LBA40:		BIT		7,(IY+$00)
 		JR		Z,LBA48
 		NEG

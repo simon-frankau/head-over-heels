@@ -395,7 +395,7 @@ DC_4:		LD	BC,L0003
 		XOR	$03
 		LD	(OtherState),A
 		PUSH	HL
-		CALL	C7B43
+		CALL	InitThings
 		POP	HL
 DC_5:		LD	DE,RoomId
 		LDI
