@@ -4,7 +4,65 @@
 	;; TODO: Misc stuff?
 	;;
 
-        
+InitStuff:	CALL	IrqInstall
+		JP	InitRevTbl
+
+InitNewGame:	XOR	A
+		LD	(WorldMask),A
+		LD	(LB218),A
+		LD	(Continues),A
+		LD	A,$18
+		LD	(HeelsFrame),A
+		LD	A,$1F
+		LD	(HeadFrame),A
+		CALL	InitNewGame1
+		CALL	Reinitialise
+		DEFW	StatusReinit
+		CALL	ResetSpecials
+		LD	HL,L8940
+		LD	(RoomId),HL
+		LD	A,$01
+		CALL	InitThings
+		LD	HL,L8A40
+		LD	(RoomId),HL
+		XOR	A
+		LD	(LB218),A
+		RET
+
+InitThings:	LD	(Character),A
+		PUSH	AF
+		LD	(OtherState),A
+		CALL	EnterRoom
+		XOR	A
+		LD	(LA297),A
+		CALL	CharThing15
+		JR	IT_2
+IT_1:		CALL	CharThing
+IT_2:		LD	A,(SavedObjListIdx)
+		AND	A
+		JR	NZ,IT_1
+		POP	AF
+		XOR	$03
+		LD	(Character),A
+		CALL	CharThing3
+		JP	SaveStuff	; Tail call
+
+InitContinue:	CALL	Reinitialise
+		DEFW	StatusReinit
+		LD	A,$08
+		CALL	UpdateAttribs	; Blacked-out attributes
+		JP	DoContinue	; Tail call
+
+FinishRestore:	CALL	BuildRoom2
+		CALL	Reinitialise
+		DEFW	ReinitThing
+		CALL	SetCharThing
+		CALL	GetScreenEdges
+		CALL	DrawBlacked
+		XOR	A
+		LD	(LA295),A
+		JR	RevealScreen	; Tail call
+
 L7B8F:	DEFB $00
 WorldIdSnd:	DEFB $00
 

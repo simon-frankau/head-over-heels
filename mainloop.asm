@@ -394,3 +394,113 @@ SwitchHelper:	LD	A,(Character)
 		LD	E,A
 		RRA
 		RET
+
+
+SaveStuff:      XOR     A
+                JR      CopyStuff2
+
+RestoreStuff2:  LD      A,$FF
+                LD      HL,ClearObjLists
+                PUSH    HL
+        ;; Fall through
+
+CopyStuff2:     LD      HL,HL2DE
+                LD      DE,CopyChar
+                JR      CopyStuff
+
+RestoreStuff:   XOR     A
+                LD      HL,FinishRestore ; Set the function to call after.
+                PUSH    HL
+                LD      HL,DE2HL
+                LD      DE,LoadCharObjs
+        ;; Fall through
+
+;; Take the copy function to use in HL, and function to call
+;; afterwards in DE. Copies various chunks of data to/from buffer at
+;; OtherState.
+CopyStuff:      PUSH    DE
+                LD      (COD_JP+1),HL
+                CALL    GetOtherChar
+                LD      (CC_Ptr),HL
+                AND     A
+                LD      HL,OtherState
+                JR      NZ,CS_1
+                EX      DE,HL
+CS_1:           EX      AF,AF'
+                CALL    CopyData
+                DEFW    $0004, RoomId
+                CALL    CopyData
+                DEFW    $001D, ObjListIdx
+                CALL    CopyData
+                DEFW    $0019, LA2A2
+                CALL    CopyData
+                DEFW    $03F0, LBA40
+                RET
+
+;; Runs CopyData on a character object.
+CopyChar:       CALL    CopyData
+                DEFW    $0012           ; Size of an object.
+CC_Ptr:         DEFW    HeelsObj        ; Self-modifying code
+                RET
+
+;; Takes pointer in DE, and copies data out to current character, then
+;; the other character.
+LoadCharObjs:   PUSH    DE
+                CALL    GetCharObj
+                EX      DE,HL
+                LD      BC,L0012
+                PUSH    BC
+                LDIR
+                CALL    GetOtherChar
+                POP     BC
+                POP     DE
+                LDIR
+        ;; Fall through.
+
+ClearObjLists:  LD      HL,(LAF92)      ; NB: Referenced as data.
+                LD      (ObjDest),HL
+                LD      HL,ObjectLists + 4
+                LD      BC,L0008
+                JP      FillZero
+
+;; Get the character object associated with the one we're not playing now?
+GetOtherChar:   LD      HL,Character
+                BIT     0,(HL)          ; Heels?
+                LD      HL,HeelsObj     ; No Heels case
+                RET     Z
+                LD      HL,HeadObj      ; Have Heels case
+                RET
+
+;; Given a pointer on the stack, load values into C, B, and if A' is
+;; non-zero, then E, D, otherwise L, H. Push updated pointer.
+;;
+;; Then call the currently-selected function, which may be LDIR, or a
+;; kind of reverse LDIR (DE to HL).
+CopyData:       POP     IX
+                LD      C,(IX+$00)
+                INC     IX
+                LD      B,(IX+$00)
+                INC     IX
+                EX      AF,AF'
+                AND     A
+                JR      Z,COD_1
+                LD      E,(IX+$00)
+                INC     IX
+                LD      D,(IX+$00)
+                JR      COD_2
+COD_1:          LD      L,(IX+$00)
+                INC     IX
+                LD      H,(IX+$00)
+COD_2:          INC     IX
+                EX      AF,AF'
+                PUSH    IX
+COD_JP:         JP      HL2DE           ; Self-modifying code
+DE2HL:          LD      A,(DE)
+                LDI
+                DEC     HL
+                LD      (HL),A
+                INC     HL
+                JP      PE,DE2HL
+                RET
+HL2DE:          LDIR
+                RET
