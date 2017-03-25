@@ -12,7 +12,7 @@
 
 #insert "screen.scr"
 
-#include "rooms/room_data.asm"
+#include "src/rooms/room_data.asm"
 
 	;; Hack, should be removed.
 #include "equs.asm"
@@ -91,15 +91,15 @@ DBL_1:		PUSH	HL
 		JR	NC,DBL_1
 		RET
 
-#include "gfx1/attr_scheme.asm"
+#include "src/gfx1/attr_scheme.asm"
 
-#include "gfx1/char_code.asm"
+#include "src/gfx1/char_code.asm"
         
 #include "controls.asm"
 
-#include "gfx2/columns.asm"
+#include "src/gfx2/columns.asm"
         
-#include "rooms/room.asm"
+#include "src/rooms/room.asm"
         
 #include "stuff.asm"
 
@@ -177,7 +177,7 @@ ODW3:		DJNZ	ODW2
 
 #include "objects.asm"
 
-#include "rooms/walls.asm"
+#include "src/rooms/walls.asm"
 
 #include "specials.asm"
 
@@ -565,27 +565,27 @@ DO_3:		LD	A,H			; loop until null pointer.
 		JR	NZ,DO_1
 		RET
 
-#include "gfx1/screen_vars.asm"
+#include "src/gfx1/screen_vars.asm"
 
-#include "gfx1/blit_screen.asm"
+#include "src/gfx1/blit_screen.asm"
 
-#include "gfx1/screen_bits.asm"
+#include "src/gfx1/screen_bits.asm"
 
 #include "controls2.asm"
 
 #include "sound.asm"
 
-#include "gfx1/blit_mask.asm"
+#include "src/gfx1/blit_mask.asm"
 
-#include "gfx2/background.asm"
+#include "src/gfx2/background.asm"
 
-#include "gfx1/blit_rot.asm"
+#include "src/gfx1/blit_rot.asm"
 
-#include "gfx2/scene.asm"
+#include "src/gfx2/scene.asm"
 
-#include "rooms/room_utils.asm"
+#include "src/rooms/room_utils.asm"
 
-#include "utils/fill_zero.asm"
+#include "src/utils/fill_zero.asm"
         
 StatusReinit:	DEFB $09	; Number of bytes to reinit with
 	
@@ -725,7 +725,7 @@ XORs:
 
 #include "contact.asm"
 
-#include "gfx2/get_sprite.asm"
+#include "src/gfx2/get_sprite.asm"
 
 ObjVars:        DEFB $1B                ; Reinitialisation size
 
@@ -1059,7 +1059,7 @@ CNC_2:		BIT		7,(IX+$09)
 
 #include "movement.asm"
 
-#include "gfx1/print_char.asm"
+#include "src/gfx1/print_char.asm"
 
 	;; Called immediately after installing interrupt handler.
 ShuffleMem:	; Zero end of top page
