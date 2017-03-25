@@ -225,14 +225,14 @@ Reinitialise:
 		PUSH	HL
 		EX	DE,HL
 	;; Dereference /that/ into bottom of BC
-		LD		C,(HL)
-		LD		B,$00
+		LD	C,(HL)
+		LD	B,$00
 	;; Then increment HL and set DE = HL + BC
-		INC		HL
-		LD		D,H
-		LD		E,L
-		ADD		HL,BC
-		EX		DE,HL
+		INC	HL
+		LD	D,H
+		LD	E,L
+		ADD	HL,BC
+		EX	DE,HL
 	;; Finally LDIR
 		LDIR
 		RET

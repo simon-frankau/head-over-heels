@@ -12,7 +12,7 @@
 
 #insert "screen.scr"
 
-#include "room_data.asm"
+#include "rooms/room_data.asm"
 
 	;; Hack, should be removed.
 #include "equs.asm"
@@ -99,8 +99,8 @@ DBL_1:		PUSH	HL
 
 #include "gfx2/columns.asm"
         
-#include "room.asm"
-
+#include "rooms/room.asm"
+        
 #include "stuff.asm"
 
 #include "menus.asm"
@@ -177,7 +177,7 @@ ODW3:		DJNZ	ODW2
 
 #include "objects.asm"
 
-#include "walls.asm"
+#include "rooms/walls.asm"
 
 #include "specials.asm"
 
@@ -583,49 +583,7 @@ DO_3:		LD	A,H			; loop until null pointer.
 
 #include "gfx2/scene.asm"
 
-	;; Fetch bit-packed data.
-	;; Expects number of bits in B.
-	
-	;; End marker is the set bit rotated in from carry: The
-	;; current byte is all read when only that bit remains.
-FetchData:	LD	DE,CurrData
-		LD	A,(DE)
-		LD	HL,(DataPtr)
-		LD	C,A
-		XOR	A
-FD_1:		RL	C
-		JR	Z,FD_3
-FD_2:		RLA
-		DJNZ	FD_1
-		EX	DE,HL
-		LD	(HL),C
-		RET
-	;; Next character case: Load/initially rotate the new character, and jump back.
-FD_3:		INC	HL
-		LD	(DataPtr),HL
-		LD	C,(HL)
-		SCF
-		RL	C
-		JP	FD_2
-
-CallBothWalls:	LD	HL,(DoorLocs)
-        ;; Take the smaller of H and L.
-		LD	A,L
-		CP	H
-		JR	C,CBW_1
-		LD	A,H
-        ;; Take it away from C0, to convert to a height above ground...
-        ;; So make it the lower of the two.
-CBW_1:		NEG
-		ADD	A,$C0
-        ;; Lower (increase Z coord) door height if it's a value less than A.
-		LD	HL,DoorHeight
-		CP	(HL)
-		JR	C,CBW_2
-		LD	(HL),A
-        ;; Get door height into A and tail call BothWalls
-CBW_2:		LD	A,(HL)
-		JP	BothWalls	; NB: Tail call.
+#include "rooms/room_utils.asm"
 
 #include "utils/fill_zero.asm"
         

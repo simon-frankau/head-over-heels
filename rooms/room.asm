@@ -96,14 +96,14 @@ BuildRoom2:	LD	A,$FF
         ;; Set up a room.
 BuildRoom:	LD	IY,MinU 		; Set the base of where we load limits.
 	;; Initialise the sprite extents to cover the full screen.
-		LD	HL,L40C0
+		LD	HL,$40C0 ; TODO
 		LD	(ViewXExtent),HL
-		LD	HL,L00FF
+		LD	HL,$00FF ; TODO
 		LD	(ViewYExtent),HL
-		LD	HL,LC0C0
+		LD	HL,$C0C0 ; TODO
 		LD	(DoorLocs),HL
 		LD	(DoorLocs+2),HL
-		LD	HL,L0000
+		LD	HL,$0000
 		LD	BC,(RoomId)
 		CALL	ReadRoom
 		XOR	A
@@ -115,11 +115,11 @@ BuildRoom:	LD	IY,MinU 		; Set the base of where we load limits.
 		LD	(DoorwayTest),A
 		LD	DE,DoorLocsCopy
 		LD	HL,DoorLocs
-		LD	BC,L0004
+		LD	BC,$0004 ; TODO
 		LDIR
 	;; Clear the backdrop info...
 		LD	HL,BkgndData
-		LD	BC,L0040
+		LD	BC,$0040 ; TODO
 		CALL	FillZero
         ;; ???
 		CALL	CallBothWalls
@@ -380,7 +380,7 @@ PE_4:           CALL    AddObjOpt
 
 ;; If SkipObj is zero, do an "AddObject"
 AddObjOpt:      LD      HL,TmpObj
-                LD      BC,L0012
+                LD      BC,$0012 ; TODO
                 PUSH    IY
                 LD      A,(SkipObj)
                 AND     A

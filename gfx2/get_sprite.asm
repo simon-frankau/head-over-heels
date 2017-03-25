@@ -140,11 +140,11 @@ GetSprExtents:  LD      (SpriteCode),A
                 AND     $7F
                 CP      $10
                 JR      C,Case3x56      ; Codes < $10 are 3x56
-                LD      DE,L0606
+                LD      DE,$0606        ; TODO
                 LD      H,$12
                 CP      $54
                 JR      C,SSW1
-                LD      DE,L0808        ; Codes >= $54 are 4x28
+                LD      DE,$0808        ; Codes >= $54 are 4x28 ; TODO number
                 LD      H,$14
 SSW1:           CP      $18
                 JR      NC,SSW2

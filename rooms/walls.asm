@@ -43,7 +43,7 @@ BothWalls:	LD	(DoorZ),A
 		LD	A,$80
 		LD	(OWFlag+1),A
 		CALL	GetCorner
-		LD	DE,L0002
+		LD	DE,2
 		LD	A,(IY-$01) ; MaxV
 		SUB	(IY-$03)   ; MinV
 		JR	OneWall    ; NB: Tail call.
@@ -62,7 +62,7 @@ VWall:
 		CALL	GetCorner
 		DEC	L
 		DEC	L
-		LD	DE,LFFFE
+		LD	DE,-2
 		LD	A,(IY-$02) ; MaxU
 		SUB	(IY-$04)   ; MinU
 	;; NB: Fall through
