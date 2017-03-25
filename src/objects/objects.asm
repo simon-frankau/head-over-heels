@@ -144,7 +144,7 @@ AnimateObj:	BIT	5,(IY+$09)
 		CALL	Animate
 		EX	AF,AF'
 		LD	C,(IY+$10)
-		LD	DE,L0012
+		LD	DE,18   ; TODO - next obj
 		PUSH	IY
 		ADD	IY,DE
 		CALL	SetFacingDir

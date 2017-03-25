@@ -175,7 +175,7 @@ ODW3:		DJNZ	ODW2
 		LD		(DoorwayFlipped),A
 		RET
 
-#include "objects.asm"
+#include "src/objects/objects.asm"
 
 #include "src/rooms/walls.asm"
 
@@ -499,7 +499,7 @@ InsertObject:	PUSH	HL
 	
 #include "sprite_stuff.asm"
 	
-#include "obj_fns.asm"
+#include "src/objects/obj_fns.asm"
 	
 L9376:	DEFB $FD,$F9,$FB,$FA,$FE,$F6,$F7,$F5
 
@@ -803,9 +803,9 @@ SyncDoubleObject:
 SDO_2:          POP     HL
                 RET
 
-#include "procobj.asm"
+#include "src/objects/procobj.asm"
 
-#include "depthcmp.asm"
+#include "src/objects/depthcmp.asm"
 
 LB217:		DEFB $00
 LB218:		DEFB $00

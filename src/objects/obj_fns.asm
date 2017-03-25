@@ -16,7 +16,6 @@
 ;; * Character
 ;; * CurrObject
 ;; * GetCharObj
-;; * L0005
 ;; * CharDir
 ;; * LookupDir
 ;; * OBJFN_HELIPLAT3
@@ -619,7 +618,7 @@ MoveTowards:	CALL		CharDistAndDir
 ;; Return the absolute distances from the character in DE,
 ;; and direction as a bitmask in A.
 CharDistAndDir: CALL    GetCharObj
-                LD      DE,L0005
+                LD      DE,$0005
                 ADD     HL,DE
                 LD      A,(HL)
                 INC     HL

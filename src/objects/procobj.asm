@@ -41,7 +41,7 @@ AddObject:
                 JR      Z,Enlist        ; NB: Tail call if not set
         ;; Bit 3 set = tall object. Make the second object like the
         ;; first, copying the first 9 bytes.
-                LD      BC,L0009
+                LD      BC,9
                 PUSH    HL
                 LDIR
         ;; Copy byte at offset 9 over, setting bit 1.
@@ -53,14 +53,14 @@ AddObject:
                 INC     HL
                 LD      (HL),$00
         ;; And update ObjDest to point past newly constructed object (offset 18).
-                LD      DE,L0008
+                LD      DE,8
                 ADD     HL,DE
                 LD      (ObjDest),HL
         ;; If bit 5 of offset 9 set, set the sprite on this second object.
                 BIT     5,(IY+$09)
                 JR      Z,AO_2
                 PUSH    IY
-                LD      DE,L0012
+                LD      DE,18   ; TODO: Object size
                 ADD     IY,DE
                 LD      A,(BottomSprite)
                 CALL    SetObjSprite
@@ -236,7 +236,7 @@ Unlink:         BIT     3,(IY+$04)
                 PUSH    HL
                 CALL    UnlinkObj
                 POP     DE
-                LD      HL,L0012
+                LD      HL,18   ; TODO: Object size
                 ADD     HL,DE
         ;; NB: Fall through.
 
