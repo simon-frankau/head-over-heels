@@ -91,9 +91,9 @@ DBL_1:		PUSH	HL
 		JR	NC,DBL_1
 		RET
 
-#include "attr_scheme.asm"
+#include "gfx1/attr_scheme.asm"
 
-#include "char_code.asm"
+#include "gfx1/char_code.asm"
         
 #include "controls.asm"
 
@@ -565,21 +565,21 @@ DO_3:		LD	A,H			; loop until null pointer.
 		JR	NZ,DO_1
 		RET
 
-#include "screen_vars.asm"
+#include "gfx1/screen_vars.asm"
 
-#include "blit_screen.asm"
+#include "gfx1/blit_screen.asm"
 
-#include "screen_bits.asm"
+#include "gfx1/screen_bits.asm"
 
 #include "controls2.asm"
 
 #include "sound.asm"
 
-#include "blit_mask.asm"
+#include "gfx1/blit_mask.asm"
 
 #include "background.asm"
 
-#include "blit_rot.asm"
+#include "gfx1/blit_rot.asm"
 
 #include "scene.asm"
 
@@ -627,7 +627,7 @@ CBW_1:		NEG
 CBW_2:		LD	A,(HL)
 		JP	BothWalls	; NB: Tail call.
 
-#include "fill_zero.asm"
+#include "utils/fill_zero.asm"
         
 StatusReinit:	DEFB $09	; Number of bytes to reinit with
 	
@@ -1101,7 +1101,7 @@ CNC_2:		BIT		7,(IX+$09)
 
 #include "movement.asm"
 
-#include "print_char.asm"
+#include "gfx1/print_char.asm"
 
 	;; Called immediately after installing interrupt handler.
 ShuffleMem:	; Zero end of top page
