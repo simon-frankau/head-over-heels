@@ -83,7 +83,7 @@ DoorExts:	DEFB $08,$08,$48,$48
 		DEFB $20,$08,$30,$48
 		DEFB $10,$10,$40,$40
 
-        ;; Copy of DoorLocs?
+        ;; Copy of DoorLocs? Maybe height of door, given calls made.
 DoorLocsCopy:	DEFB $00, $00, $00, $00
         ;; Locations of the 4 doors along their respective walls.
 DoorLocs:       DEFB $00, $00, $00, $00

@@ -7,6 +7,9 @@
 ;; Exported functions:
 ;; * BlitRot
 
+;; Buffer area used by controls and sprite-rotation code.
+Buffer:         EQU $BF20       ; TODO: Add to mem map
+
 ;; Given sprite data, return a rotated version of it.
 ;; A holds the rotation size (in 2-bit units).
 ;; At start, HL holds source image, DE hold mask image.
@@ -46,7 +49,7 @@ BR_1:           ADD     HL,BC
                 PUSH    DE
                 LD      DE,Buffer
                 LD      B,$00           ; Blank space in the filler.
-BR_2:           CALL    L0000           ; NB: Target of self-modifying code.
+BR_2:           CALL    $0000           ; NB: Target of self-modifying code.
         ;; HL now holds the end of the destination buffer.
                 EX      DE,HL
                 POP     HL
@@ -54,7 +57,7 @@ BR_2:           CALL    L0000           ; NB: Target of self-modifying code.
         ;; And to rotate the mask.
                 LD      A,(SpriteRowCount)
                 LD      B,$FF           ; Appropriate filler for the mask.
-BR_3:           CALL    L0000           ; NB: Target of self-modifying code.
+BR_3:           CALL    $0000           ; NB: Target of self-modifying code.
                 LD      HL,Buffer
                 POP     DE
                 POP     AF

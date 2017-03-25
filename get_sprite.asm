@@ -108,6 +108,106 @@ SPR_BOOK:       EQU $5D
 SPR_TOASTER:    EQU $5E
 SPR_CUSHION:    EQU $5F
 
+DoorwayBuf:     EQU $F9D8       ; TODO: Buffer
+
+;; Width of sprite in bytes.
+SpriteWidth:    DEFB $04
+;; Current sprite we're drawing.
+SpriteCode:     DEFB $00
+
+RevTable:       EQU $B900
+
+;; Initialise a look-up table of byte reverses.
+InitRevTbl:     LD      HL,RevTable
+RevLoop_1:      LD      C,L
+                LD      A,$01
+                AND     A
+RevLoop_2:      RRA
+                RL      C
+                JR      NZ,RevLoop_2
+                LD      (HL),A
+                INC     L
+                JR      NZ,RevLoop_1
+                RET
+
+;; Generates the X and Y extents, and sets the sprite code and sprite
+;; width.
+;;
+;; Parameters: Sprite code is passed in in A.
+;;             X coordinate in C, Y coordinate in B
+;; Returns: X extent in BC, Y extent in HL
+GetSprExtents:  LD      (SpriteCode),A
+                AND     $7F
+                CP      $10
+                JR      C,Case3x56      ; Codes < $10 are 3x56
+                LD      DE,L0606
+                LD      H,$12
+                CP      $54
+                JR      C,SSW1
+                LD      DE,L0808        ; Codes >= $54 are 4x28
+                LD      H,$14
+SSW1:           CP      $18
+                JR      NC,SSW2
+                LD      A,(SpriteFlags) ; 3x24 or 4x28
+                AND     $02
+                LD      D,$04
+                LD      H,$0C
+                JR      Z,SSW2
+                LD      D,$00
+                LD      H,$10
+        ;; All cases but 3x56 join up here:
+        ;; D is Y extent down, H is Y extent up
+        ;; E is half-width (in double pixels)
+        ;; 4x28: D = 8, E = 8, H = 20
+        ;; 3x24: D = 6, E = 6, H = 18
+        ;; 3x32: D = 4, E = 6, H = 12 if flags & 2
+        ;; 3x32: D = 0, E = 6, H = 16 otherwise
+SSW2:           LD      A,B
+                ADD     A,D
+                LD      L,A             ; L = B + D
+                SUB     D
+                SUB     H
+                LD      H,A             ; H = B - H
+                LD      A,C
+                ADD     A,E
+                LD      C,A             ; C = C + E
+                SUB     E
+                SUB     E
+                LD      B,A             ; B = C - 2*E
+                LD      A,E
+                AND     A
+                RRA                     ; And save width in bytes to SpriteWidth
+                LD      (SpriteWidth),A
+                RET
+Case3x56:       LD      HL,(CurrObject2+1)
+                INC     HL
+                INC     HL
+                BIT     5,(HL)          ; Check flag bit 0x20 for later
+                EX      AF,AF'
+                LD      A,(HL)
+                SUB     $10
+                CP      $20
+                LD      L,$04
+                JR      NC,C356_1
+                LD      L,$08
+C356_1:         LD      A,B             ; L = (Flag - $10) >= $20 ? 8 : 4
+                ADD     A,L
+                LD      L,A             ; L = B + L
+                SUB     $38
+                LD      H,A             ; H = L - 56
+                EX      AF,AF'
+                LD      A,C
+                LD      B,$08
+                JR      NZ,C356_2
+                LD      B,$04
+C356_2:         ADD     A,B             ; B = (Flag & 0x20) ? 8 : 4
+                LD      C,A             ; C = C + B
+                SUB     $0C
+                LD      B,A             ; B = C - 12
+                LD      A,$03           ; Always 3 bytes wide.
+                LD      (SpriteWidth),A
+                RET
+
 ;; Looks up based on SpriteCode. Top bit set means flip horizontally.
 ;; Return height in B, image in DE, mask in HL.
 GetSpriteAddr:  LD      A,(SpriteCode)
@@ -249,7 +349,7 @@ FS3_1:          LD      C,(HL)
                 INC     HL
                 LD      E,(HL)
                 LD      A,(DE)
-FS3_2:          LD      (L0000),A       ; Target of self-modifying code.
+FS3_2:          LD      ($0000),A       ; Target of self-modifying code.
                 LD      E,C
                 LD      A,(DE)
                 LD      (HL),A
@@ -304,7 +404,7 @@ FS4_1:          LD      C,(HL)
                 INC     HL
                 LD      E,(HL)
                 LD      A,(DE)
-FS4_2:          LD      (L0000),A       ; Target of self-modifying code
+FS4_2:          LD      ($0000),A       ; Target of self-modifying code
                 LD      E,C
                 LD      A,(DE)
                 LD      (HL),A
@@ -353,3 +453,5 @@ NF_2:           RL      C               ; Bit was zero
                 OR      (HL)
                 LD      (HL),A          ; If top bit of SpriteCode was set, set bit mask
                 RET
+
+DoorwayFlipped: DEFB $00

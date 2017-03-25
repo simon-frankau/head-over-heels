@@ -4,11 +4,11 @@ set -e
 
 mkdir -p ../out/graphs
 
-lua ./xrefs.lua ../out/HOH.list
+lua ./xrefs.lua ../*.asm
 dot -Tsvg ../out/graphs/HOH.dot > ../out/graphs/HOH.svg
 
-for FILE in sprite menus gameover enlist enter1 enter screen background \
-  end mysteries move objaux objfns 37 ct15 loop entry
+for FILE in ../out/graphs/*.dot
 do
-  dot -Tsvg ../out/graphs/$FILE.dot > ../out/graphs/$FILE.svg
+  DEST=$(echo $FILE | sed 's/dot$/svg/')
+  dot -Tsvg $FILE > $DEST
 done

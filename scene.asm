@@ -187,7 +187,7 @@ BlitObjects:    LD      A,(HL)
                 RET     Z
                 LD      (CurrObject2+1),HL      ; Odd way to save an item!
                 CALL    BlitObject
-CurrObject2:    LD      HL,L0000                ; NB: Self-modifying code
+CurrObject2:    LD      HL,$0000                ; NB: Self-modifying code
                 JR      BlitObjects
 
 ;;  Set carry flag if there's overlap

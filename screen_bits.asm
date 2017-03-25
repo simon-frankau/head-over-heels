@@ -42,8 +42,8 @@ GetScrMemAddr:  LD      A,B
 
 ;; Screen-wipe loop
 ScreenWipe:     LD      E,$04
-SW_0:           LD      HL,L4000
-                LD      BC,L1800
+SW_0:           LD      HL,$4000
+                LD      BC,$1800
                 PUSH    AF
         ;; This loop smears to the right...
 SW_1:           POP     AF
@@ -62,7 +62,7 @@ SW_2:           DEC     D
                 OR      C
                 JR      NZ,SW_1
         ;; This loop smears to the left...
-                LD      BC,L1800
+                LD      BC,$1800
 SW_3:           DEC     HL
                 POP     AF
                 LD      A,(HL)
@@ -82,8 +82,8 @@ SW_4:           DEC     D
                 DEC     E
         ;; And loop until fully wiped...
                 JR      NZ,SW_0
-                LD      HL,L4000
-                LD      BC,L1800
+                LD      HL,$4000
+                LD      BC,$1800
                 JP      FillZero        ; Tail call
 
 ;; Draw a sprite, with attributes.
@@ -171,7 +171,7 @@ DrS_4:          LD      (HL),A
                 INC     L
                 DJNZ    DrS_4
                 LD      L,C             ; Restore start point
-                LD      BC,L0020
+                LD      BC,$0020
                 ADD     HL,BC           ; Move down a row.
                 DEC     D
                 JR      NZ,DrS_3        ; Repeat as necessary.

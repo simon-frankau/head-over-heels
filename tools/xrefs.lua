@@ -20,8 +20,10 @@ local function extract_label(str)
   end
 end
 
+-- Each node is labeled with the file that owns it.
 local nodes = {}
 local edges = {}
+local files = {}
 
 local function add_edge(src, dst)
   if string.find(dst, "[(]") then
@@ -41,7 +43,8 @@ end
 local debug = nil
 
 local function read_asm(filename)
-  local fin = io.open(filename, "r")
+  files[filename] = true
+  local fin = assert(io.open(filename, "r"))
 
   local curr_sym
   local reinit_call
@@ -63,14 +66,14 @@ local function read_asm(filename)
         -- Fall through
         add_edge(curr_sym, sym)
       end
-      nodes[sym] = true
+      nodes[sym] = filename
       curr_sym = sym
 
       if debug then print("LABEL: '" .. sym .. "'") end
     end
 
     if string.find(line, "DEF[BW]") then
-      -- Data can appear immediately after a call to Reinitialise.
+      -- Data can appear immediately after a call to certain functions
       if not reinit_call then
         curr_sym = nil
       end
@@ -92,7 +95,7 @@ local function read_asm(filename)
       _, label = extract_label(dest)
       add_edge(curr_sym, label)
       -- Nasty hack
-      if dest == "Reinitialise" then
+      if dest == "Reinitialise" or dest == "CopyData" then
         reinit_call = true
       end
 
@@ -143,8 +146,10 @@ local function check_nodes()
   end
 end
 
-local function write_graph(name, starting_nodes)
-  local fout = io.open(prefix .. name, "w")
+local function write_graph(filename)
+print(filename)
+  _, _, name = string.find(filename, "../([A-Za-z0-9_]*).asm")
+  local fout = io.open(prefix .. name .. ".dot", "w")
   fout:write("digraph calls {\n")
   local seen_nodes = {}
 
@@ -155,11 +160,8 @@ local function write_graph(name, starting_nodes)
     end
     seen_nodes[node] = true
 
-    -- If the node is unclaimed, claim it. Otherwise, mark as a 'far' node.
-    if nodes[node] == true then
-      nodes[node] = name
-      -- fout:write("  " .. node .. ";\n")
-    else
+    -- Skip far nodes
+    if nodes[node] ~= filename then
       fout:write("  " .. node .. " [style=bold,shape=rectangle];\n")
       -- Don't follow far nodes.
       return
@@ -176,8 +178,10 @@ local function write_graph(name, starting_nodes)
     end
   end
 
-  for _, node in ipairs(starting_nodes) do
-     write_node(node)
+  for node, name in pairs(nodes) do
+    if name == filename then
+      write_node(node)
+    end
   end
 
   fout:write("}\n")
@@ -199,30 +203,38 @@ end
 ------------------------------------------------------------------------
 -- Main running code
 
-read_asm(arg[1])
-read_asm("fake.asm")
+for i = 1, #arg do
+  read_asm(arg[i])
+end
+
+-- read_asm(arg[1])
+-- read_asm("fake.asm")
 
 check_nodes()
 
 -- Remove edge out of game, so we can extract the main game loop.
 edges["FinishGame"]["Main"] = nil
 
-write_graph("sprite.dot", {"Draw3x24", "BlitObject"})
-write_graph("menus.dot", {"GoMainMenu"})
-write_graph("gameover.dot", {"GameOverScreen"})
-write_graph("enlist.dot", {"Enlist"})
-write_graph("enter1.dot", {"ProcEntry"})
-write_graph("enter.dot", {"ReadRoom"})
-write_graph("screen.dot", {"BuildRoom"})
-write_graph("background.dot", {"DrawBkgnd"})
-write_graph("end.dot", {"CrownScreenCont"})
-write_graph("mysteries.dot", {"ChkSatOn", "CAB06"})
-write_graph("move.dot", {"DoMove"})
-write_graph("objaux.dot", {"ObjDraw", "ObjFnDisappear", "AnimateMe", "TurnOnCollision", "TurnRandomly"})
-write_graph("objfns.dot", {"CallObjFn"})
-write_graph("37.dot", {"EPIC_37"})
-write_graph("ct15.dot", {"CharThing15"})
-write_graph("loop.dot", {"MainLoop"})
-write_graph("entry.dot", {"Entry"})
+for filename, _ in pairs(files) do
+  write_graph(filename)
+end
 
-write_remaining()
+-- write_graph("sprite.dot", {"Draw3x24", "BlitObject"})
+-- write_graph("menus.dot", {"GoMainMenu"})
+-- write_graph("gameover.dot", {"GameOverScreen"})
+-- write_graph("enlist.dot", {"Enlist"})
+-- write_graph("enter1.dot", {"ProcEntry"})
+-- write_graph("enter.dot", {"ReadRoom"})
+-- write_graph("screen.dot", {"BuildRoom"})
+-- write_graph("background.dot", {"DrawBkgnd"})
+-- write_graph("end.dot", {"CrownScreenCont"})
+-- write_graph("mysteries.dot", {"ChkSatOn", "CAB06"})
+-- write_graph("move.dot", {"DoMove"})
+-- write_graph("objaux.dot", {"ObjDraw", "ObjFnDisappear", "AnimateMe", "TurnOnCollision", "TurnRandomly"})
+-- write_graph("objfns.dot", {"CallObjFn"})
+-- write_graph("37.dot", {"EPIC_37"})
+-- write_graph("ct15.dot", {"CharThing15"})
+-- write_graph("loop.dot", {"MainLoop"})
+-- write_graph("entry.dot", {"Entry"})
+-- 
+-- write_remaining()

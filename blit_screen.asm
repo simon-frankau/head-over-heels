@@ -10,6 +10,8 @@
 ;; Exported variables:
 ;; * BlitYOffset
 
+ViewBuff:       EQU $B800       ; TODO: Memory map
+
 ;; BlitScreen copies from ViewBuff to the screen coordinates of
 ;; ViewYExtent and ViewXExtent.
 ;;

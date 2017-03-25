@@ -9,9 +9,7 @@
 	;; * WaitInputClear
 	;; * GetInputEntSh
 	;; * ListControls
-	
-DELIM:	EQU $FF			; String delimiter
-	
+
 	;; Strings table for indices >= 0x60 (i.e. 0xE0 once the top bit is set).
 Strings2:
 STR_ENTER:	EQU $E0

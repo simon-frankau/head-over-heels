@@ -1,19 +1,19 @@
-	;; 
-	;; attr_scheme.asm
-	;;
-	;; Attribute colour schemes
-	;;
+;;
+;; attr_scheme.asm
+;;
+;; Attribute colour schemes
+;;
 
-	;; Exported functions:
-        ;; * SetAttribs
-        ;; * UpdateAttribs
+;; Exported functions:
+;; * SetAttribs
+;; * UpdateAttribs
 
-        ;; Exported variables:
-        ;; * AttribL
-        ;; * AttribR
-        ;; * LastOut
-        
-	;; FIXME: Give the schemes nicer names, generally polish
+;; Exported variables:
+;; * AttribL
+;; * AttribR
+;; * LastOut
+
+;; FIXME: Give the schemes nicer names, generally polish
 	
 	;; Paper colour
 BK:		EQU	0
@@ -29,6 +29,8 @@ BR:		EQU	$40	; Bright
 BLI:		EQU	$10	; Blue ink
 WHI:		EQU	$38	; White ink
 
+ATTR_START:     EQU $5800       ; Start of attributes area.
+        
 	;; The various colour schemes available.
 AttribTable:	DEFB    YL,    CY, BR+CY,  BR+MG,  BR+GR,     WH ; 0
 		DEFB    WH, BR+GR,    CY,  BR+MG,  BR+GR,     YL ; 1
@@ -77,7 +79,7 @@ SetAttribs:	LD	C,A
 		LDI			; Write out Attrib5
 	;; Fill the whole screen with Attrib0.
 		LD	C,A
-		LD	HL,L5800
+		LD	HL,ATTR_START
 AttribLoop:	LD	(HL),C
 		INC	HL
 		LD	A,H

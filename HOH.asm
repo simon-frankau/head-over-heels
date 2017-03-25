@@ -18,14 +18,6 @@
 #include "equs.asm"
 
 MAGIC_OFFSET:	EQU 360 	; The offset high data is moved down by...
-	
-ViewBuff:	EQU $B800
-
-	;; The buffer into which we draw the columns doors stand on
-ColBuf:		EQU $F944
-ColBufLen:	EQU $94
-
-DoorwayBuf:	EQU $F9D8
 
 #include "mainloop.asm"
 
@@ -100,32 +92,9 @@ DBL_1:		PUSH	HL
 		RET
 
 #include "attr_scheme.asm"
-	
-CHAR_ARR1:	EQU $21
-CHAR_ARR2:	EQU $22
-CHAR_ARR3:	EQU $23
-CHAR_ARR4:	EQU $24
-CHAR_LIGHTNING:	EQU $25
-CHAR_SPRING:	EQU $26
-CHAR_SHIELD:	EQU $27
-	
-	;; Look up character code (- 0x20 already) to a pointer to the character in DE.
-CharCodeToAddr:	CP	$08
-		JR	C,CC2A 		; Space ! " # $ % & '
-		SUB	$07
-		CP	$13
-		JR	C,CC2A		; / 0-9
-		SUB	$07 		; Alphabetical characters.
-CC2A:		ADD	A,A
-		ADD	A,A
-		LD	L,A
-		LD	H,$00
-		ADD	HL,HL
-		LD	DE,IMG_CHARS - 360
-		ADD	HL,DE
-		EX	DE,HL
-		RET
 
+#include "char_code.asm"
+        
 #include "controls.asm"
 
 #include "columns.asm"
@@ -596,13 +565,7 @@ DO_3:		LD	A,H			; loop until null pointer.
 		JR	NZ,DO_1
 		RET
 
-	;; Room origin, in double-pixel coordinates, for attrib-drawing
-RoomOrigin:	DEFW $0000
-	
-Attrib0:	DEFB $00
-Attrib3:	DEFB $43
-Attrib4:	DEFB $45
-Attrib5:	DEFB $46
+#include "screen_vars.asm"
 
 #include "blit_screen.asm"
 
@@ -664,16 +627,8 @@ CBW_1:		NEG
 CBW_2:		LD	A,(HL)
 		JP	BothWalls	; NB: Tail call.
 
-FillZero:	LD	E,$00
-	;; HL = Dest, BC = Size, E = value
-FillValue:	LD	(HL),E
-		INC	HL
-		DEC	BC
-		LD	A,B
-		OR	C
-		JR	NZ,FillValue
-		RET
-
+#include "fill_zero.asm"
+        
 StatusReinit:	DEFB $09	; Number of bytes to reinit with
 	
 		DEFB $00	; Inventory reset
@@ -812,107 +767,7 @@ XORs:
 
 #include "contact.asm"
 
-;; Width of sprite in bytes.
-SpriteWidth:    DEFB $04
-;; Current sprite we're drawing.
-SpriteCode:     DEFB $00
-
-RevTable:       EQU $B900
-
-;; Initialise a look-up table of byte reverses.
-InitRevTbl:     LD      HL,RevTable
-RevLoop_1:      LD      C,L
-                LD      A,$01
-                AND     A
-RevLoop_2:      RRA
-                RL      C
-                JR      NZ,RevLoop_2
-                LD      (HL),A
-                INC     L
-                JR      NZ,RevLoop_1
-                RET
-
-;; Generates the X and Y extents, and sets the sprite code and sprite
-;; width.
-;;
-;; Parameters: Sprite code is passed in in A.
-;;             X coordinate in C, Y coordinate in B
-;; Returns: X extent in BC, Y extent in HL
-GetSprExtents:  LD      (SpriteCode),A
-                AND     $7F
-                CP      $10
-                JR      C,Case3x56      ; Codes < $10 are 3x56
-                LD      DE,L0606
-                LD      H,$12
-                CP      $54
-                JR      C,SSW1
-                LD      DE,L0808        ; Codes >= $54 are 4x28
-                LD      H,$14
-SSW1:           CP      $18
-                JR      NC,SSW2
-                LD      A,(SpriteFlags) ; 3x24 or 4x28
-                AND     $02
-                LD      D,$04
-                LD      H,$0C
-                JR      Z,SSW2
-                LD      D,$00
-                LD      H,$10
-        ;; All cases but 3x56 join up here:
-        ;; D is Y extent down, H is Y extent up
-        ;; E is half-width (in double pixels)
-        ;; 4x28: D = 8, E = 8, H = 20
-        ;; 3x24: D = 6, E = 6, H = 18
-        ;; 3x32: D = 4, E = 6, H = 12 if flags & 2
-        ;; 3x32: D = 0, E = 6, H = 16 otherwise
-SSW2:           LD      A,B
-                ADD     A,D
-                LD      L,A             ; L = B + D
-                SUB     D
-                SUB     H
-                LD      H,A             ; H = B - H
-                LD      A,C
-                ADD     A,E
-                LD      C,A             ; C = C + E
-                SUB     E
-                SUB     E
-                LD      B,A             ; B = C - 2*E
-                LD      A,E
-                AND     A
-                RRA                     ; And save width in bytes to SpriteWidth
-                LD      (SpriteWidth),A
-                RET
-Case3x56:       LD      HL,(CurrObject2+1)
-                INC     HL
-                INC     HL
-                BIT     5,(HL)          ; Check flag bit 0x20 for later
-                EX      AF,AF'
-                LD      A,(HL)
-                SUB     $10
-                CP      $20
-                LD      L,$04
-                JR      NC,C356_1
-                LD      L,$08
-C356_1:         LD      A,B             ; L = (Flag - $10) >= $20 ? 8 : 4
-                ADD     A,L
-                LD      L,A             ; L = B + L
-                SUB     $38
-                LD      H,A             ; H = L - 56
-                EX      AF,AF'
-                LD      A,C
-                LD      B,$08
-                JR      NZ,C356_2
-                LD      B,$04
-C356_2:         ADD     A,B             ; B = (Flag & 0x20) ? 8 : 4
-                LD      C,A             ; C = C + B
-                SUB     $0C
-                LD      B,A             ; B = C - 12
-                LD      A,$03           ; Always 3 bytes wide.
-                LD      (SpriteWidth),A
-                RET
-
 #include "get_sprite.asm"
-	
-DoorwayFlipped:	DEFB $00
 
 ObjVars:        DEFB $1B                ; Reinitialisation size
 

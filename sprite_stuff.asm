@@ -1,7 +1,7 @@
 ;;
 ;; sprite_stuff.asm
 ;;
-;; Various sprite-related pieces that need further investigation
+;; Does various ad hoc sprite-drawing tasks.
 ;;
 
 ;; Exported functions:
@@ -20,7 +20,7 @@ CrownScreenCont:LD      A,(WorldMask)
                 LD      A,STR_WIN_SCREEN
                 CALL    PrintChar
                 CALL    AltPlaySound
-                LD      DE,L040F
+                LD      DE,$040F ; TODO: Screen location
                 LD      HL,MainMenuSpriteList
                 CALL    DrawFromList
                 CALL    WaitKey
@@ -35,7 +35,7 @@ CrownScreen:    LD      A,STR_EMPIRE_BLURB
                 CALL    PrintChar
                 CALL    AltPlaySound
                 LD      HL,PlanetsSpriteList
-                LD      DE,L05FF
+                LD      DE,$05FF ; TODO: Screen location
                 CALL    DrawFromList
                 LD      HL,CrownsSpriteList
                 LD      DE,(WorldMask)
@@ -49,7 +49,7 @@ WaitKey:        CALL    WaitInputClear
                 LD      B,$C1
                 JP      PlaySound               ; NB: Tail call
 
-WaitKeyPressed: LD      HL,LA800
+WaitKeyPressed: LD      HL,$A800 ; TODO: Calculate timeout
 WKP_1:          PUSH    HL
                 CALL    AltPlaySound
                 CALL    GetInputEntSh
@@ -133,7 +133,7 @@ Draw2x24:       LD      (SpriteCode),A
                 PUSH    DE
                 PUSH    BC
                 CALL    GetSpriteAddr           ; Loads image into DE
-                LD      HL,L180C                ; Size is 24 * 12 (double pixels)
+                LD      HL,$180C                ; Size is 24 * 12 (double pixels)
                 POP     BC
                 POP     AF                      ; Move contents from D to A.
                 AND     A
@@ -192,5 +192,5 @@ Draw3x32:       LD      (SpriteCode),A
                 JP      BlitScreen              ; Buffer to screen.
 
 ClearViewBuf:   LD      HL,ViewBuff
-                LD      BC,L0100
+                LD      BC,$0100
                 JP      FillZero        ; Tail call

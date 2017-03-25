@@ -250,7 +250,7 @@ DBC_Floor:      ADD     A,B
                 JR      C,DBC_FloorNEdge; Need to draw some floor and also edge.
                 LD      A,B             ; Just draw a window-height of floor.
         ;; NB: Fall through
-BlitFloorFnPtr: JP      L0000           ; NB: Target of self-modifying code
+BlitFloorFnPtr: JP      $0000           ; NB: Target of self-modifying code
         ;; Draw the floor and then edge etc.
 DBC_FloorNEdge: PUSH    AF
                 SUB     B

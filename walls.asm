@@ -166,7 +166,7 @@ OWPanel:	EX	AF,AF'
 		JR	Z,OWDoor
         ;; Otherwise update entries in BkgndData.
 		EX	AF,AF'
-        ;; Self-modifixing code adds a flip if needed.
+        ;; Self-modifying code adds a flip if needed.
 OWFlag:		OR	$00		; NB: Target of self-modifying code.
 		LD	(IX+$01),A      ; Set the wall-panel sprite
 		EXX

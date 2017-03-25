@@ -17,6 +17,8 @@
 ;; Exported constants:
 ;; * CTRL_*
 
+DELIM:          EQU $FF         ; String delimiter
+
 CharDoublerBuf: DEFS $10,$00    ; 16 bytes to hold double-height character.
 
 AttrIdx:        DEFB $02        ; Which attribute number to use.
@@ -38,7 +40,7 @@ PrintCharBase:  CP      $80
                 JR      C,ControlCode   ; Tail call!
         ;; Printable character!
                 CALL    CharCodeToAddr  ; Address now in DE
-                LD      HL,L0804        ; 8x8 sprite
+                LD      HL,$0804        ; 8x8 sprite
                 LD      A,(IsDoubleHeight)
                 AND     A
                 CALL    NZ,CharDoubler  ; Double the height if necessary.
@@ -186,12 +188,12 @@ CD_1:           LD      A,(DE)
                 INC     HL
                 INC     DE
                 DJNZ    CD_1
-                LD      HL,L1004        ; New width/height - 8 pixels by 16.
+                LD      HL,$1004        ; New width/height - 8 pixels by 16.
                 LD      DE,CharDoublerBuf
                 RET
 
 ;; Left align, no leading zero.
-Print4DigitsL:  LD      BC,L00F8
+Print4DigitsL:  LD      BC,$00F8 ; TODO: Constant
                 PUSH    DE
                 LD      A,D
                 CALL    Print2Digits
@@ -200,11 +202,11 @@ Print4DigitsL:  LD      BC,L00F8
                 JR      Print2Digits    ; Tail call
 
 ;; Right align, no leading zero.
-Print2DigitsR:  LD      BC,LFFFE
+Print2DigitsR:  LD      BC,$FFFE        ; TODO: Constant
                 JR      Print2Digits    ; Tail call
 
 ;; Left align, no leading zero.
-Print2DigitsL:  LD      BC,L00FE
+Print2DigitsL:  LD      BC,$00FE ; TODO: Explain const
         ;; NB: Fall through
 
 ;; Prints a 2-digit number. Expects digits stored as BCD. Each

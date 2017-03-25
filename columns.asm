@@ -4,6 +4,10 @@
 	;; TODO: Stuff to do with columns
 	;;
 
+	;; The buffer into which we draw the columns doors stand on
+ColBuf:		EQU $F944
+ColBufLen:	EQU $94
+
 	;; In multiples of 6, apparently half the pixel height.
 ColHeight:	DEFB $00
 
@@ -53,11 +57,11 @@ DrawColTop:	LD	HL,IMG_ColTop + $23 - MAGIC_OFFSET
 		JR	DrawColLDDR
 
 DrawColMid:	LD	HL,IMG_ColMid + $17 - MAGIC_OFFSET
-		LD	BC,L0018
+		LD	BC,$0018
 		JR	DrawColLDDR
 
 DrawColBottom:	LD	HL,IMG_ColBottom + $0F - MAGIC_OFFSET
-		LD	BC,L0010
+		LD	BC,$0010
 
 DrawColLDDR:	LDDR
 		RET
