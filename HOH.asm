@@ -97,7 +97,7 @@ DBL_1:		PUSH	HL
         
 #include "controls.asm"
 
-#include "columns.asm"
+#include "gfx2/columns.asm"
         
 #include "room.asm"
 
@@ -577,11 +577,11 @@ DO_3:		LD	A,H			; loop until null pointer.
 
 #include "gfx1/blit_mask.asm"
 
-#include "background.asm"
+#include "gfx2/background.asm"
 
 #include "gfx1/blit_rot.asm"
 
-#include "scene.asm"
+#include "gfx2/scene.asm"
 
 	;; Fetch bit-packed data.
 	;; Expects number of bits in B.
@@ -767,7 +767,7 @@ XORs:
 
 #include "contact.asm"
 
-#include "get_sprite.asm"
+#include "gfx2/get_sprite.asm"
 
 ObjVars:        DEFB $1B                ; Reinitialisation size
 
