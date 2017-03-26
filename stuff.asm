@@ -19,11 +19,11 @@ InitNewGame:	XOR	A
 		CALL	Reinitialise
 		DEFW	StatusReinit
 		CALL	ResetSpecials
-		LD	HL,L8940
+		LD	HL,$8940 ; TODO: Starting room?
 		LD	(RoomId),HL
 		LD	A,$01
 		CALL	InitThings
-		LD	HL,L8A40
+		LD	HL,$8A40 ; TODO: Starting room?
 		LD	(RoomId),HL
 		XOR	A
 		LD	(LB218),A

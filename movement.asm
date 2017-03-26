@@ -22,19 +22,19 @@
 MoveTbl:        DEFB ~$02
                 DEFW Down,SomeTableArg0
                 DEFB ~$00
-                DEFW DownRight,L0000
+                DEFW DownRight,0
                 DEFB ~$04
                 DEFW Right,SomeTableArg2
                 DEFB ~$00
-                DEFW UpRight,L0000
+                DEFW UpRight,0
                 DEFB ~$01
                 DEFW Up,SomeTableArg4
                 DEFB ~$00
-                DEFW UpLeft,L0000
+                DEFW UpLeft,0
                 DEFB ~$08
                 DEFW Left,SomeTableArg6
                 DEFB ~$00
-                DEFW DownLeft,L0000
+                DEFW DownLeft,0
 
         ;; Movement functions expects extents in primed registers.
         ;; Returns direction actually travelled.
@@ -515,7 +515,7 @@ TblFnCommon20:	INC	HL
 		RET
 TFC20_1:	RRA
 		JR	C,TFC20_2
-		LD	BC,L0104
+		LD	BC,$0104 ; TODO
 		RET
-TFC20_2:	LD	BC,L0401
+TFC20_2:	LD	BC,$0401 ; TODO
 		RET

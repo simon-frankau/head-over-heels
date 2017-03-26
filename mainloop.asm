@@ -173,9 +173,9 @@ CP_1:		CALL	GetInputEntSh
 	;; FIXME: Interesting one to understand...
 		CALL	WaitInputClear
 		CALL	RevealScreen
-		LD	HL,L4C50
+		LD	HL,$4C50 ; TODO
 CP_2:		PUSH	HL
-		LD	DE,L6088
+		LD	DE,$6088 ; TODO
 		CALL	CheckAndDraw
 		POP	HL
 		LD	A,L
@@ -448,7 +448,7 @@ CC_Ptr:         DEFW    HeelsObj        ; Self-modifying code
 LoadCharObjs:   PUSH    DE
                 CALL    GetCharObj
                 EX      DE,HL
-                LD      BC,L0012
+                LD      BC,18   ; TODO
                 PUSH    BC
                 LDIR
                 CALL    GetOtherChar
@@ -460,7 +460,7 @@ LoadCharObjs:   PUSH    DE
 ClearObjLists:  LD      HL,(LAF92)      ; NB: Referenced as data.
                 LD      (ObjDest),HL
                 LD      HL,ObjectLists + 4
-                LD      BC,L0008
+                LD      BC,8    ; TODO
                 JP      FillZero
 
 ;; Get the character object associated with the one we're not playing now?

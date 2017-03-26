@@ -95,7 +95,7 @@ AddSpecials:    PUSH    BC
                 LD      A,(WorldMask)
                 CPL
                 LD      B,$05
-                LD      DE,L0004
+                LD      DE,4
 AS_1:           RR      (HL)
                 RRA
                 RL      (HL)
@@ -149,7 +149,7 @@ AS_3:           LD      (IY+$04),A              ; Set flags
 
         ;; Clear the "collected" flag on all the specials.
 ResetSpecials:  LD      HL,Specials
-                LD      DE,L0004
+                LD      DE,4
                 LD      B,$34
 RS_1:           RES     0,(HL)
                 ADD     HL,DE
@@ -297,7 +297,7 @@ SaveContinue:	LD	B,$C2
 		CALL	PlaySound
 		CALL	GetContinueData
 		LD	IX,Specials
-		LD	DE,L0004
+		LD	DE,4
 		LD	B,$06
 SC_1:		LD	(HL),$80
 SC_2:		LD	A,(IX+$00)
@@ -322,12 +322,12 @@ SC_2:		LD	A,(IX+$00)
 		CP	(HL)
 		JR	NZ,SC_3
 		LD	HL,LFB49
-		LD	BC,L0004
+		LD	BC,4
 		LDIR
 		LD	HL,OtherState
 		JR	SC_4
 SC_3:		LD	HL,LA2A2
-		LD	BC,L0004
+		LD	BC,4
 		LDIR
 		LD	HL,RoomId
 SC_4:		LDI
@@ -352,7 +352,7 @@ DoContinue:	LD	HL,Continues
 		PUSH	HL
 		POP	IX
 		LD	HL,Specials
-		LD	DE,L0004
+		LD	DE,4
 		LD	B,$2F
 		RR	(HL)
 		JR	DC_2
@@ -380,7 +380,7 @@ DC_3:		RL	(HL)
 		LD	DE,LA2C5
 		JR	Z,DC_4
 		LD	DE,LA2D7
-DC_4:		LD	BC,L0003
+DC_4:		LD	BC,3
 		LDIR
 		LD	DE,RoomId
 		LDI
@@ -419,7 +419,7 @@ GetContinueData:LD	A,(Continues)
 		LD	B,A
 		INC	B
 		LD	HL,ContinueData - $12
-		LD	DE,L0012
+		LD	DE,18 ; TODO: Char obj size
 GCD_1:		ADD	HL,DE
 		DJNZ	GCD_1
 		RET

@@ -107,7 +107,7 @@ DoContact2:	LD	A,(IY+$07)
 ;; A contains height difference
 DoContact:
         ;; Clear what's on character so far.
-                LD      BC,L0000
+                LD      BC,0
                 LD      (ObjContact),BC
         ;; If we've hit the floor, go to that case
                 JR      Z,HitFloor

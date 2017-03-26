@@ -118,7 +118,7 @@ DoFire:		LD	A,(FirePressed)
 		JR	NZ,NopeFire 	; Skips if not FIXME
 		LD	HL,HeadObj+$05
 		LD	DE,FiredObj+$05
-		LD	BC,L0003
+		LD	BC,3            ; TODO
 		LDIR			; Copies X/Y/Z coordinate from Head.
 		LD	HL,FiredObj
 		PUSH	HL
@@ -175,13 +175,13 @@ EPIC_9:		LD	A,(LA295)
 		JR	EPIC_11
 EPIC_10:	LD	HL,LFB49
 		LD	DE,LA2A2
-		LD	BC,L0005
+		LD	BC,5 ; TODO
 		LDIR
-EPIC_11:	LD	HL,L0000
+EPIC_11:	LD	HL,0
 		LD	(LA2CD),HL
 		LD	(LA2DF),HL
 		CALL	SaveStuff
-EPIC_12:	LD	HL,L0000
+EPIC_12:	LD	HL,0
 		LD	(Carrying),HL
 		JP	GoToRoom
 EPIC_13:	DEC	(HL)
@@ -251,7 +251,7 @@ HD_5:		LD	A,(HL)
 		JR	NZ,HD_8
 		LD	(LA295),A
 HD_6:		CALL	SwitchChar
-		LD	HL,L0000
+		LD	HL,0
 		LD	(LB219),HL
 HD_7:		LD	HL,OtherState
 		SET	0,(HL)
@@ -263,11 +263,11 @@ HD_9:		LD	A,(LA2A6)
 		CALL	CharThing3
         ;; Restore the UVZ position of the character as we enter the room.
 		CALL	GetCharObj
-		LD	DE,L0005
+		LD	DE,5 ; TODO
 		ADD	HL,DE
 		EX	DE,HL
 		LD	HL,EntryPosn
-		LD	BC,L0003
+		LD	BC,3    ; TODO
 		LDIR
         ;; TODO: Restore something, jump somewhere.
 		LD	A,(LA2A2)
@@ -716,7 +716,7 @@ DJ_8:		LD	(LA29F),A
 		LD	HL,LA293
 		LD	(HL),$07
 DJ_9:		JP	SetOtherSound 	; NB: Tail call
-DJ_10:		LD	HL,L080C
+DJ_10:		LD	HL,$080C        ; TODO
 		LD	(LA296),HL
 		LD	B,$C7
 		JP	PlaySound
@@ -767,11 +767,11 @@ CarryLoop:	CALL	GetCharObj
 	;; FIXME: That was some other test...
 		LD	HL,(Carrying)
 		PUSH	HL
-		LD	DE,L0007
+		LD	DE,7    ; TODO
 		ADD	HL,DE
 		PUSH	HL
 		CALL	GetCharObj
-		LD	DE,L0006
+		LD	DE,6    ; TODO
 		ADD	HL,DE
 		EX	DE,HL			; CharObj + 6 in DL
 		POP	HL			; Object + 7 in HL
@@ -782,7 +782,7 @@ CarryLoop:	CALL	GetCharObj
 		LDD
 		POP	HL
 		CALL	InsertObject
-		LD	HL,L0000
+		LD	HL,0
 		LD	(Carrying),HL
 		LD	BC,CARRY_POSN
 		CALL	Clear3x24 		; Clear out the what's-carried display
@@ -859,7 +859,7 @@ CharThing15:	XOR	A 	; FIXME: Unused?
 		JR	NZ,EPIC_86
 		LD	(IY+$07),C
 EPIC_86:	CALL	GetCharObj
-		LD	DE,L0005
+		LD	DE,5 ; TODO
 		ADD	HL,DE
 		EX	DE,HL
 		POP	AF
@@ -926,10 +926,10 @@ EPIC_96:	POP	AF
 EPIC_97:	LD	A,$80
 		LD	(LB218),A
 		POP	HL
-		LD	DE,L0005
+		LD	DE,5    ; TODO
 		ADD	HL,DE
 		LD	DE,EntryPosn
-		LD	BC,L0003
+		LD	BC,3    ; TODO
 		LDIR
 		LD	(IY+$0D),$00
 		LD	(IY+$0E),$00
@@ -959,7 +959,7 @@ DrawCarriedObject:	LD	A,(Character)
 			INC	H
 			DEC	H
 			RET	Z		; Return if high byte zero...
-			LD	DE,L0008
+			LD	DE,8            ; TODO
 			ADD	HL,DE
 			LD	A,(HL)		; Get sprite from object pointed to...
 			LD	BC,CARRY_POSN

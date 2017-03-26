@@ -33,11 +33,11 @@ IrqInstall:	DI
 		LD	A,$39		; Page full of FFhs.
 		LD	I,A
 		LD	A,$18
-		LD	(LFFFF),A 	; JR 0xFFF4
+		LD	($FFFF),A 	; JR 0xFFF4
 		LD	A,$C3		; JP ...
 		LD	($FFF4),A
 		LD	HL,IrqHandler 	; to IrqHandler
-		LD	(LFFF5),HL
+		LD	($FFF5),HL
 		CALL	ShuffleMem
 		EI
 		RET
@@ -192,7 +192,7 @@ RoomMask:       DEFS NUM_ROOMS, $00
 EmptyDonuts:    LD      HL,Inventory
                 RES     2,(HL)
 ED1:            EXX
-                LD      BC,L0001
+                LD      BC,1
                 JR      CountBits
 
 WorldCount:     LD      HL,WorldMask ; FIXME: Possibly actually crowns...
@@ -206,7 +206,7 @@ RoomCount:      LD      HL,RoomMask
 ;; Counts #bits set in BC bytes starting at HL', returning them in DE.
 ;; Count is given in BCD.
 CountBits:      EXX
-                LD      DE,L0000
+                LD      DE,0
                 EXX
         ;; Outer loop
 CB1:            EXX
@@ -248,7 +248,7 @@ GetScore:	CALL	InVictoryRoom 		; Zero set if end reached.
 		PUSH	AF
 		CALL	RoomCount
 		POP	AF
-		LD	HL,L0000
+		LD	HL,0
 		JR	NZ,GS_1
 		LD	HL,$0501
 		LD	A,(LA295) 	; TODO: Non-zero gets you points.
@@ -547,7 +547,7 @@ DO_1:		PUSH	HL
 		LD	L,A
 		EX	(SP),HL			; Next item on top of stack, curr item in HL
 		EX	DE,HL
-		LD	HL,L000A
+		LD	HL,10   ; TODO
 		ADD	HL,DE
 	;; Check position +10
 		LD	A,(Phase)
@@ -680,8 +680,8 @@ WiggleEyebrows:
                 LD      A,$80
                 XOR     (HL)
                 LD      (HL),A
-        ;; Check bit 0 of LC043 for source choice.
-                LD      A,(LC043) ; TODO
+        ;; Check bit 0 of $C043 for source choice.
+                LD      A,($C043) ; TODO
                 BIT     0,A
         ;; Set up destination
                 LD      HL,IMG_3x24 - MAGIC_OFFSET + HEAD_OFFSET
@@ -693,7 +693,7 @@ WiggleEyebrows:
 WE_1:           PUSH    DE
                 PUSH    HL
                 CALL    XORify
-                LD      DE,L0048
+                LD      DE,$48
                 POP     HL
                 ADD     HL,DE
                 POP     DE
@@ -1063,11 +1063,11 @@ CNC_2:		BIT		7,(IX+$09)
 
 	;; Called immediately after installing interrupt handler.
 ShuffleMem:	; Zero end of top page
-		LD	HL,LFFFE
+		LD	HL,$FFFE
 		XOR	A
 		LD	(HL),A
 		; Switch to bank 1, write top of page
-		LD	BC,L7FFD
+		LD	BC,$7FFD ; TODO
 		LD	D,$10
 		LD	E,$11
 		OUT	(C),E
@@ -1079,32 +1079,32 @@ ShuffleMem:	; Zero end of top page
 		; Ok, we're 128K...
 		; Zero screen attributes, so no-one can see we're using it as temp space...
 		LD	B,$03
-		LD	HL,L5800
+		LD	HL,$5800 ; TODO
 ShuffleMem_1:	LD	(HL),$00
 		INC	L
 		JR	NZ,ShuffleMem_1
 		INC	H
 		DJNZ	ShuffleMem_1
 		; Stash data in display memory
-		LD	BC,L091B
-		LD	DE,L4000
-		LD	HL,LB884
+		LD	BC,$091B ; TODO
+		LD	DE,$4000
+		LD	HL,$B884 ; TODO
 		LDIR
 		; Switch to bank 1
 		LD	A,$11
-		LD	BC,L7FFD
+		LD	BC,$7FFD ; TODO
 		OUT	(C),A
 		; Reinitialise IRQ handler there.
 		LD	A,$18
-		LD	(LFFFF),A
+		LD	($FFFF),A
 		LD	A,$C3
 		LD	($FFF4),A
 		LD	HL,IrqHandler
-		LD	(LFFF5),HL
+		LD	($FFF5),HL
 		; FIXME: Another memory chunk copy.
-		LD	BC,L0043
+		LD	BC,$0043 ; TODO
 		LD	DE,AltPlaySound
-		LD	HL,LB824
+		LD	HL,$B824 ; TODO
 		LDIR
 		; FIXME: Repoint interrupt vector.
 		DEC	DE
@@ -1119,18 +1119,18 @@ ShuffleMem_2:	LD	(DE),A
 		INC	D
 		LD	(DE),A
 		; Unstash from display memory
-		LD	BC,L091B
-		LD	DE,LC000
-		LD	HL,L4000
+		LD	BC,$091B ; TODO
+		LD	DE,$C000
+		LD	HL,$4000
 		LDIR
 		; Switch to bank 0.
-		LD	BC,L7FFD
+		LD	BC,$7FFD
 		LD	A,$10
 		OUT	(C),A
 Have48K:	; Move the data end of things down by 360 bytes...
 		LD	HL,PanelFlips
 		LD	DE,PanelFlips - MAGIC_OFFSET
-		LD	BC,L390C ; Up to 0xFAAC
+		LD	BC,$390C ; TODO Up to 0xFAAC
 		LDIR
 		RET
 

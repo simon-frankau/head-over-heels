@@ -149,7 +149,7 @@ Fuller:		IN	A,($7F)
 	;; We return Buffer + row idx in HL, apparently to help EditControls,
 	;; and C the actual bit-mask.
 GetInput:	LD		HL,Buffer
-		LD		BC,LFEFE
+		LD		BC,$FEFE ; TODO
 	;; This bit scans for any key pressed. Jumps to GI_2 if found.
 GI_1:		IN		A,(C)
 		OR		$E0
@@ -169,7 +169,7 @@ StickCall:	CALL		Kempston
 	;; Found something!
 GI_2:		DEC		A 		; Back to what we saw.
 	;; Find first un-set bit.
-		LD		BC,LFF7F
+		LD		BC,$FF7F        ; TODO
 GI_3:		RLC		C		; Generate the bit mask for one key
 		INC		B 		; Count with B
 		RRA
@@ -249,7 +249,7 @@ LC_3:		INC	B
 		POP	AF
 		POP	HL
 		JR	LC_2			; Looping until nothing interesting left.
-LC_4:		LD	DE,L0008		; Go to next half-row...
+LC_4:		LD	DE,8			; Go to next half-row...
 		ADD	HL,DE
 		LD	A,C
 		ADD	A,$05			; updating the counter,
@@ -264,7 +264,7 @@ EditControls:	CALL	GetKeyMapAddr
 	;; Initialise the buffer
 		LD	HL,Buffer
 		LD	E,$FF
-		LD	BC,L0009
+		LD	BC,9    ; TODO
 		CALL	FillValue
 	;; Get a character...
 EC_1:		CALL	GetInput
@@ -312,7 +312,7 @@ EC_4:		CP	(HL)
 	;; Found something!
 EC_5:		POP	HL
 	;; And copy our buffer over to the main KeyMap buffer.
-		LD	BC,L0008
+		LD	BC,8    ; TODO
 		LD	A,$09
 		LD	DE,Buffer
 EC_6:		EX	AF,AF'
