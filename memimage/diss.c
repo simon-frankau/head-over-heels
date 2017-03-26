@@ -141,6 +141,8 @@
  *  ©1992 ∑-Soft, Markus Fritze
  ***/
 
+#define SOUND
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -350,10 +352,12 @@ Boolean label = xtrue;
             DebugStr("\tToo low?!?");
             return;
         }
+#if !defined(SOUND)
       if (adr > 0xc052) {
             DebugStr("\tToo high?!?");
             return;
         }
+#endif
 
         if (adr == 0xA19F) {
             DebugStr("EEEEEK");
@@ -1059,6 +1063,8 @@ CHAR    s[80];          // Ausgabestring
     for(i=0;i<CODESIZE;i++)         // alles Daten…
         OpcodesFlags[i] = Data;
 
+#if !defined(SOUND)
+
     ParseOpcodes(0x7030);
 	ParseOpcodes(0x7169);
     ParseOpcodes(0x72EB);
@@ -1179,6 +1185,13 @@ CHAR    s[80];          // Ausgabestring
 
 ParseOpcodes(0xBA40);
 
+#else
+
+    memmove(Opcodes + 0xC000, Opcodes + 0xB884, 0x091B);
+    ParseOpcodes(0xc035);
+    ParseOpcodes(0xc216);
+
+#endif
 
 // Data from 0xB824ish?
 
