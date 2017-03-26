@@ -4,56 +4,74 @@
 ;; 128K sound production. Copied to alernate memory bank.
 ;;
 
+;; Address of the bank where this code gets mapped.
 BankDest:       EQU     $C000
+
+;; AY-3-8912 registers
+AY_AFINE:       EQU 0   ; Channel A fine pitch    8-bit (0-255)
+AY_ACOARSE:     EQU 1   ; Channel A course pitch  4-bit (0-15)
+AY_BFINE:       EQU 2   ; Channel B fine pitch    8-bit (0-255)
+AY_BCOARSE:     EQU 3   ; Channel B course pitch  4-bit (0-15)
+AY_CFINE:       EQU 4   ; Channel C fine pitch    8-bit (0-255)
+AY_CCOARSE:     EQU 5   ; Channel C course pitch  4-bit (0-15)
+AY_NOISE:       EQU 6   ; Noise pitch             5-bit (0-31)
+AY_MIXER:       EQU 7   ; Mixer                   8-bit
+AY_AVOL:        EQU 8   ; Channel A volume        4-bit (0-15)
+AY_BVOL:        EQU 9   ; Channel B volume        4-bit (0-15)
+AY_CVOL:        EQU 10  ; Channel C volume        4-bit (0-15)
 
 ;; Label for start of copyable data
 BankStart:
 
         .phase BankDest
 
-LC000:		LD	HL,LC523
-		LD	D,$00
-LC005:		LD	E,(HL)
-		INC	HL
-		CALL	LC011
-		INC	D
-		LD	A,D
-		CP	$0B
-		JR	NZ,LC005
-		RET
-LC011:		LD	BC,$FFFD
-		OUT	(C),D
-		LD	B,$BF
-		OUT	(C),E
-		RET
+;; Write out the current SoundParams to the AY-3
+WriteAY3:       LD      HL,SoundParams
+        ;; Write control values 0-10, with consecutive data values.
+                LD      D,$00
+WAY_1:          LD      E,(HL)
+                INC     HL
+                CALL    WriteAY3Reg
+                INC     D
+                LD      A,D
+                CP      $0B
+                JR      NZ,WAY_1
+                RET
+
+;; Write a single AY-3 register: Control value in D, data value in E.
+WriteAY3Reg:    LD      BC,$FFFD
+                OUT     (C),D
+                LD      B,$BF
+                OUT     (C),E
+                RET
 
 LC01B:		DEFB $EE,$0E,$18,$0E,$4D,$0D,$8E,$0C,$DA,$0B,$2F,$0B,$8F,$0A,$F7,$09
 LC02B:		DEFB $68,$09,$E1,$08,$61,$08,$E9,$07,$77,$07
 
-LC035:		LD	A,($964E)
+Irq128:		LD	A,($964E)
 		RLA
 		RET	NC
-		CALL	LC0D8
+		CALL	CC0D8
 		XOR	A
 		LD	(LC4D5),A
 		LD	A,$3F
-		LD	(LC52A),A
+		LD	(SoundParams + AY_MIXER),A
 		LD	HL,LC4D5
-LC049:		LD	B,(HL)
-		CALL	LC0EE
-		JR	C,LC0A2
-		CALL	LC320
+XB_1:		LD	B,(HL)
+		CALL	CC0EE
+		JR	C,XB_4
+		CALL	CC320
 		PUSH	HL
 		POP	IX
 		BIT	5,(HL)
-		JR	NZ,LC0A2
-		LD	IY,LC523
+		JR	NZ,XB_4
+		LD	IY,SoundParams
 		LD	E,A
 		LD	D,$00
 		PUSH	DE
 		SLA	E
 		ADD	IY,DE
-		LD	HL,LC52B
+		LD	HL,SoundParams + AY_AVOL
 		POP	DE
 		ADD	HL,DE
 		LD	A,(IX+$08)
@@ -69,37 +87,37 @@ LC049:		LD	B,(HL)
 		EX	DE,HL
 		LD	A,(DE)
 		AND	$0F
-		JR	Z,LC091
+		JR	Z,XB_2
 		ADD	A,(IX+$0B)
 		CP	$10
-		JR	C,LC091
+		JR	C,XB_2
 		LD	A,$0F
-LC091:		LD	(HL),A
+XB_2:		LD	(HL),A
 		LD	A,(LC4D5)
 		LD	B,A
 		INC	B
 		LD	A,$FF
 		AND	A
-LC09A:		RLA
-		DJNZ	LC09A
-		LD	HL,LC52A
+XB_3:		RLA
+		DJNZ	XB_3
+		LD	HL,SoundParams + AY_MIXER
 		AND	(HL)
 		LD	(HL),A
-LC0A2:		LD	HL,LC4D5
+XB_4:		LD	HL,LC4D5
 		LD	A,$02
 		CP	(HL)
-		JP	Z,LC0AE
+		JP	Z,XB_5
 		INC	(HL)
-		JR	LC049
-LC0AE:		LD	HL,LC4E2
+		JR	XB_1
+XB_5:		LD	HL,Voices
 		LD	A,$08
 		XOR	(HL)
 		AND	$28
-		JP	NZ,LC000
+		JP	NZ,WriteAY3
 		LD	A,($964E)
 		RRA
-		JP	C,LC000
-		LD	HL,LC529
+		JP	C,WriteAY3
+		LD	HL,SoundParams + AY_NOISE
 		LD	IY,LC51B
 		LD	A,(IY+$07)
 		LD	(HL),A
@@ -109,25 +127,28 @@ LC0AE:		LD	HL,LC4E2
 		OR	(HL)
 		AND	$F7
 		LD	(HL),A
-		JP	LC000
-LC0D8:		XOR	A
+		JP	WriteAY3   ; NB: Tail call
+
+CC0D8:		XOR	A
 		LD	(LC4D5),A
-LC0DC:		LD	B,A
-		CALL	LC0EE
-		CALL	NC,LC0F6
+XC_1:		LD	B,A
+		CALL	CC0EE
+		CALL	NC,CC0F6
 		LD	HL,LC4D5
 		LD	A,(HL)
 		CP	$02
 		RET	Z
 		INC	A
 		LD	(HL),A
-		JR	LC0DC
-LC0EE:		LD	A,($964E)
+		JR	XC_1
+
+CC0EE:		LD	A,($964E)
 		INC	B
-LC0F2:		RRCA
-		DJNZ	LC0F2
+XD_1:		RRCA
+		DJNZ	XD_1
 		RET
-LC0F6:		LD	HL,LC4D5
+
+CC0F6:		LD	HL,LC4D5
 		LD	L,(HL)
 		LD	DE,LC4DC
 		LD	H,$00
@@ -139,50 +160,50 @@ LC0F6:		LD	HL,LC4D5
 		LD	D,(HL)
 		PUSH	DE
 		POP	IX
-		CALL	LC320
+		CALL	CC320
 		PUSH	HL
 		POP	IY
 		BIT	1,(HL)
 		JP	NZ,LC2B8
 		DEC	(IY+$0D)
-		JR	NZ,LC12D
-		CALL	LC2F9
+		JR	NZ,XE_1
+		CALL	CC2F9
 		BIT	3,(IY+$00)
 		RET	Z
 		LD	IY,LC51B
 		XOR	A
 		LD	(IY+$03),A
-		JP	LC1AF
-LC12D:		DEC	(IY+$04)
-		CALL	Z,LC1CB
+		JP	XE_7
+XE_1:		DEC	(IY+$04)
+		CALL	Z,CC1CB
 		LD	L,(IY+$08)
 		LD	H,(IY+$09)
 		BIT	7,(IY+$00)
-		JR	Z,LC16A
+		JR	Z,XE_5
 		LD	A,$01
 		BIT	7,(IY+$0C)
-		JR	Z,LC149
+		JR	Z,XE_2
 		LD	A,$FF
-LC149:		ADD	A,(IY+$0F)
+XE_2:		ADD	A,(IY+$0F)
 		LD	(IY+$0F),A
 		LD	B,A
 		LD	A,(IY+$0C)
 		CP	B
-		JR	NZ,LC15D
+		JR	NZ,XE_3
 		NEG
 		LD	(IY+$0C),A
 		NEG
-LC15D:		LD	E,(IY+$0E)
+XE_3:		LD	E,(IY+$0E)
 		LD	D,$00
 		RLCA
-		JR	C,LC169
+		JR	C,XE_4
 		SBC	HL,DE
-		JR	LC16A
-LC169:		ADD	HL,DE
-LC16A:		LD	A,(IY+$00)
+		JR	XE_5
+XE_4:		ADD	HL,DE
+XE_5:		LD	A,(IY+$00)
 		AND	$50
 		CP	$40
-		JR	NZ,LC19C
+		JR	NZ,XE_6
 		LD	E,(IY+$11)
 		LD	D,(IY+$12)
 		ADD	HL,DE
@@ -196,52 +217,54 @@ LC16A:		LD	A,(IY+$00)
 		XOR	A,(IY+$00)
 		AND	$01
 		EX	DE,HL
-		JR	NZ,LC19C
+		JR	NZ,XE_6
 		SET	4,(IY+$00)
 		XOR	A
 		LD	(IY+$0F),A
 		LD	L,(IY+$06)
 		LD	H,(IY+$07)
-LC19C:		LD	(IY+$08),L
+XE_6:		LD	(IY+$08),L
 		LD	(IY+$09),H
 		BIT	3,(IY+$00)
 		RET	Z
 		LD	IY,LC51B
 		DEC	(IY+$04)
 		RET	NZ
-LC1AF:		CALL	LC1CB
+XE_7:		CALL	CC1CB
 		AND	A
-		JR	NZ,LC1B9
+		JR	NZ,XE_8
 		OR	A,(IY+$03)
 		RET	NZ
-LC1B9:		LD	A,(HL)
+XE_8:		LD	A,(HL)
 		AND	$0F
 		BIT	7,(IY+$00)
-		JR	Z,LC1C4
+		JR	Z,XE_9
 		NEG
-LC1C4:		ADD	A,(IY+$06)
+XE_9:		ADD	A,(IY+$06)
 		LD	(IY+$07),A
 		RET
-LC1CB:		LD	L,(IY+$01)
+
+CC1CB:		LD	L,(IY+$01)
 		LD	H,(IY+$02)
 		LD	E,(IY+$03)
 		XOR	A
 		LD	D,A
 		ADD	HL,DE
 		BIT	7,(HL)
-		JR	NZ,LC1F8
+		JR	NZ,XF_3
 		BIT	6,(HL)
-		JR	Z,LC1F2
+		JR	Z,XF_1
 		BIT	2,(IY+$00)
 		SET	2,(IY+$00)
-		JR	Z,LC1F5
+		JR	Z,XF_2
 		RES	2,(IY+$00)
 		LD	(IY+$03),A
-		JR	LC1F5
-LC1F2:		INC	(IY+$03)
-LC1F5:		LD	A,(IY+$05)
-LC1F8:		LD	(IY+$04),A
+		JR	XF_2
+XF_1:		INC	(IY+$03)
+XF_2:		LD	A,(IY+$05)
+XF_3:		LD	(IY+$04),A
 		RET
+
 LC1FC:		LD	HL,$964B
 		LD	A,(LC4D5)
 		LD	E,A
@@ -249,29 +272,32 @@ LC1FC:		LD	HL,$964B
 		ADD	HL,DE
 		LD	(HL),$FF
 		LD	B,A
-LC209:		INC	B
+        ;; NB: Fall through
+
+CC209:		INC	B
 		LD	HL,$964E
 		XOR	A
 		SCF
-LC20F:		RLA
-		DJNZ	LC20F
+XG_1:		RLA
+		DJNZ	XG_1
 		LD	B,A
 		OR	(HL)
 		LD	(HL),A
 		RET
-LC216:		LD	A,B
+
+Play128:	LD	A,B
 		AND	$3F
 		CP	$3F
-		JR	NZ,LC21F
+		JR	NZ,XH_1
 		LD	A,$FF
-LC21F:		LD	C,A
+XH_1:		LD	C,A
 		LD	A,B
 		RLCA
 		RLCA
 		AND	$03
 		LD	B,A
 		CP	$03
-		JR	Z,LC270
+		JR	Z,XH_2
 		LD	HL,$964B
 		LD	E,B
 		LD	D,$00
@@ -284,7 +310,7 @@ LC21F:		LD	C,A
 		LD	(HL),C
 		LD	A,C
 		INC	A
-		JR	Z,LC209
+		JR	Z,CC209
 		LD	HL,LC6CD
 		SLA	E
 		ADD	HL,DE
@@ -306,11 +332,11 @@ LC21F:		LD	C,A
 		ADD	HL,DE
 		PUSH	HL
 		LD	A,B
-		CALL	LC323
+		CALL	GetVoice
 		LD	D,H
 		LD	E,L
 		LD	B,A
-		CALL	LC209
+		CALL	CC209
 		LD	A,B
 		POP	HL
 		POP	BC
@@ -323,7 +349,7 @@ LC21F:		LD	C,A
 		XOR	(HL)
 		LD	(HL),A
 		RET
-LC270:		LD	H,$00
+XH_2:		LD	H,$00
 		LD	L,C
 		ADD	HL,HL
 		LD	D,H
@@ -333,19 +359,19 @@ LC270:		LD	H,$00
 		LD	DE,LC592
 		ADD	HL,DE
 		LD	A,$03
-LC27E:		LD	E,(HL)
+XH_3:		LD	E,(HL)
 		INC	HL
 		LD	D,(HL)
 		INC	HL
 		PUSH	DE
 		PUSH	HL
 		DEC	A
-		CALL	LC323
+		CALL	GetVoice
 		POP	DE
 		PUSH	HL
 		EX	DE,HL
 		AND	A
-		JR	NZ,LC27E
+		JR	NZ,XH_3
 		LD	HL,$964E
 		LD	A,$07
 		OR	(HL)
@@ -353,11 +379,11 @@ LC27E:		LD	E,(HL)
 		LD	HL,$964B
 		LD	BC,$0380
 		LD	A,B
-LC29C:		LD	(HL),C
+XH_4:		LD	(HL),C
 		INC	HL
-		DJNZ	LC29C
+		DJNZ	XH_4
 		LD	HL,LC4D6
-LC2A3:		POP	DE
+XH_5:		POP	DE
 		POP	BC
 		LD	(HL),C
 		INC	HL
@@ -367,22 +393,24 @@ LC2A3:		POP	DE
 		SET	1,(HL)
 		EX	DE,HL
 		DEC	A
-		JR	NZ,LC2A3
+		JR	NZ,XH_5
 		LD	HL,$964E
 		LD	A,$F8
 		AND	(HL)
 		LD	(HL),A
 		RET
-LC2B8:		CALL	LC2D1
+
+LC2B8:		CALL	CC2D1
 		LD	BC,$0203
-		CALL	LC409
+		CALL	CC409
 		LD	(IY+$0A),D
 		LD	(IY+$0B),E
 		INC	IX
-		CALL	LC418
+		CALL	CC418
 		INC	IX
-		JP	LC2F9
-LC2D1:		LD	HL,(LC4D3)
+		JP	CC2F9
+
+CC2D1:		LD	HL,(LC4D3)
 		LD	DE,$FFFA
 		ADD	HL,DE
 		LD	E,(HL)
@@ -391,7 +419,9 @@ LC2D1:		LD	HL,(LC4D3)
 		PUSH	DE
 		POP	IX
 		RET
-LC2DF:		CALL	LC2D1
+
+        ;; TODO: A bit messy
+LC2DF:		CALL	CC2D1
 		INC	IX
 		JR	LC2F4
 LC2E6:		INC	IX
@@ -400,14 +430,16 @@ LC2E6:		INC	IX
 		DEC	A
 		CP	A,(IX+$00)
 		JP	Z,LC1FC
-LC2F4:		CALL	LC418
+LC2F4:		CALL	CC418
 		INC	IX
-LC2F9:		RES	4,(IY+$00)
+        ;; Fall through.
+        
+CC2F9:		RES	4,(IY+$00)
 		LD	A,(IX+$00)
 		INC	A
 		JP	Z,LC2E6
 		LD	BC,$0307
-		CALL	LC409
+		CALL	CC409
 		LD	C,D
 		LD	HL,LC531
 		LD	D,$00
@@ -419,22 +451,27 @@ LC2F9:		RES	4,(IY+$00)
 		JR	NZ,LC330
 		SET	5,(IY+$00)
 		JP	LC3F5
-LC320:		LD	A,(LC4D5)
-LC323:		LD	HL,LC4E2
+
+CC320:		LD	A,(LC4D5)
+        ;; Fall through
+
+;; Get the 19-byte structure for the voice in A (0-2).
+GetVoice:	LD	HL,Voices
 		AND	A
 		RET	Z
-		LD	DE,$0013
+		LD	DE,19
 		LD	B,A
-LC32C:		ADD	HL,DE
-		DJNZ	LC32C
+GV_1:		ADD	HL,DE
+		DJNZ	GV_1
 		RET
+
 LC330:		RES	5,(IY+$00)
 		LD	A,(IY+$0A)
 		ADD	A,C
 		LD	BC,$FF0C
-LC33B:		INC	B
+XJ_1:		INC	B
 		SUB	C
-		JR	NC,LC33B
+		JR	NC,XJ_1
 		ADD	A,C
 		ADD	A,A
 		LD	E,A
@@ -449,24 +486,24 @@ LC33B:		INC	B
 		INC	HL
 		LD	A,(HL)
 		INC	B
-		JR	LC35A
-LC352:		SRL	A
+		JR	XJ_3
+XJ_2:		SRL	A
 		RR	C
 		SRL	D
 		RR	E
-LC35A:		DJNZ	LC352
+XJ_3:		DJNZ	XJ_2
 		LD	B,A
 		LD	A,(IY+$00)
 		AND	$42
 		CP	$40
-		JR	NZ,LC36E
+		JR	NZ,XJ_4
 		LD	(IY+$06),E
 		LD	(IY+$07),D
-		JR	LC374
-LC36E:		LD	(IY+$08),E
+		JR	XJ_5
+XJ_4:		LD	(IY+$08),E
 		LD	(IY+$09),D
-LC374:		BIT	7,(IY+$00)
-		JR	Z,LC3A1
+XJ_5:		BIT	7,(IY+$00)
+		JR	Z,XJ_11
 		EX	DE,HL
 		AND	A
 		SBC	HL,BC
@@ -474,29 +511,29 @@ LC374:		BIT	7,(IY+$00)
 		SRL	L
 		LD	A,(IY+$10)
 		AND	A
-		JR	Z,LC39A
+		JR	Z,XJ_10
 		LD	H,A
 		LD	A,L
-		JP	M,LC395
-LC38D:		RRC	H
-		JR	C,LC399
+		JP	M,XJ_8
+XJ_6:		RRC	H
+		JR	C,XJ_9
 		ADD	A,A
-		JR	LC38D
-LC394:		RRA
-LC395:		RRC	H
-		JR	NC,LC394
-LC399:		LD	L,A
-LC39A:		LD	(IY+$0E),L
+		JR	XJ_6
+XJ_7:		RRA
+XJ_8:		RRC	H
+		JR	NC,XJ_7
+XJ_9:		LD	L,A
+XJ_10:		LD	(IY+$0E),L
 		XOR	A
 		LD	(IY+$0F),A
-LC3A1:		LD	A,(IY+$00)
+XJ_11:		LD	A,(IY+$00)
 		BIT	6,A
-		JR	Z,LC3EB
+		JR	Z,XJ_16
 		BIT	1,A
-		JR	Z,LC3B2
+		JR	Z,XJ_12
 		SET	4,(IY+$00)
-		JR	LC3EB
-LC3B2:		LD	L,(IY+$06)
+		JR	XJ_16
+XJ_12:		LD	L,(IY+$06)
 		LD	H,(IY+$07)
 		LD	E,(IY+$08)
 		LD	D,(IY+$09)
@@ -507,22 +544,24 @@ LC3B2:		LD	L,(IY+$06)
 		LD	C,(IY+$0D)
 		LD	E,$80
 		LD	B,$08
-LC3D0:		LD	A,E
+XJ_13:		LD	A,E
 		AND	C
-		JR	NZ,LC3D8
+		JR	NZ,XJ_14
 		RRC	E
-		DJNZ	LC3D0
-LC3D8:		RRCA
-		JR	C,LC3E1
+		DJNZ	XJ_13
+XJ_14:		RRCA
+		JR	C,XJ_15
 		SRA	H
 		RR	L
-		JR	LC3D8
-LC3E1:		LD	(IY+$11),L
+		JR	XJ_14
+XJ_15:		LD	(IY+$11),L
 		LD	(IY+$12),H
 		RES	4,(IY+$00)
-LC3EB:		LD	(IY+$03),$00
+XJ_16:		LD	(IY+$03),$00
 		LD	A,(IY+$05)
 		LD	(IY+$04),A
+        ;; Fall through
+
 LC3F5:		RES	1,(IY+$00)
 		PUSH	IX
 		POP	DE
@@ -532,9 +571,13 @@ LC3F5:		RES	1,(IY+$00)
 		INC	HL
 		LD	(HL),D
 		RET
-LC404:		LD	BC,$040F
+
+CC404:		LD	BC,$040F
 		JR	LC40C
-LC409:		LD	D,(IX+$00)
+
+CC409:		LD	D,(IX+$00)
+        ;; Fall through
+
 LC40C:		LD	A,D
 		AND	C
 		LD	E,A
@@ -542,20 +585,21 @@ LC40C:		LD	A,D
 		CPL
 		AND	D
 		LD	D,A
-LC413:		RRC	D
-		DJNZ	LC413
+XK_1:		RRC	D
+		DJNZ	XK_1
 		RET
-LC418:		LD	BC,$040F
-		CALL	LC409
+
+CC418:		LD	BC,$040F
+		CALL	CC409
 		LD	A,$02
 		AND	A,(IY+$00)
 		LD	(IY+$00),A
 		BIT	2,D
-		JR	Z,LC42E
+		JR	Z,XL_1
 		SET	6,(IY+$00)
-LC42E:		LD	A,$03
+XL_1:		LD	A,$03
 		AND	D
-		JR	Z,LC461
+		JR	Z,XL_5
 		PUSH	DE
 		DEC	A
 		LD	HL,LC52E
@@ -563,38 +607,38 @@ LC42E:		LD	A,$03
 		LD	D,$00
 		ADD	HL,DE
 		LD	D,(HL)
-		CALL	LC404
+		CALL	CC404
 		LD	(IY+$0C),E
 		LD	A,D
 		CP	E
 		LD	A,$00
-		JR	Z,LC459
-		JR	NC,LC450
+		JR	Z,XL_4
+		JR	NC,XL_2
 		LD	A,D
 		LD	D,E
 		LD	E,A
 		LD	A,$80
-LC450:		RR	E
-		JR	C,LC458
+XL_2:		RR	E
+		JR	C,XL_3
 		RRC	D
-		JR	LC450
-LC458:		OR	D
-LC459:		LD	(IY+$10),A
+		JR	XL_2
+XL_3:		OR	D
+XL_4:		LD	(IY+$10),A
 		SET	7,(IY+$00)
 		POP	DE
-LC461:		LD	HL,LC53F
+XL_5:		LD	HL,LC53F
 		LD	D,$00
 		ADD	HL,DE
 		LD	D,(HL)
-		CALL	LC404
+		CALL	CC404
 		LD	(IY+$05),D
 		LD	(IY+$04),D
-		CALL	LC4C4
+		CALL	CC4C4
 		LD	A,(LC4D5)
 		AND	A
-		JR	NZ,LC47E
+		JR	NZ,XL_6
 		RES	3,(IY+$00)
-LC47E:		BIT	7,(IX+$00)
+XL_6:		BIT	7,(IX+$00)
 		RET	Z
 		INC	IX
 		AND	A
@@ -615,20 +659,21 @@ LC47E:		BIT	7,(IX+$00)
 		LD	D,$00
 		ADD	HL,DE
 		LD	D,(HL)
-		CALL	LC404
+		CALL	CC404
 		LD	(IY+$04),D
 		LD	(IY+$05),D
 		INC	HL
 		LD	A,(HL)
 		LD	(IY+$06),A
-		CALL	LC4C4
+		CALL	CC4C4
 		ADD	A,(HL)
 		LD	(IY+$07),A
 		XOR	A
 		LD	(IY+$03),A
 		POP	IY
 		RET
-LC4C4:		LD	HL,LC54F
+
+CC4C4:		LD	HL,LC54F
 		LD	D,$00
 		ADD	HL,DE
 		LD	E,(HL)
@@ -641,16 +686,15 @@ LC4D3:	DEFB $00,$00
 LC4D5:  DEFB $00
 LC4D6:  DEFB $00,$00,$00,$00,$00,$00
 LC4DC:  DEFB $00,$00,$00,$00,$00,$00
-LC4E2:  DEFB $00
-XC4E3:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-XC4F3:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-XC503:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-XC513:	DEFB $00,$00,$00,$00,$00,$00,$00,$00
+
+;; 19 byte per-voice structure.
+Voices:         DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+                DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
+        ;; Put into IY
 LC51B:  DEFB $00,$00,$00,$00,$00,$00,$00,$00
-LC523:	DEFB $00,$00,$00,$00,$00,$00
-LC529:  DEFB $00
-LC52A:  DEFB $3F
-LC52B:  DEFB $00,$00,$00
+SoundParams:	DEFB $00,$00,$00,$00,$00,$00,$00,$3F,$00,$00,$00
 LC52E:  DEFB $81,$42,$48
 LC531:  DEFB $01,$02
 XC533:	DEFB $04,$06,$08,$0C,$10,$20

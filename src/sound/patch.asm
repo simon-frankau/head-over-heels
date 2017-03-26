@@ -93,7 +93,7 @@ IrqFn128:       LD      A,$11
                 LD      BC,$7FFD
                 OUT     (C),A
                 PUSH    BC
-                CALL    $C035
+                CALL    Irq128
                 POP     BC
                 LD      A,$10
                 OUT     (C),A
@@ -112,7 +112,7 @@ PlaySound128:   LD      D,B
                 EI
                 PUSH    BC
                 LD      B,D
-                CALL    $C216
+                CALL    Play128
                 POP     BC
                 LD      A,$10
                 DI

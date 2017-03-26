@@ -149,7 +149,8 @@ end
 local function write_graph(filename)
 print(filename)
   _, _, name = string.find(filename, "../([A-Za-z0-9_]*).asm")
-  local fout = io.open(prefix .. name .. ".dot", "w")
+--  local fout = io.open(prefix .. name .. ".dot", "w")
+  local fout = io.open("temp.dot", "w")
   fout:write("digraph calls {\n")
   local seen_nodes = {}
 
@@ -213,7 +214,9 @@ end
 check_nodes()
 
 -- Remove edge out of game, so we can extract the main game loop.
-edges["FinishGame"]["Main"] = nil
+if edges["FinishGame"] then
+  edges["FinishGame"]["Main"] = nil
+end
 
 for filename, _ in pairs(files) do
   write_graph(filename)
