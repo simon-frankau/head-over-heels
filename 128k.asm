@@ -1,6 +1,5 @@
-#target ROM
-#code Sound, $C000, $091C
-
+.phase $C000
+        
 LC51B:   EQU $C51B
 LC529:   EQU $C529
 LC52A:   EQU $C52A
@@ -705,3 +704,5 @@ LC8E3:	DEFB $3E,$97,$FF,$FF,$C0,$22,$04,$96,$86,$7E,$76,$6C,$06,$FF,$41,$6C
 LC8F3:	DEFB $FF,$2E,$6F,$FF,$FF,$A0,$7B,$F0,$A6,$5E,$FF,$7C,$3E,$FF,$FF,$B8
 LC903:	DEFB $7B,$C0,$A6,$5E,$FF,$7C,$3E,$FF,$52,$27,$FF,$FF,$C3,$FC,$02,$C0
 LC913:	DEFB $A6,$5E,$FF,$FB,$44,$3E,$FF,$FF,$92
+
+.dephase

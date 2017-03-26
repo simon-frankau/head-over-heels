@@ -29,7 +29,7 @@ XB86F:	DEFB $05,$00,$ED,$B0,$11,$00,$5B,$01,$00,$A5,$21,$54,$60,$C3,$00,$40
 XB87F:	DEFB $ED,$B0,$C3,$30,$70
 
 	;; NB: This is 128K-specific code, copied into another bank.
-#insert "out/128k.bin"
+#include "128k.asm"
 	;; End of 128K code.
 
 	;; Start of area that gets moved down...
