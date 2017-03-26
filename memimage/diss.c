@@ -470,6 +470,7 @@ Boolean label = xtrue;
     } while(1);
 }
 
+#undef ParseOpcodes
 #define ParseOpcodes(x) ParseOpcodesX(x)
 
 // Disassemblieren
@@ -1173,7 +1174,8 @@ CHAR    s[80];          // Ausgabestring
 	ParseOpcodes(0xB728);
 	ParseOpcodes(0xB734);
 	ParseOpcodes(0xB824);
-	// ParseOpcodes(0xB82F);
+	ParseOpcodes(0xB82F);
+	ParseOpcodes(0xB84A);
 
 ParseOpcodes(0xBA40);
 

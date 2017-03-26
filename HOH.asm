@@ -1061,78 +1061,7 @@ CNC_2:		BIT		7,(IX+$09)
 
 #include "src/gfx1/print_char.asm"
 
-	;; Called immediately after installing interrupt handler.
-ShuffleMem:	; Zero end of top page
-		LD	HL,$FFFE
-		XOR	A
-		LD	(HL),A
-		; Switch to bank 1, write top of page
-		LD	BC,$7FFD ; TODO
-		LD	D,$10
-		LD	E,$11
-		OUT	(C),E
-		LD	(HL),$FF
-		; Switch back, see if original overwritten...
-		OUT	(C),D
-		CP	(HL)
-		JR	NZ,Have48K
-		; Ok, we're 128K...
-		; Zero screen attributes, so no-one can see we're using it as temp space...
-		LD	B,$03
-		LD	HL,$5800 ; TODO
-ShuffleMem_1:	LD	(HL),$00
-		INC	L
-		JR	NZ,ShuffleMem_1
-		INC	H
-		DJNZ	ShuffleMem_1
-		; Stash data in display memory
-		LD	BC,$091B ; TODO
-		LD	DE,$4000
-		LD	HL,$B884 ; TODO
-		LDIR
-		; Switch to bank 1
-		LD	A,$11
-		LD	BC,$7FFD ; TODO
-		OUT	(C),A
-		; Reinitialise IRQ handler there.
-		LD	A,$18
-		LD	($FFFF),A
-		LD	A,$C3
-		LD	($FFF4),A
-		LD	HL,IrqHandler
-		LD	($FFF5),HL
-		; FIXME: Another memory chunk copy.
-		LD	BC,$0043 ; TODO
-		LD	DE,AltPlaySound
-		LD	HL,$B824 ; TODO
-		LDIR
-		; FIXME: Repoint interrupt vector.
-		DEC	DE
-		LD	E,$00
-		INC	D
-		LD	A,D
-		LD	I,A
-		LD	A,$FF
-ShuffleMem_2:	LD	(DE),A
-		INC	E
-		JR	NZ,ShuffleMem_2
-		INC	D
-		LD	(DE),A
-		; Unstash from display memory
-		LD	BC,$091B ; TODO
-		LD	DE,$C000
-		LD	HL,$4000
-		LDIR
-		; Switch to bank 0.
-		LD	BC,$7FFD
-		LD	A,$10
-		OUT	(C),A
-Have48K:	; Move the data end of things down by 360 bytes...
-		LD	HL,PanelFlips
-		LD	DE,PanelFlips - MAGIC_OFFSET
-		LD	BC,$390C ; TODO Up to 0xFAAC
-		LDIR
-		RET
+#include "src/sound/patch.asm"
 
 #include "data_trailer.asm"
 

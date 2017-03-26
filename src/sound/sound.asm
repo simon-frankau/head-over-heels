@@ -16,18 +16,22 @@ Snd2:		DEFB $FF
 L964C:		DEFB $00
 L964D:		DEFB $00
 SndEnable:	DEFB $80	; Top bit set if sound enabled.
-	
+
+        ;; This is patched by the 128K patch
 AltPlaySound:	LD	A,(Snd2)
 		CP	$00
 		RET	Z
 		LD	B,$C3
 		JP	PlaySound
-	
+
+        ;; This is patched by the 128K patch
 IrqFn:		JP	IrqFnCore
 
+        ;; Blatted by 128K patch
 	;; Ratio between elements are twelth root of two - definitions for notes in a scale.
 ScaleTable:	DEFW 1316,1241,1171,1105,1042,983,927,875,825,778,734,692
 
+        ;; This is patched by 128K patch
 	;; FIXME: Called from everywhere.
 	;; Called with B containing the sound id.
 PlaySound:	LD	A,(SndEnable)

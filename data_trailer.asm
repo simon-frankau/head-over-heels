@@ -10,18 +10,8 @@
 	;; FIXME: Identify the remaining bits and pieces.
 	;;
 
-	;; NB: This is 128K-specific patch code applied over the
-	;; sound-playing code.
-LB824:		LD	A,(Snd2)
-		CP	$80
-		RET	Z
-		LD	B,$C3
-		JP	PlaySound
-
-XB82F:	DEFB $3E,$11,$01,$FD,$7F,$ED,$79,$C5,$CD,$35,$C0,$C1,$3E,$10,$ED,$79
-XB83F:	DEFB $C9,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$50,$01,$FD,$7F,$3E
-XB84F:	DEFB $11,$F3,$32,$67,$96,$ED,$79,$FB,$C5,$42,$CD,$16,$C2,$C1,$3E,$10
-XB85F:	DEFB $F3,$32,$67,$96,$ED,$79,$FB,$C9
+        
+        
 
 	;; NB: Not sure what this brief interlude is for!
 XB867:	DEFB $F3,$21,$D3,$BD,$11,$00,$40,$01
@@ -202,6 +192,8 @@ XC19F:	DEFB $92
 	;; End of 128K code.
 
 	;; Start of area that gets moved down...
+MoveDownStart:
+
 PanelFlips:	DEFB $00,$00,$00,$00,$00,$00,$00,$00
 
 ;; Bitmap of whether the nth sprite is store in flipped format.
@@ -241,7 +233,9 @@ IMG_ColBottom:
 	DEFB $FC,$3F,$F8,$0F,$E0,$00,$00,$00,$00,$00,$00,$00
 	DEFB $00
 	;; End of area that gets moved down.
-	
+
+MoveDownEnd:
+        
 XFAAC:	DEFB $00,$00,$00
 XFAAF:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 XFABF:	DEFB $65,$72,$20,$20,$20,$20,$20,$20,$EA,$06,$00,$00,$48,$05,$0D,$00
