@@ -25,8 +25,8 @@ BankStart:
 
         .phase BankDest
 
-;; Write out the current SoundParams to the AY-3
-WriteAY3:       LD      HL,SoundParams
+;; Write out the current AYRegs to the AY-3
+WriteAY3:       LD      HL,AYRegs
         ;; Write control values 0-10, with consecutive data values.
                 LD      D,$00
 WAY_1:          LD      E,(HL)
@@ -48,107 +48,139 @@ WriteAY3Reg:    LD      BC,$FFFD
 LC01B:		DEFB $EE,$0E,$18,$0E,$4D,$0D,$8E,$0C,$DA,$0B,$2F,$0B,$8F,$0A,$F7,$09
 LC02B:		DEFB $68,$09,$E1,$08,$61,$08,$E9,$07,$77,$07
 
-Irq128:		LD	A,(SndEnable)
-		RLA
-		RET	NC
-		CALL	CC0D8
-		XOR	A
-		LD	(LC4D5),A
-		LD	A,$3F
-		LD	(SoundParams + AY_MIXER),A
-		LD	HL,LC4D5
-XB_1:		LD	B,(HL)
-		CALL	CC0EE
-		JR	C,XB_4
-		CALL	CC320
-		PUSH	HL
-		POP	IX
-		BIT	5,(HL)
-		JR	NZ,XB_4
-		LD	IY,SoundParams
-		LD	E,A
-		LD	D,$00
-		PUSH	DE
-		SLA	E
-		ADD	IY,DE
-		LD	HL,SoundParams + AY_AVOL
-		POP	DE
-		ADD	HL,DE
-		LD	A,(IX+$08)
-		LD	(IY+$00),A
-		LD	A,(IX+$09)
-		LD	(IY+$01),A
-		LD	B,D
-		LD	E,(IX+$01)
-		LD	D,(IX+$02)
-		EX	DE,HL
-		LD	C,(IX+$03)
-		ADD	HL,BC
-		EX	DE,HL
-		LD	A,(DE)
-		AND	$0F
-		JR	Z,XB_2
-		ADD	A,(IX+$0B)
-		CP	$10
-		JR	C,XB_2
-		LD	A,$0F
-XB_2:		LD	(HL),A
-		LD	A,(LC4D5)
-		LD	B,A
-		INC	B
-		LD	A,$FF
-		AND	A
-XB_3:		RLA
-		DJNZ	XB_3
-		LD	HL,SoundParams + AY_MIXER
-		AND	(HL)
-		LD	(HL),A
-XB_4:		LD	HL,LC4D5
-		LD	A,$02
-		CP	(HL)
-		JP	Z,XB_5
-		INC	(HL)
-		JR	XB_1
-XB_5:		LD	HL,Voices
-		LD	A,$08
-		XOR	(HL)
-		AND	$28
-		JP	NZ,WriteAY3
-		LD	A,(SndEnable)
-		RRA
-		JP	C,WriteAY3
-		LD	HL,SoundParams + AY_NOISE
-		LD	IY,LC51B
-		LD	A,(IY+$07)
-		LD	(HL),A
-		INC	HL
-		LD	A,(IY+$00)
-		AND	$01
-		OR	(HL)
-		AND	$F7
-		LD	(HL),A
-		JP	WriteAY3   ; NB: Tail call
+Irq128:
+        ;; Top-bit of SndEnable reset means sound is off.
+                LD      A,(SndEnable)
+                RLA
+                RET     NC
+                CALL    UpdateSound
+        ;; Start with voice 0.
+                XOR     A
+                LD      (CurrVoice),A
+        ;; Disable all voices in mixer.
+                LD      A,$3F
+                LD      (AYRegs + AY_MIXER),A
+                LD      HL,CurrVoice
+        ;; And loop over voices...
+I128_1:         LD      B,(HL)
+        ;; Set bit? Then skip this voice.
+                CALL    GetSoundBit
+                JR      C,I128_4
+        ;; Put voice state into IX.
+                CALL    GetCurrVoice
+                PUSH    HL
+                POP     IX
+        ;; If bit 5 is not set, skip this voice.
+                BIT     5,(HL)
+                JR      NZ,I128_4
+        ;; Load IY with AYRegs offset by voice number * 2 (for pitch regs).
+                LD      IY,AYRegs
+                LD      E,A
+                LD      D,$00
+                PUSH    DE
+                SLA     E
+                ADD     IY,DE
+        ;; Load HL with volume register address
+                LD      HL,AYRegs + AY_AVOL
+                POP     DE
+                ADD     HL,DE
+        ;; Set fine pitch
+                LD      A,(IX+$08)
+                LD      (IY+$00),A
+        ;; Set coarse pitch
+                LD      A,(IX+$09)
+                LD      (IY+$01),A
+        ;; HL = IX[1]
+                LD      B,D
+                LD      E,(IX+$01)
+                LD      D,(IX+$02)
+                EX      DE,HL
+        ;; HL += IX[3]
+                LD      C,(IX+$03)
+                ADD     HL,BC
+        ;; Deref into A, and take bottom 4 bits.
+                EX      DE,HL
+                LD      A,(DE)
+                AND     $0F
+        ;; If non-zero, add IX[0xB], saturating at 0x0F.
+                JR      Z,I128_2
+                ADD     A,(IX+$0B)
+                CP      $10
+                JR      C,I128_2
+                LD      A,$0F
+        ;; And write this back to volume address register.
+I128_2:         LD      (HL),A
+        ;; Create a bitmask with only current voice bit unset.
+                LD      A,(CurrVoice)
+                LD      B,A
+                INC     B
+                LD      A,$FF
+                AND     A
+I128_3:         RLA
+                DJNZ    I128_3
+        ;; Notes are active-low, so activate the current voice.
+                LD      HL,AYRegs + AY_MIXER
+                AND     (HL)
+                LD      (HL),A
+        ;; Go to next voice.
+I128_4:         LD      HL,CurrVoice
+                LD      A,$02
+                CP      (HL)
+                JP      Z,I128_5
+                INC     (HL)
+                JR      I128_1
+        ;; We have finished looping through the voices.
+I128_5:
+        ;; Write sound state if voice 0's first byte has $20 set, or $08 reset.
+                LD      HL,Voices
+                LD      A,$08
+                XOR     (HL)
+                AND     $28
+                JP      NZ,WriteAY3     ; Tail call
+        ;; Write sound state if voice 0 is disabled (?!)
+                LD      A,(SndEnable)
+                RRA
+                JP      C,WriteAY3
+        ;; TODO: ??? Something to do with noise part.
+                LD      HL,AYRegs + AY_NOISE
+                LD      IY,LC51B
+                LD      A,(IY+$07) ; Set noise reg.
+                LD      (HL),A
+                INC     HL
+                LD      A,(IY+$00) ; Maybe disable voice 0
+                AND     $01
+                OR      (HL)
+                AND     ~$08       ; Enable noise gen
+                LD      (HL),A
+                JP      WriteAY3   ; NB: Tail call
 
-CC0D8:		XOR	A
-		LD	(LC4D5),A
-XC_1:		LD	B,A
-		CALL	CC0EE
-		CALL	NC,CC0F6
-		LD	HL,LC4D5
-		LD	A,(HL)
-		CP	$02
-		RET	Z
-		INC	A
-		LD	(HL),A
-		JR	XC_1
+;; Run through the voices. If they're enabled, call UpdateVoice.
+UpdateSound:    XOR     A
+                LD      (CurrVoice),A
+US_1:           LD      B,A
+                CALL    GetSoundBit
+                CALL    NC,UpdateVoice
+                LD      HL,CurrVoice
+                LD      A,(HL)
+                CP      $02
+                RET     Z
+                INC     A
+                LD      (HL),A
+                JR      US_1
 
-CC0EE:		LD	A,(SndEnable)
-		INC	B
-XD_1:		RRCA
-		DJNZ	XD_1
-		RET
+;; Extract the nth bit of SndEnable into carry flag.
+;; Inverse of SetSoundBit, basically.
+;;
+;; Bit is set if voice is disabled.
+;;
+;; Takes the bit number in B.
+GetSoundBit:    LD      A,(SndEnable)
+                INC     B
+GSB_1:          RRCA
+                DJNZ    GSB_1
+                RET
 
-CC0F6:		LD	HL,LC4D5
+UpdateVoice:	LD	HL,CurrVoice
 		LD	L,(HL)
 		LD	DE,LC4DC
 		LD	H,$00
@@ -160,7 +192,7 @@ CC0F6:		LD	HL,LC4D5
 		LD	D,(HL)
 		PUSH	DE
 		POP	IX
-		CALL	CC320
+		CALL	GetCurrVoice
 		PUSH	HL
 		POP	IY
 		BIT	1,(HL)
@@ -265,8 +297,9 @@ XF_2:		LD	A,(IY+$05)
 XF_3:		LD	(IY+$04),A
 		RET
 
-LC1FC:		LD	HL,Snd2
-		LD	A,(LC4D5)
+DisableCurrVoice:
+		LD	HL,Snd2
+		LD	A,(CurrVoice)
 		LD	E,A
 		LD	D,$00
 		ADD	HL,DE
@@ -338,7 +371,7 @@ P128_1:		LD	C,A
 		LD	H,(HL)
 		LD	L,A
 		PUSH	HL
-		LD	HL,LC4D6
+		LD	HL,VoiceData
 		LD	E,B
 		SLA	E
 		ADD	HL,DE
@@ -364,58 +397,73 @@ P128_1:		LD	C,A
         ;; Top two bits of sound id were set.
 P128_2:
         ;; HL = C * 6
-		LD	H,$00
-		LD	L,C
-		ADD	HL,HL
-		LD	D,H
-		LD	E,L
-		ADD	HL,HL
-		ADD	HL,DE
+                LD      H,$00
+                LD      L,C
+                ADD     HL,HL
+                LD      D,H
+                LD      E,L
+                ADD     HL,HL
+                ADD     HL,DE
         ;; Set HL to HiSndTable + C * 6
-		LD	DE,HiSndTable
-		ADD	HL,DE
+                LD      DE,HiSndTable
+                ADD     HL,DE
         ;; For each voice...
-		LD	A,$03
-P128_3:		LD	E,(HL)
-		INC	HL
-		LD	D,(HL)
-		INC	HL
-		PUSH	DE
-		PUSH	HL
-		DEC	A
-		CALL	GetVoice
-		POP	DE
-		PUSH	HL
-		EX	DE,HL
-		AND	A
-		JR	NZ,P128_3
-		LD	HL,SndEnable
-		LD	A,$07
-		OR	(HL)
-		LD	(HL),A
-		LD	HL,Snd2
-		LD	BC,$0380
-		LD	A,B
-P128_4:		LD	(HL),C
-		INC	HL
-		DJNZ	P128_4
-		LD	HL,LC4D6
-P128_5:		POP	DE
-		POP	BC
-		LD	(HL),C
-		INC	HL
-		LD	(HL),B
-		INC	HL
-		EX	DE,HL
-		SET	1,(HL)
-		EX	DE,HL
-		DEC	A
-		JR	NZ,P128_5
-		LD	HL,SndEnable
-		LD	A,$F8
-		AND	(HL)
-		LD	(HL),A
-		RET
+                LD      A,$03
+P128_3:
+        ;; Read voice data pointer for next voice, push that and
+        ;; updated HiSndTable pointer.
+                LD      E,(HL)
+                INC     HL
+                LD      D,(HL)
+                INC     HL
+                PUSH    DE
+                PUSH    HL
+        ;; Get voice into HL.
+                DEC     A
+                CALL    GetVoice
+        ;; Bring HiSndTable pointer back into DE, push voice pointer.
+                POP     DE
+                PUSH    HL
+        ;; HST pointer back in HL
+                EX      DE,HL
+        ;; And loop.
+                AND     A
+                JR      NZ,P128_3
+        ;; Now we have 3 data/state pairs pushed on the stack.
+        ;; Set bits [012] of SndEnable, to disable interrupt-driven
+        ;; update while we modify.
+                LD      HL,SndEnable
+                LD      A,$07
+                OR      (HL)
+                LD      (HL),A
+        ;; Load $80 into the 3 elements of the Snd2 array.
+                LD      HL,Snd2
+                LD      BC,$0380
+                LD      A,B
+P128_4:         LD      (HL),C
+                INC     HL
+                DJNZ    P128_4
+        ;; Then process the 3 stack pairs...
+                LD      HL,VoiceData
+P128_5:         POP     DE      ; Voice pointer
+                POP     BC      ; Data pointer
+        ;; Stash data in VoiceData.
+                LD      (HL),C
+                INC     HL
+                LD      (HL),B
+                INC     HL
+        ;; Set bit 1 in first byte of the voice structure.
+                EX      DE,HL
+                SET     1,(HL)
+                EX      DE,HL
+                DEC     A
+                JR      NZ,P128_5
+        ;; And reset bits [012] of SndEnable, so they can be played.
+                LD      HL,SndEnable
+                LD      A,~$07
+                AND     (HL)
+                LD      (HL),A
+                RET
 
 LC2B8:		CALL	CC2D1
 		LD	BC,$0203
@@ -446,7 +494,7 @@ LC2E6:		INC	IX
 		JR	Z,LC2DF
 		DEC	A
 		CP	A,(IX+$00)
-		JP	Z,LC1FC
+		JP	Z,DisableCurrVoice
 LC2F4:		CALL	CC418
 		INC	IX
         ;; Fall through.
@@ -469,18 +517,19 @@ CC2F9:		RES	4,(IY+$00)
 		SET	5,(IY+$00)
 		JP	LC3F5
 
-CC320:		LD	A,(LC4D5)
+;; Get the voice structure for the current voice into HL.
+GetCurrVoice:   LD      A,(CurrVoice)
         ;; Fall through
 
-;; Get the 19-byte structure for the voice in A (0-2).
-GetVoice:	LD	HL,Voices
-		AND	A
-		RET	Z
-		LD	DE,19
-		LD	B,A
-GV_1:		ADD	HL,DE
-		DJNZ	GV_1
-		RET
+;; Get the 19-byte structure for the voice in A (0-2), into HL.
+GetVoice:       LD      HL,Voices
+                AND     A
+                RET     Z
+                LD      DE,19
+                LD      B,A
+GV_1:           ADD     HL,DE
+                DJNZ    GV_1
+                RET
 
 LC330:		RES	5,(IY+$00)
 		LD	A,(IY+$0A)
@@ -651,7 +700,7 @@ XL_5:		LD	HL,LC53F
 		LD	(IY+$05),D
 		LD	(IY+$04),D
 		CALL	CC4C4
-		LD	A,(LC4D5)
+		LD	A,(CurrVoice)
 		AND	A
 		JR	NZ,XL_6
 		RES	3,(IY+$00)
@@ -700,18 +749,23 @@ CC4C4:		LD	HL,LC54F
 		RET
 
 LC4D3:	DEFB $00,$00
-LC4D5:  DEFB $00
-LC4D6:  DEFB $00,$00,$00,$00,$00,$00
+CurrVoice:      DEFB $00               ; Current voice id (0-2)
+VoiceData:      DEFW $0000,$0000,$0000 ; Pointer to voice data for 3 channels.
 LC4DC:  DEFB $00,$00,$00,$00,$00,$00
 
 ;; 19 byte per-voice structure.
+;; * 0x01-0x02: Pointer to vol array
+;; * 0x03: Index into vol array
+;; * 0x08: Fine pitch
+;; * 0x09: Coarse pitch
+;; * 0x0B: Volume addition
 Voices:         DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
                 DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
                 DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 
-        ;; Put into IY
+
 LC51B:  DEFB $00,$00,$00,$00,$00,$00,$00,$00
-SoundParams:	DEFB $00,$00,$00,$00,$00,$00,$00,$3F,$00,$00,$00
+AYRegs:		DEFB $00,$00,$00,$00,$00,$00,$00,$3F,$00,$00,$00
 LC52E:  DEFB $81,$42,$48
 LC531:  DEFB $01,$02
 XC533:	DEFB $04,$06,$08,$0C,$10,$20
@@ -723,15 +777,16 @@ XC563:	DEFB $01,$80,$08,$00,$0C,$00,$07,$00,$04,$00,$02,$00,$01,$80,$0C,$0A
 XC573:	DEFB $08,$45,$02,$00,$00,$04,$00,$00,$06,$00,$00,$09,$00,$0C,$00,$40
 XC583:	DEFB $08,$0A,$0C,$0C,$0B,$0A,$09,$08,$07,$06,$05,$04,$03,$02,$81
 
-HiSndTable:     DEFW LC7CB,LC7CB,LC7CB
-                DEFW LC83F,LC853,LC868
-                DEFW LC87D,LC899,LC8B5
-                DEFW LC612,LC675,LC6A9
-                DEFW LC6B5,LC6BD,LC6C5
-                DEFW LC8C3,LC8D6,LC8E7
-                DEFW LC609,LC5FC,LC5EA
-                DEFW LC5C8,LC5D2,LC5DF
-                DEFW LC8F8,LC902,LC90F
+HiSndTable:     DEFW LC7CB,LC7CB,LC7CB ; $C0
+                DEFW LC83F,LC853,LC868 ; $C1
+                DEFW LC87D,LC899,LC8B5 ; $C2
+                DEFW LC612,LC675,LC6A9 ; $C3
+                DEFW LC6B5,LC6BD,LC6C5 ; $C4
+                DEFW LC8C3,LC8D6,LC8E7 ; $C5
+                DEFW LC609,LC5FC,LC5EA ; $C6
+                DEFW LC5C8,LC5D2,LC5DF ; $C7
+                DEFW LC8F8,LC902,LC90F ; $C8
+
 LC5C8:          DEFB $A0,$7C,$30,$3E,$FF,$7B,$5E,$FE,$FF,$FF
 LC5D2:          DEFB $B8,$7C,$31,$3E,$FF,$7B,$5E,$CE,$FF,$52,$AE,$FF,$FF
 LC5DF:          DEFB $C3,$7C,$30,$3E,$FF,$FB,$44,$5E,$CE,$FF,$FF
