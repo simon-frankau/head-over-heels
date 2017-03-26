@@ -48,7 +48,7 @@ WriteAY3Reg:    LD      BC,$FFFD
 LC01B:		DEFB $EE,$0E,$18,$0E,$4D,$0D,$8E,$0C,$DA,$0B,$2F,$0B,$8F,$0A,$F7,$09
 LC02B:		DEFB $68,$09,$E1,$08,$61,$08,$E9,$07,$77,$07
 
-Irq128:		LD	A,($964E)
+Irq128:		LD	A,(SndEnable)
 		RLA
 		RET	NC
 		CALL	CC0D8
@@ -114,7 +114,7 @@ XB_5:		LD	HL,Voices
 		XOR	(HL)
 		AND	$28
 		JP	NZ,WriteAY3
-		LD	A,($964E)
+		LD	A,(SndEnable)
 		RRA
 		JP	C,WriteAY3
 		LD	HL,SoundParams + AY_NOISE
@@ -142,7 +142,7 @@ XC_1:		LD	B,A
 		LD	(HL),A
 		JR	XC_1
 
-CC0EE:		LD	A,($964E)
+CC0EE:		LD	A,(SndEnable)
 		INC	B
 XD_1:		RRCA
 		DJNZ	XD_1
@@ -265,7 +265,7 @@ XF_2:		LD	A,(IY+$05)
 XF_3:		LD	(IY+$04),A
 		RET
 
-LC1FC:		LD	HL,$964B
+LC1FC:		LD	HL,Snd2
 		LD	A,(LC4D5)
 		LD	E,A
 		LD	D,$00
@@ -274,31 +274,43 @@ LC1FC:		LD	HL,$964B
 		LD	B,A
         ;; NB: Fall through
 
-CC209:		INC	B
-		LD	HL,$964E
-		XOR	A
-		SCF
-XG_1:		RLA
-		DJNZ	XG_1
-		LD	B,A
-		OR	(HL)
-		LD	(HL),A
-		RET
+;; Normally, SndEnable's top bit is used for enable/disable of sound.
+;; We're stashing stuff in the lower bits.
+;;
+;; Takes the bit number in B.
+SetSoundBit:
+        ;; Convert bit number to a bit mask.
+                INC     B
+                LD      HL,SndEnable
+                XOR     A
+                SCF
+SSB_1:          RLA
+                DJNZ    SSB_1
+                LD      B,A
+        ;; "Or" the mask into SndEnable.
+                OR      (HL)
+                LD      (HL),A
+                RET
 
+;; B contains the sound id to play.
 Play128:	LD	A,B
+        ;; Mask off 0x3F, and if value is 0x3F, make it 0xFF.
 		AND	$3F
 		CP	$3F
-		JR	NZ,XH_1
+		JR	NZ,P128_1
 		LD	A,$FF
-XH_1:		LD	C,A
+P128_1:		LD	C,A
+        ;; Take those original top two bits and put them in the low bits of A.
 		LD	A,B
 		RLCA
 		RLCA
 		AND	$03
 		LD	B,A
+        ;; Go to P128_2 for high id sounds.
 		CP	$03
-		JR	Z,XH_2
-		LD	HL,$964B
+		JR	Z,P128_2
+        ;; TODO
+		LD	HL,Snd2
 		LD	E,B
 		LD	D,$00
 		ADD	HL,DE
@@ -310,7 +322,7 @@ XH_1:		LD	C,A
 		LD	(HL),C
 		LD	A,C
 		INC	A
-		JR	Z,CC209
+		JR	Z,SetSoundBit
 		LD	HL,LC6CD
 		SLA	E
 		ADD	HL,DE
@@ -336,7 +348,7 @@ XH_1:		LD	C,A
 		LD	D,H
 		LD	E,L
 		LD	B,A
-		CALL	CC209
+		CALL	SetSoundBit
 		LD	A,B
 		POP	HL
 		POP	BC
@@ -345,21 +357,26 @@ XH_1:		LD	C,A
 		LD	(HL),B
 		EX	DE,HL
 		SET	1,(HL)
-		LD	HL,$964E
+		LD	HL,SndEnable
 		XOR	(HL)
 		LD	(HL),A
 		RET
-XH_2:		LD	H,$00
+        ;; Top two bits of sound id were set.
+P128_2:
+        ;; HL = C * 6
+		LD	H,$00
 		LD	L,C
 		ADD	HL,HL
 		LD	D,H
 		LD	E,L
 		ADD	HL,HL
 		ADD	HL,DE
-		LD	DE,LC592
+        ;; Set HL to HiSndTable + C * 6
+		LD	DE,HiSndTable
 		ADD	HL,DE
+        ;; For each voice...
 		LD	A,$03
-XH_3:		LD	E,(HL)
+P128_3:		LD	E,(HL)
 		INC	HL
 		LD	D,(HL)
 		INC	HL
@@ -371,19 +388,19 @@ XH_3:		LD	E,(HL)
 		PUSH	HL
 		EX	DE,HL
 		AND	A
-		JR	NZ,XH_3
-		LD	HL,$964E
+		JR	NZ,P128_3
+		LD	HL,SndEnable
 		LD	A,$07
 		OR	(HL)
 		LD	(HL),A
-		LD	HL,$964B
+		LD	HL,Snd2
 		LD	BC,$0380
 		LD	A,B
-XH_4:		LD	(HL),C
+P128_4:		LD	(HL),C
 		INC	HL
-		DJNZ	XH_4
+		DJNZ	P128_4
 		LD	HL,LC4D6
-XH_5:		POP	DE
+P128_5:		POP	DE
 		POP	BC
 		LD	(HL),C
 		INC	HL
@@ -393,8 +410,8 @@ XH_5:		POP	DE
 		SET	1,(HL)
 		EX	DE,HL
 		DEC	A
-		JR	NZ,XH_5
-		LD	HL,$964E
+		JR	NZ,P128_5
+		LD	HL,SndEnable
 		LD	A,$F8
 		AND	(HL)
 		LD	(HL),A
@@ -411,7 +428,7 @@ LC2B8:		CALL	CC2D1
 		JP	CC2F9
 
 CC2D1:		LD	HL,(LC4D3)
-		LD	DE,$FFFA
+		LD	DE,-6
 		ADD	HL,DE
 		LD	E,(HL)
 		INC	HL
@@ -705,67 +722,89 @@ XC553:	DEFB $12,$1D,$20,$2A,$2C,$2E,$04,$05,$07,$09,$0A,$0B,$8C,$0C,$08,$04
 XC563:	DEFB $01,$80,$08,$00,$0C,$00,$07,$00,$04,$00,$02,$00,$01,$80,$0C,$0A
 XC573:	DEFB $08,$45,$02,$00,$00,$04,$00,$00,$06,$00,$00,$09,$00,$0C,$00,$40
 XC583:	DEFB $08,$0A,$0C,$0C,$0B,$0A,$09,$08,$07,$06,$05,$04,$03,$02,$81
-LC592:  DEFB $CB
-XC593:	DEFB $C7,$CB,$C7,$CB,$C7,$3F,$C8,$53,$C8,$68,$C8,$7D,$C8,$99,$C8,$B5
-XC5A3:	DEFB $C8,$12,$C6,$75,$C6,$A9,$C6,$B5,$C6,$BD,$C6,$C5,$C6,$C3,$C8,$D6
-XC5B3:	DEFB $C8,$E7,$C8,$09,$C6,$FC,$C5,$EA,$C5,$C8,$C5,$D2,$C5,$DF,$C5,$F8
-XC5C3:	DEFB $C8,$02,$C9,$0F,$C9,$A0,$7C,$30,$3E,$FF,$7B,$5E,$FE,$FF,$FF,$B8
-XC5D3:	DEFB $7C,$31,$3E,$FF,$7B,$5E,$CE,$FF,$52,$AE,$FF,$FF,$C3,$7C,$30,$3E
-XC5E3:	DEFB $FF,$FB,$44,$5E,$CE,$FF,$FF,$93,$00,$95,$6A,$62,$6A,$7D,$6D,$FF
-XC5F3:	DEFB $82,$C0,$15,$FF,$03,$8D,$96,$FF,$FF,$90,$23,$F5,$CA,$C2,$CA,$DD
-XC603:	DEFB $CD,$05,$5D,$6E,$FF,$FF,$60,$03,$07,$06,$05,$A5,$B6,$FF,$FF,$90
-XC613:	DEFB $41,$31,$91,$95,$97,$84,$94,$FF,$22,$96,$06,$CE,$06,$FF,$41,$51
-XC623:	DEFB $B1,$B5,$B7,$A4,$B4,$FF,$22,$B6,$06,$CE,$06,$FF,$41,$59,$B9,$BD
-XC633:	DEFB $BF,$AC,$BC,$FF,$22,$BE,$06,$F6,$06,$FF,$41,$31,$91,$95,$97,$84
-XC643:	DEFB $94,$FF,$22,$96,$06,$CE,$06,$FF,$41,$CA,$CD,$CF,$BC,$CC,$FF,$22
-XC653:	DEFB $CE,$06,$EE,$06,$FF,$41,$C9,$F1,$F3,$03,$C9,$F1,$F3,$03,$07,$C9
-XC663:	DEFB $F1,$F3,$03,$FF,$55,$F2,$CA,$EA,$DA,$B2,$CA,$BA,$92,$B2,$A4,$6A
-XC673:	DEFB $FF,$00,$62,$08,$36,$56,$6E,$7E,$86,$7E,$6E,$56,$36,$56,$6E,$7E
-XC683:	DEFB $86,$7E,$6E,$56,$5E,$7E,$96,$A6,$AE,$A6,$96,$7E,$36,$56,$6E,$7E
-XC693:	DEFB $86,$7E,$6E,$56,$6E,$8E,$A6,$B6,$BE,$B6,$A6,$8E,$96,$7E,$6E,$56
-XC6A3:	DEFB $6E,$7E,$86,$8E,$FF,$00,$93,$05,$34,$94,$54,$B4,$6C,$CC,$7C,$DC
-XC6B3:	DEFB $FF,$00,$60,$51,$32,$B5,$55,$32,$FF,$FF,$C0,$51,$92,$CD,$95,$92
-XC6C3:	DEFB $FF,$FF,$60,$51,$92,$6D,$95,$92,$FF,$FF
-LC6CD:  DEFB $F7,$C6,$E5,$C6,$D3,$C6
-XC6D3:	DEFB $CF,$C7,$E5,$C7,$F5,$C7,$09,$C8,$15,$C8,$23,$C8,$28,$C8,$2D,$C8
-XC6E3:	DEFB $38,$C8,$03,$C7,$10,$C7,$23,$C7,$46,$C7,$62,$C7,$71,$C7,$85,$C7
-XC6F3:	DEFB $94,$C7,$9D,$C7,$C8,$C7,$C2,$C7,$DD,$C7,$B1,$C7,$A6,$C7,$BB,$C7
-XC703:	DEFB $C0,$0E,$34,$4E,$5C,$6C,$74,$6C,$5E,$44,$26,$FF,$FF,$D0,$0E,$6E
-XC713:	DEFB $96,$6E,$56,$FF,$01,$34,$36,$FF,$0E,$7C,$6C,$54,$6E,$47,$FF,$FF
-XC723:	DEFB $C3,$03,$94,$8C,$94,$8C,$FF,$26,$76,$FF,$61,$6A,$72,$8A,$FF,$22
-XC733:	DEFB $8A,$FF,$03,$94,$8C,$74,$8C,$94,$AC,$A4,$94,$FF,$26,$8F,$FF,$22
-XC743:	DEFB $80,$FF,$FF,$60,$02,$6C,$96,$04,$96,$8C,$96,$94,$96,$FF,$0F,$8C
-XC753:	DEFB $FF,$01,$AA,$FF,$41,$B2,$FF,$22,$B4,$FF,$02,$04,$96,$FF,$FF,$A8
-XC763:	DEFB $0F,$35,$35,$55,$6D,$6E,$04,$55,$56,$04,$35,$36,$FF,$FF,$90,$0E
-XC773:	DEFB $0C,$36,$24,$35,$45,$4E,$44,$4D,$35,$26,$34,$25,$0D,$FF,$0E,$27
-XC783:	DEFB $FF,$FF,$40,$02,$36,$0C,$24,$36,$0C,$24,$34,$4C,$0C,$4C,$36,$FF
-XC793:	DEFB $FF,$F0,$67,$10,$F6,$06,$16,$07,$FF,$FF,$27,$50,$51,$BB,$FF,$5D
-XC7A3:	DEFB $97,$FF,$FF,$03,$CA,$44,$F0,$0F,$FF,$8C,$01,$0C,$FF,$FF,$A0,$40
-XC7B3:	DEFB $30,$6C,$31,$6C,$41,$6C,$FF,$FF,$B3,$47,$10,$43,$00,$FF,$FF,$00
-XC7C3:	DEFB $86,$82,$12,$FF,$FF,$03,$86,$41,$11,$03,$FF,$FF,$D3,$29,$31,$51
-XC7D3:	DEFB $01,$41,$29,$01,$31,$19,$01,$29,$41,$01,$FF,$00,$F3,$EB,$E3,$DB
-XC7E3:	DEFB $FF,$FF,$D3,$09,$31,$51,$00,$41,$29,$00,$31,$19,$00,$29,$41,$00
-XC7F3:	DEFB $FF,$00,$D3,$09,$F3,$EB,$E3,$DB,$EB,$E3,$DB,$D3,$E3,$DB,$D3,$CB
-XC803:	DEFB $DB,$D3,$CB,$C3,$FF,$00,$D3,$09,$BB,$A3,$8B,$73,$5B,$43,$2B,$23
-XC813:	DEFB $FF,$00,$D3,$09,$13,$33,$53,$73,$93,$B3,$D3,$DB,$E3,$EE,$FF,$00
-XC823:	DEFB $78,$05,$33,$FF,$FF,$60,$25,$33,$FF,$FF,$D3,$60,$34,$6A,$FF,$09
-XC833:	DEFB $01,$BA,$BA,$FF,$FF,$90,$44,$10,$43,$00,$FF,$FF,$90,$41,$0C,$36
-XC843:	DEFB $FF,$02,$35,$35,$35,$45,$35,$45,$FF,$41,$56,$FF,$21,$57,$FF,$FF
-XC853:	DEFB $90,$41,$0C,$6E,$FF,$02,$6D,$6D,$6D,$7D,$6D,$7D,$FF,$41,$D5,$FF
-XC863:	DEFB $21,$D2,$D7,$FF,$FF,$90,$41,$0C,$E6,$FF,$02,$B5,$B5,$B5,$C5,$B5
-XC873:	DEFB $C5,$FF,$41,$8D,$FF,$21,$8A,$8F,$FF,$FF,$63,$02,$B2,$BA,$CC,$34
-XC883:	DEFB $34,$6A,$5A,$52,$6A,$92,$8A,$94,$C2,$CA,$DC,$44,$44,$A2,$92,$8A
-XC893:	DEFB $92,$8A,$7A,$6E,$FF,$FF,$C0,$03,$92,$8A,$94,$34,$54,$6A,$5A,$52
-XC8A3:	DEFB $6A,$92,$8A,$94,$8A,$92,$A4,$44,$64,$A2,$92,$8A,$92,$8A,$7A,$6D
-XC8B3:	DEFB $FF,$FF,$30,$02,$04,$36,$0E,$56,$36,$46,$1E,$64,$54,$47,$FF,$FF
-XC8C3:	DEFB $33,$43,$09,$33,$FF,$08,$36,$56,$5E,$66,$6C,$0C,$04,$FF,$02,$32
-XC8D3:	DEFB $37,$FF,$FF,$F0,$08,$04,$96,$86,$7E,$76,$6C,$06,$FF,$41,$94,$FF
-XC8E3:	DEFB $3E,$97,$FF,$FF,$C0,$22,$04,$96,$86,$7E,$76,$6C,$06,$FF,$41,$6C
-XC8F3:	DEFB $FF,$2E,$6F,$FF,$FF,$A0,$7B,$F0,$A6,$5E,$FF,$7C,$3E,$FF,$FF,$B8
-XC903:	DEFB $7B,$C0,$A6,$5E,$FF,$7C,$3E,$FF,$52,$27,$FF,$FF,$C3,$FC,$02,$C0
-XC913:	DEFB $A6,$5E,$FF,$FB,$44,$3E,$FF,$FF,$92
 
-	.dephase
+HiSndTable:     DEFW LC7CB,LC7CB,LC7CB
+                DEFW LC83F,LC853,LC868
+                DEFW LC87D,LC899,LC8B5
+                DEFW LC612,LC675,LC6A9
+                DEFW LC6B5,LC6BD,LC6C5
+                DEFW LC8C3,LC8D6,LC8E7
+                DEFW LC609,LC5FC,LC5EA
+                DEFW LC5C8,LC5D2,LC5DF
+                DEFW LC8F8,LC902,LC90F
+LC5C8:          DEFB $A0,$7C,$30,$3E,$FF,$7B,$5E,$FE,$FF,$FF
+LC5D2:          DEFB $B8,$7C,$31,$3E,$FF,$7B,$5E,$CE,$FF,$52,$AE,$FF,$FF
+LC5DF:          DEFB $C3,$7C,$30,$3E,$FF,$FB,$44,$5E,$CE,$FF,$FF
+LC5EA:          DEFB $93,$00,$95,$6A,$62,$6A,$7D,$6D,$FF,$82,$C0,$15,$FF,$03,$8D,$96
+                DEFB $FF,$FF
+LC5FC:          DEFB $90,$23,$F5,$CA,$C2,$CA,$DD,$CD,$05,$5D,$6E,$FF,$FF
+LC609:          DEFB $60,$03,$07,$06,$05,$A5,$B6,$FF,$FF
+LC612:          DEFB $90,$41,$31,$91,$95,$97,$84,$94,$FF,$22,$96,$06,$CE,$06,$FF,$41
+                DEFB $51,$B1,$B5,$B7,$A4,$B4,$FF,$22,$B6,$06,$CE,$06,$FF,$41,$59,$B9
+                DEFB $BD,$BF,$AC,$BC,$FF,$22,$BE,$06,$F6,$06,$FF,$41,$31,$91,$95,$97
+                DEFB $84,$94,$FF,$22,$96,$06,$CE,$06,$FF,$41,$CA,$CD,$CF,$BC,$CC,$FF
+                DEFB $22,$CE,$06,$EE,$06,$FF,$41,$C9,$F1,$F3,$03,$C9,$F1,$F3,$03,$07
+                DEFB $C9,$F1,$F3,$03,$FF,$55,$F2,$CA,$EA,$DA,$B2,$CA,$BA,$92,$B2,$A4
+                DEFB $6A,$FF,$00
+LC675:          DEFB $62,$08,$36,$56,$6E,$7E,$86,$7E,$6E,$56,$36,$56,$6E,$7E,$86,$7E
+                DEFB $6E,$56,$5E,$7E,$96,$A6,$AE,$A6,$96,$7E,$36,$56,$6E,$7E,$86,$7E
+                DEFB $6E,$56,$6E,$8E,$A6,$B6,$BE,$B6,$A6,$8E,$96,$7E,$6E,$56,$6E,$7E
+                DEFB $86,$8E,$FF,$00
+LC6A9:          DEFB $93,$05,$34,$94,$54,$B4,$6C,$CC,$7C,$DC,$FF,$00
+LC6B5:          DEFB $60,$51,$32,$B5,$55,$32,$FF,$FF
+LC6BD:          DEFB $C0,$51,$92,$CD,$95,$92,$FF,$FF
+LC6C5:          DEFB $60,$51,$92,$6D,$95,$92,$FF,$FF
+LC6CD:          DEFB $F7,$C6,$E5,$C6,$D3,$C6
+XC6D3:          DEFB $CF,$C7,$E5,$C7,$F5,$C7,$09,$C8,$15,$C8,$23,$C8,$28,$C8,$2D,$C8
+XC6E3:          DEFB $38,$C8,$03,$C7,$10,$C7,$23,$C7,$46,$C7,$62,$C7,$71,$C7,$85,$C7
+XC6F3:          DEFB $94,$C7,$9D,$C7,$C8,$C7,$C2,$C7,$DD,$C7,$B1,$C7,$A6,$C7,$BB,$C7
+XC703:          DEFB $C0,$0E,$34,$4E,$5C,$6C,$74,$6C,$5E,$44,$26,$FF,$FF,$D0,$0E,$6E
+XC713:          DEFB $96,$6E,$56,$FF,$01,$34,$36,$FF,$0E,$7C,$6C,$54,$6E,$47,$FF,$FF
+XC723:          DEFB $C3,$03,$94,$8C,$94,$8C,$FF,$26,$76,$FF,$61,$6A,$72,$8A,$FF,$22
+XC733:          DEFB $8A,$FF,$03,$94,$8C,$74,$8C,$94,$AC,$A4,$94,$FF,$26,$8F,$FF,$22
+XC743:          DEFB $80,$FF,$FF,$60,$02,$6C,$96,$04,$96,$8C,$96,$94,$96,$FF,$0F,$8C
+XC753:          DEFB $FF,$01,$AA,$FF,$41,$B2,$FF,$22,$B4,$FF,$02,$04,$96,$FF,$FF,$A8
+XC763:          DEFB $0F,$35,$35,$55,$6D,$6E,$04,$55,$56,$04,$35,$36,$FF,$FF,$90,$0E
+XC773:          DEFB $0C,$36,$24,$35,$45,$4E,$44,$4D,$35,$26,$34,$25,$0D,$FF,$0E,$27
+XC783:          DEFB $FF,$FF,$40,$02,$36,$0C,$24,$36,$0C,$24,$34,$4C,$0C,$4C,$36,$FF
+XC793:          DEFB $FF,$F0,$67,$10,$F6,$06,$16,$07,$FF,$FF,$27,$50,$51,$BB,$FF,$5D
+XC7A3:          DEFB $97,$FF,$FF,$03,$CA,$44,$F0,$0F,$FF,$8C,$01,$0C,$FF,$FF,$A0,$40
+XC7B3:          DEFB $30,$6C,$31,$6C,$41,$6C,$FF,$FF,$B3,$47,$10,$43,$00,$FF,$FF,$00
+XC7C3:          DEFB $86,$82,$12,$FF,$FF,$03,$86,$41
+LC7CB:          DEFB $11,$03,$FF,$FF,$D3,$29,$31,$51
+XC7D3:          DEFB $01,$41,$29,$01,$31,$19,$01,$29,$41,$01,$FF,$00,$F3,$EB,$E3,$DB
+XC7E3:          DEFB $FF,$FF,$D3,$09,$31,$51,$00,$41,$29,$00,$31,$19,$00,$29,$41,$00
+XC7F3:          DEFB $FF,$00,$D3,$09,$F3,$EB,$E3,$DB,$EB,$E3,$DB,$D3,$E3,$DB,$D3,$CB
+XC803:          DEFB $DB,$D3,$CB,$C3,$FF,$00,$D3,$09,$BB,$A3,$8B,$73,$5B,$43,$2B,$23
+XC813:          DEFB $FF,$00,$D3,$09,$13,$33,$53,$73,$93,$B3,$D3,$DB,$E3,$EE,$FF,$00
+XC823:          DEFB $78,$05,$33,$FF,$FF,$60,$25,$33,$FF,$FF,$D3,$60,$34,$6A,$FF,$09
+XC833:          DEFB $01,$BA,$BA,$FF,$FF,$90,$44,$10,$43,$00,$FF,$FF
+LC83F:          DEFB $90,$41,$0C,$36
+XC843:          DEFB $FF,$02,$35,$35,$35,$45,$35,$45,$FF,$41,$56,$FF,$21,$57,$FF,$FF
+LC853:          DEFB $90,$41,$0C,$6E,$FF,$02,$6D,$6D,$6D,$7D,$6D,$7D,$FF,$41,$D5,$FF
+XC863:          DEFB $21,$D2,$D7,$FF,$FF
+LC868:          DEFB $90,$41,$0C,$E6,$FF,$02,$B5,$B5,$B5,$C5,$B5
+XC873:          DEFB $C5,$FF,$41,$8D,$FF,$21,$8A,$8F,$FF,$FF
+LC87D:          DEFB $63,$02,$B2,$BA,$CC,$34
+XC883:          DEFB $34,$6A,$5A,$52,$6A,$92,$8A,$94,$C2,$CA,$DC,$44,$44,$A2,$92,$8A
+XC893:          DEFB $92,$8A,$7A,$6E,$FF,$FF
+LC899:          DEFB $C0,$03,$92,$8A,$94,$34,$54,$6A,$5A,$52
+XC8A3:          DEFB $6A,$92,$8A,$94,$8A,$92,$A4,$44,$64,$A2,$92,$8A,$92,$8A,$7A,$6D
+XC8B3:          DEFB $FF,$FF
+LC8B5:          DEFB $30,$02,$04,$36,$0E,$56,$36,$46,$1E,$64,$54,$47,$FF,$FF
+LC8C3:          DEFB $33,$43,$09,$33,$FF,$08,$36,$56,$5E,$66,$6C,$0C,$04,$FF,$02,$32
+XC8D3:          DEFB $37,$FF,$FF
+LC8D6:          DEFB $F0,$08,$04,$96,$86,$7E,$76,$6C,$06,$FF,$41,$94,$FF
+XC8E3:          DEFB $3E,$97,$FF,$FF
+LC8E7:          DEFB $C0,$22,$04,$96,$86,$7E,$76,$6C,$06,$FF,$41,$6C
+XC8F3:          DEFB $FF,$2E,$6F,$FF,$FF
+LC8F8:          DEFB $A0,$7B,$F0,$A6,$5E,$FF,$7C,$3E,$FF,$FF
+LC902:          DEFB $B8
+XC903:          DEFB $7B,$C0,$A6,$5E,$FF,$7C,$3E,$FF,$52,$27,$FF,$FF
+LC90F:          DEFB $C3,$FC,$02,$C0
+XC913:          DEFB $A6,$5E,$FF,$FB,$44,$3E,$FF,$FF,$92
+
+        .dephase
 
 ;; Label for end of copyable data
 BankEnd:
