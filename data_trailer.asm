@@ -23,15 +23,6 @@ BkgndData:      EQU $BA00
 LBA40:		EQU $BA40
 LBA48:		EQU $BA48
 
-	;; NB: Not sure what this brief interlude is for!
-XB867:	DEFB $F3,$21,$D3,$BD,$11,$00,$40,$01
-XB86F:	DEFB $05,$00,$ED,$B0,$11,$00,$5B,$01,$00,$A5,$21,$54,$60,$C3,$00,$40
-XB87F:	DEFB $ED,$B0,$C3,$30,$70
-
-	;; NB: This is 128K-specific code, copied into another bank.
-#include "src/sound/sound128k.asm"
-	;; End of 128K code.
-
 	;; Start of area that gets moved down...
 MoveDownStart:
 

@@ -1,4 +1,15 @@
-.phase $C000
+;;
+;; sound128k.asm
+;;
+;; 128K sound production. Copied to alernate memory bank.
+;;
+
+BankDest:       EQU     $C000
+
+;; Label for start of copyable data
+BankStart:
+
+        .phase BankDest
         
 LC51B:   EQU $C51B
 LC529:   EQU $C529
@@ -705,4 +716,7 @@ LC8F3:	DEFB $FF,$2E,$6F,$FF,$FF,$A0,$7B,$F0,$A6,$5E,$FF,$7C,$3E,$FF,$FF,$B8
 LC903:	DEFB $7B,$C0,$A6,$5E,$FF,$7C,$3E,$FF,$52,$27,$FF,$FF,$C3,$FC,$02,$C0
 LC913:	DEFB $A6,$5E,$FF,$FB,$44,$3E,$FF,$FF,$92
 
-.dephase
+	.dephase
+
+;; Label for end of copyable data
+BankEnd:

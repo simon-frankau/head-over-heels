@@ -1,5 +1,5 @@
 	;;
-	;; sound.asm
+	;; sound48k.asm
 	;;
 	;; 48K sound production
 	;;

@@ -29,9 +29,9 @@ ShuffleMem_1:	LD	(HL),$00
 		INC	H
 		DJNZ	ShuffleMem_1
 		; Stash data in display memory
-		LD	BC,$091B ; TODO
+		LD	BC,BankEnd - BankStart - 1 ; TODO: -1?
 		LD	DE,$4000
-		LD	HL,$B884 ; TODO
+		LD	HL,BankStart
 		LDIR
 		; Switch to bank 1
 		LD	A,$11
@@ -62,8 +62,8 @@ ShuffleMem_2:	LD	(DE),A
 		INC	D
 		LD	(DE),A
 		; Unstash from display memory
-		LD	BC,$091B ; TODO
-		LD	DE,$C000
+		LD	BC,BankEnd - BankStart - 1 ; TODO: - 1?
+		LD	DE,BankDest
 		LD	HL,$4000
 		LDIR
 		; Switch to bank 0.
