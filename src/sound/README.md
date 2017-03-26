@@ -2,8 +2,9 @@
 
 This directory contains:
 
- * **sound.asm** 48K sound generation code.
+ * **sound48k.asm** 48K sound generation code.
  * **patch.asm** Code to patch to 128K sound generation.
+ * **sound128k.asm** 128k sound generation code that gets patched in.
 
 It relies on the LastOut variable.
 

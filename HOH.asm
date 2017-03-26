@@ -573,7 +573,7 @@ DO_3:		LD	A,H			; loop until null pointer.
 
 #include "controls2.asm"
 
-#include "src/sound/sound.asm"
+#include "src/sound/sound48k.asm"
 
 #include "src/gfx1/blit_mask.asm"
 
