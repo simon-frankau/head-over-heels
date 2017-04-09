@@ -12,6 +12,7 @@
 
 ;; Takes a B = Y, C = X pixel coordinate.
 ;; Returns a pointer to corresponding bitmap address in DE.
+;; Horizontal centre of screen is 0x80.
 GetScrMemAddr:  LD      A,B
                 AND     A
                 RRA
@@ -120,14 +121,14 @@ DrawSprite:     PUSH    AF
                 LD      HL,ViewBuff
         ;; At this point, byte width in C, height in A
         ;; Y loop of copy
-DrS_1:          EX      AF,AF'
+DRS_1:          EX      AF,AF'
                 LD      B,C
         ;; X loop of copy
-DrS_2:          LD      A,(DE)
+DRS_2:          LD      A,(DE)
                 LD      (HL),A
                 INC     L
                 INC     DE
-                DJNZ    DrS_2
+                DJNZ    DRS_2
         ;; ViewBuff is 6 bytes wide...
                 LD      A,$06
                 SUB     C
@@ -135,7 +136,7 @@ DrS_2:          LD      A,(DE)
                 LD      L,A
                 EX      AF,AF'
                 DEC     A
-                JR      NZ,DrS_1
+                JR      NZ,DRS_1
         ;; Image is now in ViewBuff, blit to screen.
                 CALL    BlitScreen
         ;; Prepare to do the attributes
@@ -159,22 +160,22 @@ DrS_2:          LD      A,(DE)
                 ADC     A,Attrib0 >> 8
                 SUB     C
                 LD      B,A
-                LD      A,(BC)          ; Fetch Attrib0[A]
+                LD      A,(BC)          ; Fetch Attrib0[A] (= AttribA).
         ;; Now actually do the attribute-writing work
                 EX      DE,HL
         ;; D now holds height, E width, HL starting point.
         ;; Outer, vertical loop.
-DrS_3:          LD      B,E
+DRS_3:          LD      B,E
         ;; Row-drawing loop.
                 LD      C,L             ; Save start point.
-DrS_4:          LD      (HL),A
+DRS_4:          LD      (HL),A
                 INC     L
-                DJNZ    DrS_4
+                DJNZ    DRS_4
                 LD      L,C             ; Restore start point
                 LD      BC,$0020
                 ADD     HL,BC           ; Move down a row.
                 DEC     D
-                JR      NZ,DrS_3        ; Repeat as necessary.
+                JR      NZ,DRS_3        ; Repeat as necessary.
         ;; Restore original Y offset for the BlitScreen call
                 LD      A,$48
                 LD      (BlitYOffset+1),A
@@ -202,7 +203,7 @@ ApplyAttribs:
                 ADD     A,A
                 LD      C,A
                 LD      A,B
-                SUB     $3D
+                SUB     $3D             ; Floor of $C0 becomes Y = 131.
                 LD      B,A
                 CALL    GetScrMemAddr
         ;; Save high byte of address in L, and convert to attribute address
@@ -231,9 +232,9 @@ ApplyAttribs:
                 LD      C,A
         ;; NB: Fall through
 
-;; Draws a diagonal line up-and-right by alternating moving R and U-then-R.
+;; Draws a diagonal line up-and-left by alternating moving L and U-then-L.
 ;; Parameters:
-;;  E  - Bit 2 is checked to see if we start with up and right, or just up.
+;;  E  - Bit 2 is checked to see if we start with up and left, or just up.
 ;;  C  - Attribute to write
 ;;  B  - Count of how many to write
 ;;  HL - Destination address

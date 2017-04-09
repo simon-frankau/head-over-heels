@@ -9,13 +9,13 @@ This directory contains the low-level graphics routines. Specifically:
  * **blit_screen.asm** copies data to the screen. Used by scene.asm,
    screen_bits.asm and sprite_stuff.asm.
  * **screen_bits.asm** provides various sprite utility functions.
-   TODO: Could do with a polish.
  * **screen_vars.asm** defines some variables.
  * **attr_scheme.asm** deals with the attribute schemes.
  * **char_code.asm** defines CharCodeToAddr.
  * **print_char.asm** deals with printing (formatted) text.
 
-The files in this directory depend upon utils/fill_zero.asm.
+The files in this directory depend upon utils/fill_zero.asm and
+utils/data_space.asm.
 
 They rely on the following symbols defined elsewhere:
 

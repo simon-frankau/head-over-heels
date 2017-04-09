@@ -1070,6 +1070,8 @@ XB87F:	DEFB $ED,$B0,$C3,$30,$70
 
 #include "src/sound/sound128k.asm"
 
+#include "src/utils/data_space.asm"
+
 #include "data_trailer.asm"
 
 #end

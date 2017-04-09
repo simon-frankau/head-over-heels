@@ -115,8 +115,6 @@ SpriteWidth:    DEFB $04
 ;; Current sprite we're drawing.
 SpriteCode:     DEFB $00
 
-RevTable:       EQU $B900
-
 ;; Initialise a look-up table of byte reverses.
 InitRevTbl:     LD      HL,RevTable
 RevLoop_1:      LD      C,L

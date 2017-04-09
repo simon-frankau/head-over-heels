@@ -112,27 +112,27 @@ CC_EQ1:         LD      HL,(CharCursor)
                 ADD     A,$08
 CC_NotDbl:      ADD     A,$08
                 LD      H,A
-                LD      L,$40                   ; and return X position to centre of screen.
+                LD      L,$40                   ; and return X position to left of screen.
                 LD      (CharCursor),HL
                 RET
 
 ;; These cases change the interpretation of the next character...
-CC_GE5:         LD      HL,PrintFn5
+CC_GE5:         LD      HL,SetAttrFn
                 JR      Z,SetPrintFn
                 CP      $07
-                LD      HL,PrintFn7
+                LD      HL,SetSchemeFn
                 JR      Z,SetPrintFn
-                LD      HL,PrintFn6
+                LD      HL,SetCursorFn
         ;; NB: Fall-through.
 
 ;; Set the function called when you 'PrintChar'.
 SetPrintFn:     LD      (PrintChar+1),HL
                 RET
 
-PrintFn7:       CALL    SetAttribs
+SetSchemeFn:    CALL    SetAttribs
                 JR      RestorePrintFn
 
-PrintFn5:       AND     A
+SetAttrFn:      AND     A
                 LD      (KeepAttr),A
                 JR      Z,RestorePrintFn
                 LD      (AttrIdx),A
@@ -142,21 +142,21 @@ PrintFn5:       AND     A
 RestorePrintFn: LD      HL,PrintCharBase
                 JR      SetPrintFn
 
-PrintFn6:       LD      HL,PrintFn6b    ; Next time, we'll set X coordinate
+SetCursorFn:    LD      HL,SetCursorFn2 ; Next time, we'll set X coordinate
                 ADD     A,A
                 ADD     A,A
                 ADD     A,$40           ; Convert from character to half-pixel coordinates
                 LD      (CharCursor),A  ; and store
                 JR      SetPrintFn
 
-PrintFn6b:      ADD     A,A             ; Convert from character to pixel-based coordinates
+SetCursorFn2:   ADD     A,A             ; Convert from character to pixel-based coordinates
                 ADD     A,A
                 ADD     A,A
                 LD      (CharCursor+1),A ; Store X coordinate of CharCursor.
                 JR      RestorePrintFn
 
-
 ;; Execute a simple command string to set the cursor position.
+;; Takes cursor position in BC.
 SetCursor:      LD      (SetCursorBuf+1),BC
                 LD      HL,SetCursorBuf
                 JP      PrintChars
@@ -167,15 +167,15 @@ SetCursorBuf:   DEFB CTRL_CURPOS,$00,$00,DELIM
 GetStrAddr:     LD      B,A
                 LD      HL,Strings
                 SUB     $60
-                JR      C,GSpA_1
+                JR      C,GSTA_1
                 LD      HL,Strings2
                 LD      B,A
-GSpA_1:         INC     B
+GSTA_1:         INC     B
         ;; Search for Bth occurence of DELIM.
                 LD      A,DELIM
-GSpA_2:         LD      C,A
+GSTA_2:         LD      C,A
                 CPIR
-                DJNZ    GSpA_2
+                DJNZ    GSTA_2
                 RET
 
 ;; Copy the character, doubling its height, into the buffer
@@ -193,7 +193,7 @@ CD_1:           LD      A,(DE)
                 RET
 
 ;; Left align, no leading zero.
-Print4DigitsL:  LD      BC,$00F8 ; TODO: Constant
+Print4DigitsL:  LD      BC,$00F8        ; Print '0' if zero, otherwise nothing.
                 PUSH    DE
                 LD      A,D
                 CALL    Print2Digits
@@ -202,15 +202,18 @@ Print4DigitsL:  LD      BC,$00F8 ; TODO: Constant
                 JR      Print2Digits    ; Tail call
 
 ;; Right align, no leading zero.
-Print2DigitsR:  LD      BC,$FFFE        ; TODO: Constant
+Print2DigitsR:  LD      BC,$FFFE        ; Pad with spaces, print '0' if 0.
                 JR      Print2Digits    ; Tail call
 
 ;; Left align, no leading zero.
-Print2DigitsL:  LD      BC,$00FE ; TODO: Explain const
+Print2DigitsL:  LD      BC,$00FE        ; No padding, print '0' if 0.
         ;; NB: Fall through
 
-;; Prints a 2-digit number. Expects digits stored as BCD. Each
-;; zero stores a rotation, so multiple bits of B and C count.
+;; Prints a 2-digit number. Expects digits stored as BCD in A.
+;;
+;; Formatting is controlled by B and C, 1 bit per digit, processed LSB
+;; to MSB. 'C' bit set means print a 0 if nothing there, 'B' bit set
+;; means print a space if nothing there.
 Print2Digits:   PUSH    AF
                 RRA
                 RRA
@@ -225,7 +228,7 @@ PrintDigit:     AND     $0F
                 JR      C,PD_1          ; If zero, print it out if C & 1.
                 RRC     B
                 RET     NC              ; Print a space if B & 1, otherwise, nothing at all.
-                LD      A,$F0           ; (When adding on $30, this becomes " ")
+                LD      A,$F0           ; (When adding on $30, this becomes $20 aka " ")
 PD_1:           LD      C,$FF
                 ADD     A,$30
                 PUSH    BC

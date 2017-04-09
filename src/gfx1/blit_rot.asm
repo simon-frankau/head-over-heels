@@ -7,10 +7,8 @@
 ;; Exported functions:
 ;; * BlitRot
 
-;; Buffer area used by controls and sprite-rotation code.
-Buffer:         EQU $BF20       ; TODO: Add to mem map
-
 ;; Given sprite data, return a rotated version of it.
+;;
 ;; A holds the rotation size (in 2-bit units).
 ;; At start, HL holds source image, DE hold mask image.
 ;; At end, HL holds dest image, DE holds mask image.

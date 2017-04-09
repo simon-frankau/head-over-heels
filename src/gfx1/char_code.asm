@@ -25,7 +25,7 @@ CCTA_1:         ADD     A,A
                 LD      L,A
                 LD      H,$00
                 ADD     HL,HL
-                LD      DE,IMG_CHARS - 360
+                LD      DE,IMG_CHARS - MAGIC_OFFSET
                 ADD     HL,DE
                 EX      DE,HL
                 RET

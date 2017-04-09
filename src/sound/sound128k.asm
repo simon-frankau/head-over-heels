@@ -1,7 +1,7 @@
 ;;
 ;; sound128k.asm
 ;;
-;; 128K sound production. Copied to alernate memory bank.
+;; 128K sound production. Copied to alternate memory bank.
 ;;
 
 ;; Address of the bank where this code gets mapped.
@@ -23,7 +23,7 @@ AY_CVOL:        EQU 10  ; Channel C volume        4-bit (0-15)
 ;; Label for start of copyable data
 BankStart:
 
-        .phase BankDest
+                .phase BankDest
 
 ;; Write out the current AYRegs to the AY-3
 WriteAY3:       LD      HL,AYRegs
@@ -859,7 +859,7 @@ XC903:          DEFB $7B,$C0,$A6,$5E,$FF,$7C,$3E,$FF,$52,$27,$FF,$FF
 LC90F:          DEFB $C3,$FC,$02,$C0
 XC913:          DEFB $A6,$5E,$FF,$FB,$44,$3E,$FF,$FF,$92
 
-        .dephase
+                .dephase
 
 ;; Label for end of copyable data
 BankEnd:

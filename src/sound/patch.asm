@@ -22,7 +22,7 @@ ShuffleMem:	; Zero end of top page
 		; Ok, we're 128K...
 		; Zero screen attributes, so no-one can see we're using it as temp space...
 		LD	B,$03
-		LD	HL,$5800 ; TODO
+		LD	HL,ATTR_START
 ShuffleMem_1:	LD	(HL),$00
 		INC	L
 		JR	NZ,ShuffleMem_1

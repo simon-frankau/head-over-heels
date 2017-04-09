@@ -3,25 +3,11 @@
 	;;
 	;; Data that occurs after the main code section.
 	;; 
-	;; Mostly sprites, 128K code, and, er, the stack.
-	;;
-	;; FIXME: Disassemble the 128K code!
+	;; Mostly sprites and, er, the stack.
 	;;
 	;; FIXME: Identify the remaining bits and pieces.
 	;;
-
         
-	;; This buffer gets filled with info that DrawFloor reads.
-	;; 16 words describing the 16 double-columns
-	;;
-	;; NB: Page-aligned
-	;;
-	;; Byte 0: Y start (0 = clear)
-	;; Byte 1: Id for wall panel sprite
-	;;         (0-3 - world-specific, 4 - blank, 5 - columns, | $80 to flip)
-BkgndData:      EQU $BA00
-LBA40:		EQU $BA40
-LBA48:		EQU $BA48
 
 	;; Start of area that gets moved down...
 MoveDownStart:

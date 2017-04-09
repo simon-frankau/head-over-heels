@@ -1,7 +1,7 @@
 ;;
 ;; blit_screen.asm
 ;;
-;; Copy sprite from buffer to screen.
+;; Copy image from buffer to screen.
 ;;
 
 ;; Exported functions:
@@ -9,8 +9,6 @@
 
 ;; Exported variables:
 ;; * BlitYOffset
-
-ViewBuff:       EQU $B800       ; TODO: Memory map
 
 ;; BlitScreen copies from ViewBuff to the screen coordinates of
 ;; ViewYExtent and ViewXExtent.
