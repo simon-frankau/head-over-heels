@@ -42,3 +42,9 @@ ColBufLen:      EQU TALL_WALL * 2       ; 2 bytes wide.
 ;; Immediately follows ColBuf.
 DoorwayBuf:     EQU $F9D8
 DoorwayBufLen:  EQU 3 * 56 * 2          ; Includes image and mask.
+
+;; Immediately follows DoorwayBuf.
+;;  Where the other character's state is held. Starts with room id.
+OtherState:     EQU $FB28
+;; TODO: This appears to be the OtherState version of what's at LA2A2.
+LFB49:          EQU OtherState + 33

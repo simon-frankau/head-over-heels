@@ -14,9 +14,6 @@
 
 #include "rooms/room_data.asm"
 
-	;; Hack, should be removed.
-#include "equs.asm"
-
 MAGIC_OFFSET:	EQU 360 	; The offset high data is moved down by...
 
 #include "mainloop.asm"
