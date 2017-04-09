@@ -10,9 +10,9 @@
 #code HOH, 0, $FFFF
 	defs $4000, $00
 
-#insert "bin/screen.scr"
+#insert "../bin/screen.scr"
 
-#include "src/rooms/room_data.asm"
+#include "rooms/room_data.asm"
 
 	;; Hack, should be removed.
 #include "equs.asm"
@@ -91,15 +91,15 @@ DBL_1:		PUSH	HL
 		JR	NC,DBL_1
 		RET
 
-#include "src/gfx1/attr_scheme.asm"
+#include "gfx1/attr_scheme.asm"
 
-#include "src/gfx1/char_code.asm"
+#include "gfx1/char_code.asm"
         
 #include "controls.asm"
 
-#include "src/gfx2/columns.asm"
+#include "gfx2/columns.asm"
         
-#include "src/rooms/room.asm"
+#include "rooms/room.asm"
         
 #include "stuff.asm"
 
@@ -175,9 +175,9 @@ ODW3:		DJNZ	ODW2
 		LD		(DoorwayFlipped),A
 		RET
 
-#include "src/objects/objects.asm"
+#include "objects/objects.asm"
 
-#include "src/rooms/walls.asm"
+#include "rooms/walls.asm"
 
 #include "specials.asm"
 
@@ -499,7 +499,7 @@ InsertObject:	PUSH	HL
 	
 #include "sprite_stuff.asm"
 	
-#include "src/objects/obj_fns.asm"
+#include "objects/obj_fns.asm"
 	
 L9376:	DEFB $FD,$F9,$FB,$FA,$FE,$F6,$F7,$F5
 
@@ -565,27 +565,27 @@ DO_3:		LD	A,H			; loop until null pointer.
 		JR	NZ,DO_1
 		RET
 
-#include "src/gfx1/screen_vars.asm"
+#include "gfx1/screen_vars.asm"
 
-#include "src/gfx1/blit_screen.asm"
+#include "gfx1/blit_screen.asm"
 
-#include "src/gfx1/screen_bits.asm"
+#include "gfx1/screen_bits.asm"
 
 #include "controls2.asm"
 
-#include "src/sound/sound48k.asm"
+#include "sound/sound48k.asm"
 
-#include "src/gfx1/blit_mask.asm"
+#include "gfx1/blit_mask.asm"
 
-#include "src/gfx2/background.asm"
+#include "gfx2/background.asm"
 
-#include "src/gfx1/blit_rot.asm"
+#include "gfx1/blit_rot.asm"
 
-#include "src/gfx2/scene.asm"
+#include "gfx2/scene.asm"
 
-#include "src/rooms/room_utils.asm"
+#include "rooms/room_utils.asm"
 
-#include "src/utils/fill_zero.asm"
+#include "utils/fill_zero.asm"
         
 StatusReinit:	DEFB $09	; Number of bytes to reinit with
 	
@@ -719,13 +719,13 @@ XOR_2:          LD      A,(DE)
         ;; Two images, of bits to flip to wiggle eyebrows, one facing
         ;; left, one right.
 XORs:
-#insert "bin/img_2x6.bin"
+#insert "../bin/img_2x6.bin"
 
 #include "character.asm"
 
 #include "contact.asm"
 
-#include "src/gfx2/get_sprite.asm"
+#include "gfx2/get_sprite.asm"
 
 ObjVars:        DEFB $1B                ; Reinitialisation size
 
@@ -803,9 +803,9 @@ SyncDoubleObject:
 SDO_2:          POP     HL
                 RET
 
-#include "src/objects/procobj.asm"
+#include "objects/procobj.asm"
 
-#include "src/objects/depthcmp.asm"
+#include "objects/depthcmp.asm"
 
 LB217:		DEFB $00
 LB218:		DEFB $00
@@ -1059,18 +1059,18 @@ CNC_2:		BIT		7,(IX+$09)
 
 #include "movement.asm"
 
-#include "src/gfx1/print_char.asm"
+#include "gfx1/print_char.asm"
 
-#include "src/sound/patch.asm"
+#include "sound/patch.asm"
 
 	;; NB: Not sure what this brief interlude is for!
 XB867:	DEFB $F3,$21,$D3,$BD,$11,$00,$40,$01
 XB86F:	DEFB $05,$00,$ED,$B0,$11,$00,$5B,$01,$00,$A5,$21,$54,$60,$C3,$00,$40
 XB87F:	DEFB $ED,$B0,$C3,$30,$70
 
-#include "src/sound/sound128k.asm"
+#include "sound/sound128k.asm"
 
-#include "src/utils/data_space.asm"
+#include "utils/data_space.asm"
 
 #include "data_trailer.asm"
 
