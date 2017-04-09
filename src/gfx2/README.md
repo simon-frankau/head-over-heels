@@ -6,6 +6,7 @@ Specifically:
  * **columns.asm** draws the columns on which door stand.
  * **get_sprite.asm** accesses the sprites neede (with flipping, etc.).
  * **background.asm** draws the floor and walls.
+ * **init_bkgnd.asm** initialises various of the variables used.
  * **scene.asm** renders the scene
 
 The files in this directory depend upon utils/fill_zero.asm and
@@ -36,19 +37,15 @@ They rely on the following symbols defined elsewhere:
 
 They export the following symbols used elsewhere:
 
- * Draw
- * DrawXSafe
- * CornerPos
- * JpIX
  * DoorwayBuf
  * DoorwayFlipped
- * FloorFn
+ * Draw
+ * DrawXSafe
  * GetObjExtents
  * GetSpriteAddr
  * InitRevTbl
  * IntersectObj
- * LeftAdj
- * RightAdj
+ * JpIX
  * SPR_*
  * SetColHeight
  * SetFloorAddr
