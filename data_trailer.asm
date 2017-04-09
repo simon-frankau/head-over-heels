@@ -19,22 +19,22 @@ SpriteFlips:	DEFS $10,$00
 
 	;;  Background wall tiles
 IMG_WALLS:
-#insert "img_walls.bin"
+#insert "bin/img_walls.bin"
 
 	DEFB $90,$00,$A0,$00
 
 IMG_3x56:
-#insert "img_3x56.bin"
+#insert "bin/img_3x56.bin"
 IMG_3x32:	
-#insert "img_3x32.bin"
+#insert "bin/img_3x32.bin"
 IMG_3x24:			
-#insert "img_3x24.bin"
+#insert "bin/img_3x24.bin"
 IMG_4x28:			
-#insert "img_4x28.bin"
+#insert "bin/img_4x28.bin"
 IMG_2x24:
-#insert "img_2x24.bin"
+#insert "bin/img_2x24.bin"
 IMG_CHARS:
-#insert "img_chars.bin"
+#insert "bin/img_chars.bin"
 
 	;; FIXME: Make into binaries
 IMG_ColTop:

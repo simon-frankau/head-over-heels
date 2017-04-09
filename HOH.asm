@@ -10,7 +10,7 @@
 #code HOH, 0, $FFFF
 	defs $4000, $00
 
-#insert "screen.scr"
+#insert "bin/screen.scr"
 
 #include "src/rooms/room_data.asm"
 
@@ -719,7 +719,7 @@ XOR_2:          LD      A,(DE)
         ;; Two images, of bits to flip to wiggle eyebrows, one facing
         ;; left, one right.
 XORs:
-#insert "img_2x6.bin"
+#insert "bin/img_2x6.bin"
 
 #include "character.asm"
 
