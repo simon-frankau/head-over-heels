@@ -74,20 +74,20 @@ DrawBlacked:	LD	A,$08
 		LD	DE,$4857 	; Y extent
 DBL_1:		PUSH	HL
 		PUSH	DE
-		CALL	CheckYAndDraw
+		CALL	DrawXSafe       ; X extent known to be in range.
 		POP	DE
 		POP	HL
 		LD	H,L
 		LD	A,L
-		ADD	A,$14   ; First window is 8 wide, subsequent are 20.
+		ADD	A,$14           ; First window is 8 wide, subsequent are 20.
 		LD	L,A
-		CP	$C1     ; Loop across the visible core of the screen.
+		CP	$C1             ; Loop across the visible core of the screen.
 		JR	C,DBL_1
 		LD	HL,$4048
 		LD	D,E
 		LD	A,E
-		ADD	A,$2A   ; First window is 15, subsequent are 42.
-		LD	E,A     ; Loop all the way to row 255!
+		ADD	A,$2A           ; First window is 15, subsequent are 42.
+		LD	E,A             ; Loop all the way to row 255!
 		JR	NC,DBL_1
 		RET
 
@@ -186,6 +186,7 @@ L8ADE:	DEFB $00
 L8ADF:	DEFB $00,$00,$00
 
 NUM_ROOMS:      EQU 301
+;; Strangely, despite being bit-packed, one byte is preserved per room.
 RoomMask:       DEFS NUM_ROOMS, $00
 
 ;; Clear donut count and then count number of inventory items we have
@@ -469,16 +470,16 @@ RemoveObject:	PUSH	HL
 		RET
 
 DrawObject:     PUSH    IY
-        ;; Bump to an obj+2 pointer for call to GetObjExtents2.
+        ;; Bump to an obj+2 pointer for call to GetObjExtents.
                 INC     HL
                 INC     HL
-                CALL    GetObjExtents2
+                CALL    GetObjExtents
         ;; Move X extent from BC to HL, Y extent from HL to DE.
                 EX      DE,HL
                 LD      H,B
                 LD      L,C
         ;; Then draw where the thing is.
-                CALL    CheckAndDraw
+                CALL    Draw
                 POP     IY
                 RET
 
@@ -869,7 +870,7 @@ PM_1:           LD      A,(HL)
                 OR      H
                 JR      Z,PM_5
                 PUSH    HL
-                CALL    DoCopy  ; JP (IX)
+                CALL    JpIX
                 POP     HL
                 JR      C,PM_8  ; Found case
                 JR      NZ,PM_1 ; Loop case
@@ -883,7 +884,7 @@ PM_3:           LD      A,(HL)
                 OR      H
                 JR      Z,PM_4
                 PUSH    HL
-                CALL    DoCopy  ; JP (IX)
+                CALL    JpIX
                 POP     HL
                 JR      C,PM_9  ; Other found case
                 JR      NZ,PM_3 ; Loop case
@@ -904,7 +905,7 @@ PM_6:           BIT     0,(IY+$09)
 PM_7:           LD      A,(SavedObjListIdx)
                 AND     A
                 RET     Z
-                CALL    DoCopy  ; JP (IX)
+                CALL    JpIX
                 RET     NC
         ;; Adjust pointer and fall through...
                 CALL    GetCharObj

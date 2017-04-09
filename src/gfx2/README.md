@@ -26,10 +26,8 @@ They rely on the following symbols defined elsewhere:
  * DoorwayTest
  * HasDoor
  * HasNoWall
- * L0606
- * L0808
- * L84C7
- * L84C8
+ * ScreenMaxV
+ * ScreenMaxU
  * MAGIC_OFFSET
  * ObjectLists
  * PanelBase
@@ -38,14 +36,14 @@ They rely on the following symbols defined elsewhere:
 
 They export the following symbols used elsewhere:
 
- * CheckAndDraw
- * CheckYAndDraw
+ * Draw
+ * DrawXSafe
  * CornerPos
- * DoCopy
+ * JpIX
  * DoorwayBuf
  * DoorwayFlipped
  * FloorFn
- * GetObjExtents2
+ * GetObjExtents
  * GetSpriteAddr
  * InitRevTbl
  * IntersectObj

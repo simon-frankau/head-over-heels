@@ -172,7 +172,7 @@ GSE_2:		SUB		H
 		ADD		A,E
 		LD		(RightAdj+1),A 		; E - CornerPos
 	;; FIXME: Next bit.
-		CALL		FloorFn
+		CALL		TweakEdges
 		POP		AF
 		RRA
 		PUSH		AF

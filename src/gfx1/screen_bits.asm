@@ -10,9 +10,10 @@
 ;;  * DrawSprite
 ;;  * GetScrMemAddr
 
-;; Takes a B = Y, C = X pixel coordinate.
+;; Takes a B = Y, C = X single-pixel coordinate. Real Spectrum screen
+;; coords - top left is (0,0).
+;;
 ;; Returns a pointer to corresponding bitmap address in DE.
-;; Horizontal centre of screen is 0x80.
 GetScrMemAddr:  LD      A,B
                 AND     A
                 RRA
@@ -88,8 +89,9 @@ SW_4:           DEC     D
                 JP      FillZero        ; Tail call
 
 ;; Draw a sprite, with attributes.
-;; Source in DE, origin in BC, size in HL, Attribute style in A
-;; (H = Y, L = X, measured in double-pixels)
+;; Source in DE, dest coords in BC, size in HL, Attribute style in A
+;; (H = Y, L = X, X measured in double-pixels, centered on $80)
+;; Top of screen is Y = 0, for once.
 DrawSprite:     PUSH    AF
                 PUSH    BC
                 PUSH    DE
@@ -115,7 +117,7 @@ DrawSprite:     PUSH    AF
         ;; Restore source, save byte-oriented size.
                 POP     DE
                 PUSH    HL
-        ;; Do the copy to the screen...
+        ;; First, copy sprite into ViewBuff...
                 LD      C,A
                 LD      A,H
                 LD      HL,ViewBuff
@@ -177,7 +179,7 @@ DRS_4:          LD      (HL),A
                 DEC     D
                 JR      NZ,DRS_3        ; Repeat as necessary.
         ;; Restore original Y offset for the BlitScreen call
-                LD      A,$48
+                LD      A,Y_START
                 LD      (BlitYOffset+1),A
                 RET
 
@@ -203,7 +205,7 @@ ApplyAttribs:
                 ADD     A,A
                 LD      C,A
                 LD      A,B
-                SUB     $3D             ; Floor of $C0 becomes Y = 131.
+                SUB     Y_START - EDGE_HEIGHT   ; Floor of $C0 becomes Y = 131.
                 LD      B,A
                 CALL    GetScrMemAddr
         ;; Save high byte of address in L, and convert to attribute address

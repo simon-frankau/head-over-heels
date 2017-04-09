@@ -3,13 +3,11 @@
 ;;
 ;; Code to do with drawing the floor and walls
 ;;
-;; FIXME: Still needs plenty of work.
-;;
 
 ;; Exported functions:
 ;;  * DrawBkgnd
-;;  * FloorFn
-;;  * DoCopy
+;;  * TweakEdges
+;;  * JpIX
 ;;  * SetFloorAddr
 
 ;; Exported varibles:
@@ -49,7 +47,7 @@ DrawBkgnd:      LD      HL,(ViewXExtent)
                 LD      DE,ViewBuff
         ;; Below here, DE points at the sprite buffer, and HL' the
         ;; source data (two bytes per column pair). A contains number
-        ;; of cols to draw.
+        ;; of cols to draw, minus 2.
         ;;
         ;; If index is initially odd, draw RHS of a column pair.
                 RR      C
@@ -67,7 +65,7 @@ DB_1:           LD      IY,ClearTwo
                 LD      IX,TwoColBlit
                 LD      HL,BlitFloor
                 CALL    DrawBkgndCol
-                INC     E
+                INC     E       ; We did 2 columns this time, so bump one more.
                 SUB     $02
 DB_2:           JR      NC,DB_1
         ;; One left-over column.
@@ -97,19 +95,23 @@ DrawBkgndCol:   LD      (BlitFloorFnPtr+1),HL
                 INC     E
                 RET
 
-SHORT_WALL:     EQU $38         ; The basic walls are 56 pixels high
-TALL_WALL:      EQU $4A         ; 74 pixels max height for columns (indices 4 and 5)
+;; The basic walls are 56 pixels high
+SHORT_WALL:     EQU $38
+;; Columns/spaces (indices 4 and 5) are up to 74 pixels high, made up
+;; of top, repeated middle and bottom section.
+TALL_WALL:      EQU (9 + 24 + 4) * 2
 
 ;; Call inputs:
 ;; * Reads from ViewYExtent
 ;; * Takes in:
 ;;   HL' - Floor drawing function
+;;   DE' - Destination buffer (only modified via IX, IY, etc.)
 ;;   IX  - Copying function (takes #rows in A, writes to DE' and updates it)
 ;;   IY  - Clearing function (takes #rows in A, writes to DE' and updates it)
 ;;   HL  - Pointer to BkgndData array entry:
-;;           Byte 0: Y start (0 = clear)
+;;           Byte 0: Y of wall bottom (0 = clear)
 ;;           Byte 1: Id for wall panel sprite
-;;                   (0-3 - world-specific, 4 - blank, 5 - columns, | $80 to flip)
+;;                   (0-3 - world-specific, 4 - columns, 5 - blank, | $80 to flip)
 ;; Note that the Y coordinates are downward-increasing, matching memory.
 DrawBkgndCol2:  LD      DE,(ViewYExtent)
                 LD      A,E
@@ -127,7 +129,7 @@ DrawBkgndCol2:  LD      DE,(ViewYExtent)
                 LD      C,SHORT_WALL    ; Wall height for ids 0-3
                 BIT     2,(HL)
                 JR      Z,DBC_Flag
-                LD      C,TALL_WALL     ; Wall weight for ids 4-5
+                LD      C,TALL_WALL     ; Wall height for ids 4-5
 DBC_Flag:       ADD     A,C             ; Add the wall height on.
         ;; Window Y start now relative to the top of the current wall panel.
                 JR      NC,DBC_TopSpace ; Still some space left above in window? Jump
@@ -185,8 +187,9 @@ DBC_DoFloor:    LD      A,E
 
         ;; Code to draw the floor, bottom edge, and any space below
         ;;
-        ;; At this point, HL has been incremented by 1, A contains height.
-        ;; D contains baseline.
+        ;; At this point, HL has been incremented by 1, A contains
+        ;; number of rows to draw, D contains number of lines below
+        ;; bottom of wall we're at.
         ;;
         ;; First, calculate the position of the bottom edge.
 DBC_FloorEtc:   LD      B,A             ; Store height in B
@@ -300,12 +303,12 @@ CornerEdge:     DEFB $40,$01,$70,$0d,$74,$3d,$77,$7d,$37,$7c,$07
                 DEFB $70,$03,$40,$00,$00,$00,$00,$00,$00,$00,$00
 
 ;; ----------------------------------------------------------------------
-;; TODO: FloorFn is something of a mystery...
 
-        ;; FIXME: Some function to do with floor stuff
-        ;; Floor tiles are 2x24
-        ;; I think it may be stitching together a corner-case sprite?
-FloorFn:        LD              HL,(FloorAddr)
+;; Takes the room origin in BC, and stores it, and then updates the edge patterns
+;; to include a bit of the floor pattern.
+;;
+;; TODO: The maths here is a bit obscure.
+TweakEdges:     LD              HL,(FloorAddr)
                 LD              (RoomOrigin),BC
                 LD              BC,2*5
                 ADD             HL,BC           ; Move 5 rows into the tile
@@ -313,28 +316,33 @@ FloorFn:        LD              HL,(FloorAddr)
                 LD              A,(HasDoor)
                 RRA
                 PUSH            HL              ; Push this address.
-                JR              NC,FF_1         ; If bottom bit of HasDoor is set...
+                JR              NC,TE_1         ; If bottom bit of HasDoor is set...
                 ADD             HL,BC
                 EX              (SP),HL         ; Move 8 rows further on the stack-saved pointer
-FF_1:           ADD             HL,BC           ; In any case, move 8 rows on HL...
+TE_1:           ADD             HL,BC           ; In any case, move 8 rows on HL...
                 RRA
-                JR              NC,FF_2         ; Unless the next bit of HasDoor was set
+                JR              NC,TE_2         ; Unless the next bit of HasDoor was set
                 AND             A
                 SBC             HL,BC
-FF_2:           LD              DE,RightEdge    ; Call once...
-                CALL            FloorFnInner
+        ;; Copy some of the left column of the floor into the right edge.
+TE_2:           LD              DE,RightEdge    ; Call once...
+                CALL            TweakEdgesInner
+        ;; Then copy some of the right column of the floor pattern to the left.
                 POP             HL
                 INC             HL
                 LD              DE,LeftEdge+1   ; then again with saved address.
         ;; NB: Fall through
 
-        ;; Copy 4 bytes, skipping every second byte.
-FloorFnInner:   LD              A,$04
-FF_3:           LDI
+;; Copy 4 bytes, skipping every second byte. Used to copy part of the
+;; floor pattern into one side of the top of the edge pattern.
+;;
+;; Edge pattern in DE, floor in HL.
+TweakEdgesInner:LD              A,$04
+TEI_1:          LDI
                 INC             HL
                 INC             DE
                 DEC             A
-                JR              NZ,FF_3
+                JR              NZ,TEI_1
                 RET
 
 ;; ------------------------------------------------------------------------
@@ -351,6 +359,8 @@ GetOffsetWall:  PUSH    AF
                 INC     H
                 RET
 
+;; Zero means column buffer is zeroed, non-zero means filled with
+;; column image.
 IsColBufFilled: DEFB $00
 
 ;; Returns ColBuf in HL.
@@ -372,8 +382,8 @@ GetEmptyColBuf: LD      A,(IsColBufFilled)
                 RET
 
 ;; Called by GetWall for high-index sprites, to draw the space under a door
-;; A=4 -> blank space, A=5 -> columns
-GetUnderDoor:   BIT     0,A                     ; Low bit zero? Return cleared buffer.
+;; A=5 -> blank space, A=4 -> columns
+GetUnderDoor:   BIT     0,A                     ; Low bit nonzero? Return cleared buffer.
                 JR      NZ,GetEmptyColBuf       ; Tail call
                 LD      L,A
         ;; Otherwise, we're drawing a column
@@ -394,7 +404,7 @@ GetUnderDoor:   BIT     0,A                     ; Low bit zero? Return cleared b
 
 ;; Get a wall section thing.
 ;; Index in A. Top bit represents whether flip is required.
-;; Destination returned in HL.
+;; Pointer to data returned in HL.
 GetWall:        BIT     2,A             ; 4 and 5 handled by GetUnderDoor.
                 JR      NZ,GetUnderDoor
                 PUSH    AF
@@ -445,6 +455,7 @@ NF2_2:          RL              C
                 SCF
                 RET
 
+JpIX:                           ; Alternate, more helpful name.
 DoCopy:         JP      (IX)    ; Call the copying function
 DoClear:        JP      (IY)    ; Call the clearing function
 
@@ -496,14 +507,14 @@ SetFloorAddr:   LD      C,A
 ;; Address of the sprite used to draw the floor.
 FloorAddr:      DEFW IMG_2x24 - MAGIC_OFFSET + 2 * $30
 
-;; HL' points to the wall sprite id. If it's 'columns', we
+;; HL' points to the wall sprite id. If it's 'space', we
 ;; return a blank floor tile (FIXME: Why?).
 ;; Otherwise we return the current tile address pointer, plus C, in BC.
 GetFloorAddr:   PUSH    AF
                 EXX
                 LD      A,(HL)
                 OR      ~5
-                INC     A       ; If the wall sprite id is 5 (columns)...
+                INC     A       ; If the wall sprite id is 5 (space)...
                 EXX
                 JR      Z,GFA_1 ; jump.
                 LD      A,C
@@ -559,6 +570,10 @@ BF_2:           EXX
                 POP     HL
                 LD      A,L
                 ADD     A,$02
+        ;; Floor tiles are 24 pixels high. Depending on odd/even, we
+        ;; start at offset 0 or 16 (8 rows in). So, if we read offsets
+        ;; 0..31 (rows 0..15) from there, we get the right data, and
+        ;; can safely wrap.
                 AND     $1F
                 LD      L,A
                 EXX
@@ -661,7 +676,7 @@ TCB_1:          LD      A,(HL)
 
 ;; Flip a normal wall panel
 FlipPanel:      LD      B,SHORT_WALL
-        ;; Reverse a two-byte-wide image. Height in B, pointer to data in HL.
+;; Reverse a two-byte-wide image. Height in B, pointer to data in HL.
 FlipColumn:     PUSH    DE
                 LD      D,RevTable >> 8
                 PUSH    HL
@@ -681,7 +696,7 @@ FC_1:           INC     HL
                 RET
 
 ;; Top bit is set if the column image buffer is flipped
-IsColBufFlipped:        DEFB $00
+IsColBufFlipped:DEFB $00
 
 ;; Return the wall panel address in HL, given panel index in A.
 GetPanelAddr:   AND     $03     ; Limit to 0-3

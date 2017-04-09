@@ -6,8 +6,8 @@
 
 PanelBase:	DEFW $0000
 PanelFlipsPtr:	DEFW $0000	; Pointer to byte full of whether walls need to flip
-L84C7:	DEFB $00
-L84C8:	DEFB $00
+ScreenMaxV:	DEFB $00        ; The line (Y + X)/2 = ScreenMaxV is the line of MaxV onscreen.
+ScreenMaxU:	DEFB $00        ; The line (Y - X)/2 = ScreenMaxU is the line of MaxU onscreen.
 CornerX:	DEFB $00
 DoorZ:	DEFB $00
 
@@ -17,12 +17,14 @@ StoreCorner:	CALL	GetCorner
 		LD	C,A
 		ADD	A,B
 		RRA
-		LD	(L84C7),A ; Store (C + B - 6) / 2 (= 43 - MaxV)
+		LD	(ScreenMaxV),A ; Store (Y + X - 6) / 2 (= 43 - MaxV)
 		LD	A,B
 		NEG
 		ADD	A,C
+        ;; Hmmm. I think carry will never be set, so this resets top bit,
+        ;; effectively adding 128.
 		RRA
-		LD	(L84C8),A ; Store (C - B) / 2 (= -36 - MaxU)
+		LD	(ScreenMaxU),A ; Store (Y - X) / 2 (= -36 - MaxU)
 		LD	A,B
 		LD	(CornerX),A ; Store B
 		RET
@@ -238,6 +240,8 @@ FetchData2b:	PUSH	BC
 		RET
 
 ;; Gets values associated with the far back corner of the screen.
+;;
+;; Returns X in B, Y in C
 GetCorner:
         ;; Calculate X coordinate of max U, max V position into B
 		LD	A,(IY-$02) ; MaxU

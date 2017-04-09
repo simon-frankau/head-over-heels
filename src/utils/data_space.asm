@@ -1,7 +1,7 @@
 ;;
 ;; data_space.asm
 ;;
-;; Space for buffers etc. that overlaps with the 128K sound code.
+;; Space for buffers etc.
 ;;
 
 ;; This data area sits in the space between where memory patch-up/128K
@@ -19,9 +19,9 @@ RevTable:       EQU $B900
 ;;
 ;; NB: Page-aligned
 ;;
-;; Byte 0: Y start (0 = clear)
+;; Byte 0: Y of wall bottom (0 = clear)
 ;; Byte 1: Id for wall panel sprite
-;;         (0-3 - world-specific, 4 - blank, 5 - columns, | $80 to flip)
+;;         (0-3 - world-specific, 4 - columns, 5 - space, | $80 to flip)
 BkgndData:      EQU $BA00
 
 ;; TODO
@@ -31,3 +31,14 @@ LBA48:          EQU $BA48
 ;;  Buffer area used by controls and sprite-rotation code.
 Buffer:         EQU $BF20
 ;; TODO: Length?
+
+;; This data area sites after the moved-down data.
+;; (MoveDownEnd - MAGIC_OFFSET = 0xF944)
+
+;; Buffer for drawing columns into.
+ColBuf:         EQU $F944
+ColBufLen:      EQU TALL_WALL * 2       ; 2 bytes wide.
+
+;; Immediately follows ColBuf.
+DoorwayBuf:     EQU $F9D8
+DoorwayBufLen:  EQU 3 * 56 * 2          ; Includes image and mask.

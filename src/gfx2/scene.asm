@@ -6,10 +6,10 @@
 
 ;; Exported functions:
 ;; * StoreObjExtents
-;; * CheckYAndDraw
+;; * DrawXSafe
 ;; * UnionAndDraw
-;; * CheckAndDraw
-;; * GetObjExtents2
+;; * Draw
+;; * GetObjExtents
 
 ;; Exported variables:
 ;; * ViewXExtent
@@ -34,16 +34,16 @@ SpriteFlags:    DEFB $00
 ;; Given an object pointer in HL, calculate and store the object extents.
 StoreObjExtents:INC     HL
                 INC     HL
-                CALL    GetObjExtents2
+                CALL    GetObjExtents
                 LD      (ObjXExtent),BC
                 LD      (ObjYExtent),HL
                 RET
 
 ;; Takes object in HL, gets union of the extents of that object and
-;; Obj.Extent. Returns X extent in DE, Y extent in HL.
+;; Obj[XY]Extent. Returns X extent in HL, Y extent in DE.
 UnionExtents:   INC     HL
                 INC     HL
-                CALL    GetObjExtents2
+                CALL    GetObjExtents
         ;; At this point, X extent in BC, Y extent in HL.
                 LD      DE,(ObjYExtent)
         ;; D = min(D, H)
@@ -69,7 +69,7 @@ UE_3:           LD      A,L
                 LD      L,C
                 RET
 
-;; Store X extent, rounded, from HL
+;; Takes X extent in HL, rounds it to the byte, and stores in ViewXExtent.
 PutXExtent:     LD      A,L             ; Round L up
                 ADD     A,$03
                 AND     ~$03
@@ -81,34 +81,38 @@ PutXExtent:     LD      A,L             ; Round L up
                 RET
 
 ;; Takes X extent in HL and Y extent in DE.
-CheckYAndDraw:  CALL    PutXExtent
-                JR      CheckYAndDraw2
+DrawXSafe:      CALL    PutXExtent
+                JR      Draw2           ; Tail call
 
-;; If the end's before $48, give up, Otherwise bump the start down and
-;; continue.
-BumpYMinAndDraw:LD      A,$48
+;; If the end's before Y_START, give up. Otherwise bump the start down
+;; and continue.
+BumpYMinAndDraw:LD      A,Y_START
                 CP      E
                 RET     NC
-                LD      D,$48
-                JR      DrawCore
+                LD      D,Y_START
+                JR      DrawCore        ; Tail call
 
 UnionAndDraw:   CALL    UnionExtents
         ;; NB: Fall through
 
-;; Check the X extent - give up if it's too far to the right.
-CheckAndDraw:   CALL    PutXExtent
+;; Draw a given range of the screen, drawing into ViewBuff and then
+;; blitting to the screen. This entry point sanity-checks the extents
+;; first.
+;;
+;; X extent in HL, Y extent in DE
+Draw:           CALL    PutXExtent
+        ;; Check the Y extent - give up if it's too far down.
                 LD      A,E
                 CP      $F1
                 RET     NC
         ;; NB: Fall through
 
-;; Check the Y extent - give up if it's negative.
-;; If the start's less than $48, do a special case.
-;; Takes Y extent in DE.
-CheckYAndDraw2: LD      A,D
+;; Check the Y extent size - give up if it's negative.
+;; If the start's less than Y_START, do a special case.
+Draw2:          LD      A,D
                 CP      E
                 RET     NC
-                CP      $48
+                CP      Y_START
                 JR      C,BumpYMinAndDraw
         ;; NB: Fall through
 
@@ -116,8 +120,6 @@ CheckYAndDraw2: LD      A,D
 ;; draw the sprites, and then copy it to the screen.
 ;;
 ;; Y extent passed in through DE.
-;;
-;; TODO: Work out what all these flag variables are about...
 DrawCore:       LD      (ViewYExtent),DE
                 CALL    DrawBkgnd
         ;; Skip next rooms in U and V if neither $08 or $04 is set.
@@ -128,40 +130,45 @@ DrawCore:       LD      (ViewYExtent),DE
                 LD      E,A
                 AND     $08
                 JR      Z,DrC_1
-        ;; TODO: Another V test.
+        ;; Next room in V appears on left of screen...
+        ;; Skip if left of X extent is right of CornerX
                 LD      BC,(ViewXExtent)
                 LD      HL,CornerX
                 LD      A,B
                 CP      (HL)
                 JR      NC,DrC_1
-        ;; TODO: Another V test.
+        ;; Skip if min Y extent plus min X is greater than ScreenMaxV
                 LD      A,(ViewYExtent+1)
                 ADD     A,B
                 RRA
                 LD      D,A
-                LD      A,(L84C7)
+                LD      A,(ScreenMaxV)
                 CP      D
                 JR      C,DrC_1
         ;; Draw the next room in the V direction.
-                LD      HL,ObjectLists + 4
+                LD      HL,ObjectLists + 1 * 4
                 PUSH    DE
                 CALL    BlitObjects
                 POP     DE
         ;; Skip next room in U if $04 not set.
                 BIT     2,E
                 JR      Z,DrC_2
-        ;; TODO: Another U test.
+        ;; Next room in U appears on right of screen...
+        ;; Skip if right of X extent is left of CornerX
 DrC_1:          LD      BC,(ViewXExtent)
                 LD      A,(CornerX)
                 CP      C
                 JR      NC,DrC_2
-        ;; TODO: Another U test.
+        ;; Skip if min Y minus max X is greater than ScreenMaxU
                 LD      A,(ViewYExtent+1)
                 SUB     C
+        ;; If it goes negative, top bit is reset, otherwise top bit is set.
+        ;; Effectively, we add 128 as we RRA, allowing us to compare
+        ;; with ScreenMaxU.
                 CCF
                 RRA
                 LD      D,A
-                LD      A,(L84C8)
+                LD      A,(ScreenMaxU)
                 CP      D
                 JR      C,DrC_2
         ;; Draw the next room in U direction.
@@ -176,8 +183,8 @@ DrC_2:          LD      HL,ObjectLists + 3 * 4  ; Far
                 CALL    BlitObjects
                 JP      BlitScreen              ; NB: Tail call
 
-;; Call BlitObject for each object in the linked list.
-;; Note that we're using the second link, so the passed HL is an
+;; Call BlitObject for each object in the linked list pointed to by
+;; HL. Note that we're using the second link, so the passed HL is an
 ;; object + 2.
 BlitObjects:    LD      A,(HL)
                 INC     HL
@@ -214,7 +221,7 @@ BlitObject:     CALL    IntersectObj
         ;; Push X adjustments
                 PUSH    HL
                 EXX
-        ;; A = SpriteWidth & 4 ? -L * 4: -L * 3
+        ;; A = SpriteWidth & 4 ? -L * 4 : -L * 3
         ;; (Where L is the Y-adjustment for the sprite)
                 LD      A,L
                 NEG
@@ -256,7 +263,7 @@ BO_2:           PUSH    AF
                 ADD     HL,BC
                 EX      DE,HL
                 ADD     HL,BC
-        ;; Set it so thtat destination is in BC', image and mask in HL' and DE'.
+        ;; Set it so that destination is in BC', image and mask in HL' and DE'.
                 POP     BC
                 EXX
         ;; Load DE with an index from the blit functions table. This selects
@@ -305,12 +312,14 @@ BlitMasksOf3:   DEFW BlitMask1of5, BlitMask2of5, BlitMask3of5, BlitMask4of5, Bli
 ;; ViewXExtent and ViewYExtent. Also saves the X start in
 ;; SpriteXStart.
 ;;
+;; TODO: Handling of tall objects...
+;;
 ;; Parameters: HL contains object+2
 ;; Returns:
 ;;  Set carry flag if there's overlap
 ;;  X adjustments in HL', X overlap in A'
 ;;  Y adjustments in HL,  Y overlap in A
-IntersectObj:   CALL    GetObjExtents
+IntersectObj:   CALL    GetShortObjExt
                 LD      A,B
                 LD      (SpriteXStart),A
                 PUSH    HL
@@ -324,33 +333,38 @@ IntersectObj:   CALL    GetObjExtents
                 CALL    IntersectExtent
                 RET
 
-;; Like GetObjExtents, except if bit of flags is set, H is adjusted.
+;; Like GetShortObjExt, except it copes with tall objects.
 ;; If bit 5 is set, H is adjusted by -12, not set then -16
 ;;
-;; Parameters: Object+2 in HL
-;; Returns: X extent in BC, Y extent in HL
-GetObjExtents2: INC     HL
-                INC     HL
-                LD      A,(HL)
-                BIT     3,A             ; object[4] & 0x08?
-                JR      Z,GOE_1         ; Tail call out if not set
-                CALL    GOE_1           ; Otherwise, call and return
-                LD      A,(SpriteFlags)
-                BIT     5,A
-                LD      A,-16
-                JR      Z,GOE2_1
-                LD      A,-12
-GOE2_1:         ADD     A,H
-                LD      H,A             ; Adjust H
-                RET
-
-;; Sets SpriteFlags and generates extents for the object.
+;; TODO: I expect bit 5 set means it's two chained objects, 6 Z units
+;; (12 Y units) apart. I expect bit 5 reste means it's a 3x32 object,
+;; so we include the other 16 height.
 ;;
 ;; Parameters: Object+2 in HL
 ;; Returns: X extent in BC, Y extent in HL
 GetObjExtents:  INC     HL
                 INC     HL
                 LD      A,(HL)
+                BIT     3,A             ; Tall bit set?
+                JR      Z,GOE_1         ; Tail call out if not tall.
+                CALL    GOE_1           ; Otherwise, call and return
+                LD      A,(SpriteFlags)
+                BIT     5,A             ; Chained object bit set?
+                LD      A,-16           ; Bit not set - add 16 to height.
+                JR      Z,GOE2_1
+                LD      A,-12           ; Bit set - add 12 to height.
+GOE2_1:         ADD     A,H
+                LD      H,A             ; Bring min Y up.
+                RET
+
+;; Sets SpriteFlags and generates extents for the object.
+;;
+;; Parameters: Object+2 in HL
+;; Returns: X extent in BC, Y extent in HL
+GetShortObjExt: INC     HL
+                INC     HL
+                LD      A,(HL)
+        ;; Put a flip flag in A if the "switched" bit is set on the object.
         ;; A = (object[4] & 0x10) ? 0x80 : 0x00
 GOE_1:          BIT     4,A
                 LD      A,$00
@@ -360,12 +374,13 @@ GOE_2:          EX      AF,AF'
                 INC     HL
                 CALL    UVZtoXY         ; Called with object + 5
                 INC     HL
-                INC     HL              ; Now at object + 10
+                INC     HL              ; Now at object + 9
                 LD      A,(HL)
                 LD      (SpriteFlags),A
                 DEC     HL
                 EX      AF,AF'
-                XOR     (HL)            ; Flip flag on top of offset 9?
+        ;; TODO: Why doesn't this constantly flicker?
+                XOR     (HL)            ; Add extra horizontal flip to the sprite.
                 JP      GetSprExtents   ; NB: Tail call
 
 ;; Calculate parameters to do with overlapping extents
@@ -374,8 +389,8 @@ GOE_2:          EX      AF,AF'
 ;;  DE holds current extent
 ;; Returns:
 ;;  Sets carry flag if there's any overlap.
-;;  H holds the lower adjustment
-;;  L holds the upper adjustment
+;;  H holds the extent adjustment
+;;  L holds the sprite adjustment
 ;;  A holds the overlap size.
 IntersectExtent:
         ;; Check overlap and return NC if there is none.
@@ -416,7 +431,18 @@ IE_1:           LD      L,A     ; L = B - D
                 RET
 
 ;; Given HP pointing to an Object + 5, return X coordinate
-;; in C, Y coordinate in B. Increments HL by 3.
+;; in C, Y coordinate in B. Increments HL by 2.
+;;
+;; .-------X
+;; |
+;; | V     U
+;; |  \   /
+;; |   \ /
+;; |    .
+;; |    |
+;; |    |
+;; |    Z
+;; Y
 UVZtoXY:        LD      A,(HL)
                 LD      D,A             ; U coordinate
                 INC     HL

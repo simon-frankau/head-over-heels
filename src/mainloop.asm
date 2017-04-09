@@ -176,7 +176,7 @@ CP_1:		CALL	GetInputEntSh
 		LD	HL,$4C50 ; TODO
 CP_2:		PUSH	HL
 		LD	DE,$6088 ; TODO
-		CALL	CheckAndDraw
+		CALL	Draw
 		POP	HL
 		LD	A,L
 		LD	H,A

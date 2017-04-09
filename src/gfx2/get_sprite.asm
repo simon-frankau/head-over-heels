@@ -11,7 +11,14 @@
 
 ;; Exported functions:
 ;; * GetSpriteAddr
+;; * GetSprExtents
+;; * InitRevTbl
 ;; * Sprite3x56
+
+;; Exported variables:
+;; * DoorwayFlipped
+;; * SpriteCode
+;; * SpriteWidth
 
 ;; Exported constants:
 ;; * SPR_*
@@ -108,8 +115,6 @@ SPR_BOOK:       EQU $5D
 SPR_TOASTER:    EQU $5E
 SPR_CUSHION:    EQU $5F
 
-DoorwayBuf:     EQU $F9D8       ; TODO: Buffer
-
 ;; Width of sprite in bytes.
 SpriteWidth:    DEFB $04
 ;; Current sprite we're drawing.
@@ -128,8 +133,10 @@ RevLoop_2:      RRA
                 JR      NZ,RevLoop_1
                 RET
 
-;; Generates the X and Y extents, and sets the sprite code and sprite
-;; width.
+;; TODO: SpriteFlags
+
+;; For a given sprite code, generates the X and Y extents, and sets
+;; the current sprite code and sprite width.
 ;;
 ;; Parameters: Sprite code is passed in in A.
 ;;             X coordinate in C, Y coordinate in B
@@ -138,29 +145,32 @@ GetSprExtents:  LD      (SpriteCode),A
                 AND     $7F
                 CP      $10
                 JR      C,Case3x56      ; Codes < $10 are 3x56
-                LD      DE,$0606        ; TODO
-                LD      H,$12
+                LD      DE,$0606        ; 3x24 or 3x32 (3x32 will be modified)
+                LD      H,18
                 CP      $54
-                JR      C,SSW1
-                LD      DE,$0808        ; Codes >= $54 are 4x28 ; TODO number
-                LD      H,$14
-SSW1:           CP      $18
-                JR      NC,SSW2
-                LD      A,(SpriteFlags) ; 3x24 or 4x28
+                JR      C,SSW_1
+                LD      DE,$0808        ; Codes >= $54 are 4x28
+                LD      H,20
+SSW_1:          CP      $18
+                JR      NC,SSW_2
+                LD      A,(SpriteFlags) ; Codes < $18 are 3x32
                 AND     $02
-                LD      D,$04
-                LD      H,$0C
-                JR      Z,SSW2
-                LD      D,$00
-                LD      H,$10
+                LD      D,4
+                LD      H,12
+                JR      Z,SSW_2
+                LD      D,0
+                LD      H,16
         ;; All cases but 3x56 join up here:
         ;; D is Y extent down, H is Y extent up
         ;; E is half-width (in double pixels)
+        ;;
         ;; 4x28: D = 8, E = 8, H = 20
         ;; 3x24: D = 6, E = 6, H = 18
-        ;; 3x32: D = 4, E = 6, H = 12 if flags & 2
-        ;; 3x32: D = 0, E = 6, H = 16 otherwise
-SSW2:           LD      A,B
+        ;; 3x32: D = 0, E = 6, H = 16 if flags & 2
+        ;; 3x32: D = 4, E = 6, H = 12 otherwise
+        ;;
+        ;; The 3x32 case is split into 2 parts of height 16 each.
+SSW_2:          LD      A,B
                 ADD     A,D
                 LD      L,A             ; L = B + D
                 SUB     D
@@ -177,7 +187,17 @@ SSW2:           LD      A,B
                 RRA                     ; And save width in bytes to SpriteWidth
                 LD      (SpriteWidth),A
                 RET
-Case3x56:       LD      HL,(CurrObject2+1)
+
+Case3x56:
+        ;; Horrible hack to get the current object - we're usually
+        ;; called via BlitObjects, which sets this.
+        ;;
+        ;; However, IntersectObj is also called via AddObject, so err...
+        ;; either something clever's going on, or the extents can be
+        ;; slightly wrong in the AddObject case for doors.
+        ;;
+        ;; TODO: Tie these into the object definitions and flags
+                LD      HL,(CurrObject2+1)
                 INC     HL
                 INC     HL
                 BIT     5,(HL)          ; Check flag bit 0x20 for later
@@ -231,13 +251,14 @@ GetSpriteAddr:  LD      A,(SpriteCode)
                 LD      A,(SpriteCode)
                 LD      C,A
                 RLA
-                LD      A,(DoorwayTest)
+                LD      A,(DoorwayTest) ; TODO: ???
                 JR      C,GSA_1         ; Flip bit set?
                 CP      $06             ; Then special case is 6.
                 JR      GSA_2
 GSA_1:          CP      $03             ; Otherwise it's 3.
 GSA_2:          JR      Z,Sprite3x56
-        ;; Occluded doorway case:
+        ;; Use DoorwayBuf.
+        ;; TOOD: Occluded doorway case:
                 LD      A,(DoorwayFlipped)
                 XOR     C
                 RLA
@@ -274,7 +295,9 @@ Sprite3x56:     LD      A,L
 
 ;; Deal with a 3 byte x 32 pixel high sprite.
 ;; Same parameters/return as GetSpriteAddr.
-;; Returns a half-height offset sprite if bit 2 is not set.
+;;
+;; Returns a half-height offset sprite if bit 2 is not set, since the
+;; 3x32 sprites are broken into 2 16-bit-high chunks.
 Sprite3x32:     SUB     $10
                 LD      L,A
                 ADD     A,A             ; 2x
@@ -452,4 +475,5 @@ NF_2:           RL      C               ; Bit was zero
                 LD      (HL),A          ; If top bit of SpriteCode was set, set bit mask
                 RET
 
+;; Are the contents of DoorwayBuf flipped?
 DoorwayFlipped: DEFB $00

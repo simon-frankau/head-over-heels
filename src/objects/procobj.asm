@@ -12,6 +12,8 @@
 ;;  * EnlistAux
 ;;  * Relink
 
+OBJECT_LEN:     EQU 18
+
 ;; Copy an object into the object buffer, add a second object if it's
 ;; doubled, and link it into the depth-sorted lists.
 ;;

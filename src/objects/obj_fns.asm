@@ -39,8 +39,9 @@
         ;; Offset 2: 'A' list next item pointer
 	;; Offset 4: Some flag - bit 6 and 7 causes skipping.
         ;;           Bits 0-2: Object shape - see GetUVZExtents
-        ;;           Bit 3:    Tall (extra 6 height)
+        ;;           Bit 3: Tall (extra 6 height)
         ;;           Bit 4: Holds switch status for a switch.
+        ;;           Bit 5: Used on doors by Case3x56.
         ;;           Bit 6: Object is a special collectable item.
 	;; Offset 5: U coordinate
 	;; Offset 6: V coordinate
@@ -53,8 +54,8 @@
         ;;           Bit 4 = non-deadlyness?
         ;;           Bit 5 = has another object tacked after (double height?)
         ;;           Bit 7 = switched flag
-	;; Offset A: Top bit is flag that's checked against Phase, lower 6 bits are object function.
         ;;           Gets loaded into SpriteFlags
+	;; Offset A: Top bit is flag that's checked against Phase, lower 6 bits are object function.
 	;; Offset B: Bottom 4 bits are roller direction... last move dir for updated things.
 	;; Offset C: Some form of direction bitmask?
         ;;           I think it's how we're being pushed. I think bit 5 means 'being stood on'.

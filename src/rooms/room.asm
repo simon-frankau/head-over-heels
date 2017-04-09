@@ -12,31 +12,35 @@
 ;;  * AddObjOpt
 ;;  * HasFloorAbove
 
-        ;; Pointer into stack for current origin coordinates
+;; Pointer into stack for current origin coordinates
 DecodeOrgPtr:   DEFW DecodeOrgStack
-        ;; Each stack entry contains UVZ coordinates
+;; Each stack entry contains UVZ coordinates
 DecodeOrgStack: DEFB $00, $00, $00
                 DEFB $00, $00, $00
                 DEFB $00, $00, $00
                 DEFB $00, $00, $00
-L76EC:	DEFB $00
-L76ED:	DEFB $00
 
-        ;; Buffer for an object used during unpacking
-TmpObj:	DEFB $00,$00,$00,$00,$00,$00,$00,$00
-	DEFB $00,$00,$00,$FF,$FF,$00,$00,$00
-        DEFB $00,$00
+;; TODO: Doesn't seem to be modified anywhere?
+BaseFlags:      DEFW $0000
 
-UnpackFlags:	DEFB $00
+;; Buffer for an object used during unpacking
+TmpObj:         DEFB $00,$00,$00,$00,$00,$00,$00,$00
+                DEFB $00,$00,$00,$FF,$FF,$00,$00,$00
+                DEFB $00,$00
 
-	;; Current pointer to bit-packed data
-DataPtr:	DEFW $0000
-	;; The remaining bits to read at the current address.
-CurrData:	DEFB $00
+;; Bit 0: Do we loop?
+;; Bit 1: Are all the switch flags the same in the loop?
+;; Bit 2: If they're the same, the value.
+UnpackFlags:    DEFB $00
 
-	;; FIXME: Decode remaining DataPtr/CurrData references...
-	
-ExpandDone:	DEFB $00
+;; Current pointer to bit-packed data
+DataPtr:        DEFW $0000
+;; The remaining bits to read at the current address.
+CurrData:       DEFB $00
+
+;; Set to 0xFF when the current expansion is complete.
+ExpandDone:     DEFB $00
+
 DoorType:	DEFB $00,$00
         ;; Flags that are used for the sprites for each half of each
 	;; of the 4 doors.
@@ -96,10 +100,11 @@ BuildRoom2:	LD	A,$FF
         ;; Set up a room.
 BuildRoom:	LD	IY,MinU 		; Set the base of where we load limits.
 	;; Initialise the sprite extents to cover the full screen.
-		LD	HL,$40C0 ; TODO
+		LD	HL,$40C0
 		LD	(ViewXExtent),HL
-		LD	HL,$00FF ; TODO
+		LD	HL,$00FF
 		LD	(ViewYExtent),HL
+        ;; TODO
 		LD	HL,$C0C0 ; TODO
 		LD	(DoorLocs),HL
 		LD	(DoorLocs+2),HL
@@ -137,14 +142,14 @@ BuildRoom:	LD	IY,MinU 		; Set the base of where we load limits.
         ;; Draw the next room in V direction, tacked on.
 		LD	A,$01
 		CALL	SetObjList
-		LD	BC,(RoomId) ; Increment V nybble of the RoomId
+		LD	BC,(RoomId)     ; Increment V nybble of the RoomId
 		LD	A,B
 		INC	A
 		XOR	B
 		AND	$0F
 		XOR	B
 		LD	B,A
-		LD	A,(MaxV) ; Set HL offset to MavV
+		LD	A,(MaxV)        ; Set HL offset to MavV
 		LD	H,A
 		LD	L,$00
 		CALL	ReadRoom
@@ -160,14 +165,14 @@ BRM_1:		LD	IY,AltLimits + 4
         ;; Draw the next room in U direction, tacked on.
 		LD	A,$02
 		CALL	SetObjList
-		LD	BC,(RoomId) ; Increment U byte of the RoomId
+		LD	BC,(RoomId)     ; Increment U byte of the RoomId
 		LD	A,B
 		ADD	A,$10
 		XOR	B
 		AND	$F0
 		XOR	B
 		LD	B,A
-		LD	A,(MaxU) ; Set HL offset to MaxU
+		LD	A,(MaxU)        ; Set HL offset to MaxU
 		LD	L,A
 		LD	H,$00
 		CALL	ReadRoom
@@ -181,8 +186,8 @@ BRM_2:		LD	A,(DoorHeight)
 		CALL	SetColHeight
 		POP	HL
 		LD	(HasNoWall),HL
-		XOR	A                       ; Switch back to usual object list.
-		JP	SetObjList 		; NB: Tail call.
+		XOR	A               ; Switch back to usual object list.
+		JP	SetObjList 	; NB: Tail call.
 
 ;; Unpacks a room, adding all its sprites to the lists, and generally
 ;; setting it up.
@@ -211,12 +216,12 @@ ReadRoom:	LD	(DecodeOrgStack),HL 	; Set UV origin.
         ;; Loop twice...
 		LD	B,$02
 		LD	IX,DecodeOrgStack
-ER1:
+RR_1:
         ;; Load U, then V DoorExt and origin.
         	LD	C,(HL)
 		LD	A,(IX+$00)
 		AND	A
-		JR	Z,ER2
+		JR	Z,RR_2
         ;; If origin is non-zero, update by subtracting C and dividing by 8. (?)
 		SUB	C
 		LD	E,A
@@ -227,17 +232,17 @@ ER1:
 		LD	(IX+$00),A
 		LD	A,E
         ;; And store sum in IY.
-ER2:		ADD	A,C
+RR_2:		ADD	A,C
 		LD	(IY+$00),A
 		INC	HL
 		INC	IX
 		INC	IY
-		DJNZ	ER1
+		DJNZ	RR_1
 
 	;; Do this bit twice, too (for U and V again)
 		LD	B,$02
         ;; Take previous origin, multiply by 8 and add the DoorExt.
-ER3:		LD	A,(IX-$02)
+RR_3:		LD	A,(IX-$02)
 		ADD	A,A
 		ADD	A,A
 		ADD	A,A
@@ -247,7 +252,7 @@ ER3:		LD	A,(IX-$02)
 		INC	IY
 		INC	IX
 		INC	HL
-		DJNZ	ER3
+		DJNZ	RR_3
 
         ;; Now read the room configuration
                 LD      B,$03
@@ -262,8 +267,8 @@ ER3:		LD	A,(IX-$02)
                 LD      (FloorCode),A           ; And the floor pattern to use
                 CALL    SetFloorAddr
         ;; Then we have a loop to process objects in the room.
-ER4:            CALL    ProcEntry
-                JR      NC,ER4
+RR_4:           CALL    ProcEntry
+                JR      NC,RR_4
                 POP     BC
                 JP      AddSpecials             ; NB: Tail call.
 
@@ -274,7 +279,7 @@ Add3Bit:        BIT     2,A
 A3B:            ADD     A,(HL)
                 RET
 
-;; Recursively do ProcEntry
+;; Recursively do ProcEntry. Macro code is in A.
 RecProcEntry:   EX      AF,AF'
         ;; When processing recursively, we read 3 values to adjust the
         ;; origin for the macro-expanded processing, so it can be played
@@ -339,7 +344,7 @@ ProcEntry:      LD      B,$08
         ;; Otherwise, deal with an object.
                 PUSH    IY
                 LD      IY,TmpObj
-                CALL    InitObj
+                CALL    InitObj                 ; Object code in A.
                 POP     IY
         ;; Read two bits. Bottom bit is "should loop".
         ;; Top bit is "read flag bit once for all loops?".
@@ -351,7 +356,7 @@ ProcEntry:      LD      B,$08
                 LD      A,$01
                 JR      PE_2
 PE_1:
-        ;; Not reading per-loop. Read once and store in the 0x04 bit position.
+        ;; Not reading per-loop. Read once and store in the bit 2.
                 PUSH    AF
                 LD      B,$01
                 CALL    FetchData
@@ -380,7 +385,7 @@ PE_4:           CALL    AddObjOpt
 
 ;; If SkipObj is zero, do an "AddObject"
 AddObjOpt:      LD      HL,TmpObj
-                LD      BC,$0012 ; TODO
+                LD      BC,OBJECT_LEN
                 PUSH    IY
                 LD      A,(SkipObj)
                 AND     A
@@ -562,17 +567,18 @@ NoDoorRet:	POP	HL
 		RET
 
 ;; Clears CurrData and returns a pointer to a specific room description macro
+;; Macro id passed in A', pointer returned in HL.
 FindMacro:      LD      A,$80
                 LD      (CurrData),A    ; Clear buffered byte.
                 LD      HL,RoomMacros
                 EX      AF,AF'
                 LD      D,$00
-FM1:            LD      E,(HL)
+FM_1:           LD      E,(HL)
                 INC     HL
                 CP      (HL)
                 RET     Z
                 ADD     HL,DE
-                JR      FM1
+                JR      FM_1
 
 ;; Returns with carry set if the room above has a floor. Unset
 ;; otherwise.
@@ -638,7 +644,8 @@ FindRoom2:      EXX
 ;;  HL' and C' are incremented as the address and bit mask for a bitfield
 ;;   associated with the nth entry.
 ;;
-;; The carry flag is set if nothing's returned. 
+;; The carry flag is set if nothing's returned.
+;; If the room is found, you can read data with FetchData.
 FindRoomInner:
         ;; Return with carry set if (HL) is 0 - not found.
                 LD      E,(HL)
@@ -646,27 +653,27 @@ FindRoomInner:
                 DEC     E
                 SCF
                 RET     Z
-        ;; If HL+1 equals B, go to FR4
+        ;; If HL+1 equals B, go to FR_4
                 INC     HL
                 LD      A,B
                 CP      (HL)
-                JR      Z,FR4
+                JR      Z,FR_4
         ;; Otherwise, increment HL by DE, move the bit pointer in C',
         ;; and increment HL' every time the bit wraps round. Then loop.
-FR2:            ADD     HL,DE
+FR_2:           ADD     HL,DE
                 EXX
                 RLC     C
-                JR      NC,FR3
+                JR      NC,FR_3
                 INC     HL
-FR3:            EXX
+FR_3:           EXX
                 JR      FindRoomInner
         ;; Second check: Does HL+2 & 0xF0 equal C?
-FR4:            INC     HL
+FR_4:           INC     HL
                 DEC     E       ; Incremented HL, so decrement DE.
                 LD      A,(HL)
                 AND     $F0
                 CP      C
-                JR      NZ,FR2
+                JR      NZ,FR_2
         ;; Found item. Step back to start of item.
                 DEC     HL
         ;; Initialise DataPtr and CurrData for new data.
@@ -678,38 +685,40 @@ FR4:            INC     HL
                 JP      FetchData ; NB: Tail call
 
 ;; Called from inside the ProcEntry loop...
-SetTmpObjFlags:	LD	A,(UnpackFlags)
-		RRA
-		RRA
+SetTmpObjFlags: LD      A,(UnpackFlags)
+                RRA
+                RRA
         ;; If the 'read once' bit is set, use the read-once value.
         ;; Otherwise, read another bit.
-		JR	C,STOF_1
-		LD	B,$01
-		CALL	FetchData
-STOF_1:		AND	$01
-        ;; Flag goes into 0x10 position of the object flag.
-		RLCA
-		RLCA
-		RLCA
-		RLCA
-		AND	$10
+                JR      C,STOF_1
+                LD      B,$01
+                CALL    FetchData
+STOF_1:         AND     $01
+        ;; Flag goes into 0x10 position ("is switched?") of the object flag
+                RLCA
+                RLCA
+                RLCA
+                RLCA
+                AND     $10
         ;; Set fields of TmpObj
-		LD	C,A
-		LD	A,(L76ED)
-		XOR	C
-		LD	(TmpObj+4),A
-		LD	BC,(L76EC)
-		BIT	4,A
-		JR	Z,STOF_3
-		BIT	1,A
-		JR	Z,STOF_2
-		XOR	$01
-		LD	(TmpObj+4),A
-STOF_2:		DEC	C
-		DEC	C
-STOF_3:		LD	A,C
-		LD	(TmpObj+16),A
-		RET
+                LD      C,A
+                LD      A,(BaseFlags + 1)
+                XOR     C
+                LD      (TmpObj+4),A
+                LD      BC,(BaseFlags)
+        ;; If 0x10 position set, flip bit 0 if bit 1 set. (???)
+        ;; It also adjusts the value going into offset 0x10. TODO: ???
+                BIT     4,A
+                JR      Z,STOF_3
+                BIT     1,A
+                JR      Z,STOF_2
+                XOR     $01
+                LD      (TmpObj+4),A
+STOF_2:         DEC     C
+                DEC     C
+STOF_3:         LD      A,C
+                LD      (TmpObj+16),A
+                RET
 
 ;; Read U, V, Z coords (3 bits each), and set TmpObj's location
 SetTmpObjUVZEx: CALL    FetchData333
@@ -724,10 +733,11 @@ SetTmpObjUVZ:   EX      AF,AF'
 
 ;; Calculates U, V and Z coordinates
 ;;  DE points to where we will write the U, V and Z coordinates
-;;  HL points to the address of the origin which we add our coordinates to.
-;;  B contains U, C contains V, A' contains Z
+;;  HL points to the address of the origin data.
+;;  We pass in coordinates:
+;;   B contains U, C contains V, A' contains Z
 ;;  U/V coordinates are built on a grid of * 8 + 12
-;;  Z coordinate is built on a grid of * 6 + 0x96
+;;  Z coordinate is built on a grid of * 6 + 0x96 (i.e. [0..7])
 ;;  Sets ExpandDone to 0xFF (done) if B = 7, C = 7, A' = 0
 SetUVZ:         LD      A,B
                 CALL    TwiddleHL
@@ -756,7 +766,7 @@ SetUVZ:         LD      A,B
                 LD      (ExpandDone),A
                 RET
 
-;; Read a value from (HL), increment HL, return value * 8 + 12
+;; Add a value from (HL), increment HL, return value * 8 + 12
 TwiddleHL:      ADD     A,(HL)
                 INC     HL
                 RLCA

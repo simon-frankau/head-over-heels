@@ -12,7 +12,7 @@
 ;; * Print2DigitsR
 
 ;; Exported variables:
-;; * CharCursor
+;; * CharCursor - double pixel X coord centred on $80, Y top of screen = 0
 
 ;; Exported constants:
 ;; * CTRL_*

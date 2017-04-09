@@ -10,12 +10,17 @@
 ;; Exported variables:
 ;; * BlitYOffset
 
+;; Y coordinate of first line of the display.
+Y_START:        EQU $48
+
 ;; BlitScreen copies from ViewBuff to the screen coordinates of
-;; ViewYExtent and ViewXExtent.
+;; ViewYExtent and ViewXExtent. The X extent can be up to 6 bytes (24
+;; double pixels).
 ;;
 ;; ViewBuff must be arranged as 6 bytes wide, and the Y origin can
-;; be adjusted by overwriting BlitYOffset. The X origin is always
-;; fixed at 0x40 in double-width pixels.
+;; be adjusted by overwriting BlitYOffset. It is usually Y_START, but
+;; is set to 0 during DrawSprite. The X origin is always fixed at 0x40
+;; in double-width pixels.
 BlitScreen:
         ;; Construct X coordinate: 2 * (XHigh) - $80
                 LD      HL,(ViewXExtent)

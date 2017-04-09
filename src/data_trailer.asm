@@ -38,22 +38,33 @@ IMG_CHARS:
 
 	;; FIXME: Make into binaries
 IMG_ColTop:
-	DEFB $00,$03,$00,$03,$00,$3C,$00,$CF,$01,$F3,$0E,$7C,$3F,$9F,$FF
-	DEFB $3C,$FC,$F3,$F3,$CF,$CF,$3E,$3C,$F8,$F3,$E4,$CF,$9C,$3E,$78,$79
-	DEFB $F8,$67,$F0,$07,$C8
+        DEFB $00,$03,$00,$03
+        DEFB $00,$3C,$00,$CF
+        DEFB $01,$F3,$0E,$7C
+        DEFB $3F,$9F,$FF,$3C
+        DEFB $FC,$F3,$F3,$CF
+        DEFB $CF,$3E,$3C,$F8
+        DEFB $F3,$E4,$CF,$9C
+        DEFB $3E,$78,$79,$F8
+        DEFB $67,$F0,$07,$C8
 
-IMG_ColMid:	
-	DEFB $78,$3C,$1F,$F0,$27,$C8,$38,$38,$5F,$F4,$4C
-	DEFB $64,$73,$9C,$1E,$F0,$23,$88,$3C,$78,$1F,$F0,$27,$C8
+IMG_ColMid:
+        DEFB $78,$3C,$1F,$F0
+        DEFB $27,$C8,$38,$38
+        DEFB $5F,$F4,$4C,$64
+        DEFB $73,$9C,$1E,$F0
+        DEFB $23,$88,$3C,$78
+        DEFB $1F,$F0,$27,$C8
 
 IMG_ColBottom:
-	DEFB $78,$3C,$7F
-	DEFB $FC,$3F,$F8,$0F,$E0,$00,$00,$00,$00,$00,$00,$00
-	DEFB $00
-	;; End of area that gets moved down.
+        DEFB $78,$3C,$7F,$FC
+        DEFB $3F,$F8,$0F,$E0
+        DEFB $00,$00,$00,$00
+        DEFB $00,$00,$00,$00
 
+;; End of area that gets moved down.
 MoveDownEnd:
-        
+
 XFAAC:	DEFB $00,$00,$00
 XFAAF:	DEFB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 XFABF:	DEFB $65,$72,$20,$20,$20,$20,$20,$20,$EA,$06,$00,$00,$48,$05,$0D,$00

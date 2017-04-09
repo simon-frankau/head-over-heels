@@ -260,7 +260,7 @@ BoostCountDbl:  LD      A,C
 
         ;; FIXME: Does some other thing before boosting the count.
 BoostCountPlus: PUSH    AF
-                CALL    DoCopy  ; Just used as a way to call IX.
+                CALL    JpIX
                 POP     AF
         ;; NB: Fall through
 
