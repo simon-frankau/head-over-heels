@@ -849,7 +849,7 @@ CharThing15:	XOR	A 	; FIXME: Unused?
 		XOR	$01
 		LD	E,A
 		LD	D,$00
-		LD	HL,DoorLocsCopy
+		LD	HL,DoorHeights
 		ADD	HL,DE
 		LD	C,(HL)
 		LD	HL,LAA6E

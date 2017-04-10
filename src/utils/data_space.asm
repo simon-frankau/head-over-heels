@@ -23,10 +23,11 @@ RevTable:       EQU $B900
 ;; Byte 1: Id for wall panel sprite
 ;;         (0-3 - world-specific, 4 - columns, 5 - space, | $80 to flip)
 BkgndData:      EQU $BA00
+BkgndDataLen:   EQU $0040
 
-;; TODO
-LBA40:          EQU $BA40
-LBA48:          EQU $BA48
+;; Array where we actually write the objects.
+Objects:        EQU $BA40
+ObjectsLen:     EQU $03F0       ; Goes up to $BE20.
 
 ;;  Buffer area used by controls and sprite-rotation code.
 Buffer:         EQU $BF20

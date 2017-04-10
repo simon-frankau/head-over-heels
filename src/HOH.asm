@@ -728,7 +728,7 @@ XORs:
 ObjVars:        DEFB $1B                ; Reinitialisation size
 
                 DEFB $00
-                DEFW LBA40
+                DEFW Objects
                 DEFW ObjectLists + 0
                 DEFW ObjectLists + 2
                 DEFW $0000
@@ -741,7 +741,7 @@ ObjVars:        DEFB $1B                ; Reinitialisation size
         ;; The index into ObjectLists.
 ObjListIdx:     DEFB $00
         ;; Current pointer for where we write objects into
-ObjDest:        DEFW LBA40
+ObjDest:        DEFW Objects
         ;; 'A' list item pointers are offset +2 from 'B' list pointers.
 ObjListAPtr:    DEFW ObjectLists
 ObjListBPtr:    DEFW ObjectLists + 2
@@ -754,7 +754,7 @@ ObjectLists:    DEFW $0000,$0000 ; 0 - Usual list
                 DEFW $0000,$0000 ; 3 - Far
                 DEFW $0000,$0000 ; 4 - Near
 
-LAF92:		DEFW LBA40
+SavedObjDest:	DEFW Objects
 SortObj:	DEFW $0000
 
         ;; Given an index in A, set the object list index and pointers.

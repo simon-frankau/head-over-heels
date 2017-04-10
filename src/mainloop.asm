@@ -383,6 +383,7 @@ SCF_2:		RES	1,(IY+$1B)
 		RET
 
 ;; Returns whether or not we're in the same room as the other character.
+;; Zero flag is set if it's a shared room.
 IsSharedRoom:	LD	HL,(RoomId)
 		LD	DE,(OtherState)
 		AND	A
@@ -434,7 +435,7 @@ CS_1:           EX      AF,AF'
                 CALL    CopyData
                 DEFW    $0019, LA2A2
                 CALL    CopyData
-                DEFW    $03F0, LBA40
+                DEFW    ObjectsLen, Objects
                 RET
 
 ;; Runs CopyData on a character object.
@@ -457,7 +458,7 @@ LoadCharObjs:   PUSH    DE
                 LDIR
         ;; Fall through.
 
-ClearObjLists:  LD      HL,(LAF92)      ; NB: Referenced as data.
+ClearObjLists:  LD      HL,(SavedObjDest)       ; NB: Referenced as data.
                 LD      (ObjDest),HL
                 LD      HL,ObjectLists + 4
                 LD      BC,8    ; TODO

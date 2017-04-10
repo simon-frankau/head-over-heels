@@ -31,18 +31,19 @@ FD_3:           INC     HL
                 JP      FD_2
 
 ;; TODO
-CallBothWalls:  LD      HL,(DoorLocs)
-        ;; Take the smaller of H and L.
+CallBothWalls:
+        ;; Get the heights of the doors on the back walls.
+                LD      HL,(DoorHeightsTmp)
+        ;; Take the smaller of H and L - the higher door.
                 LD      A,L
                 CP      H
                 JR      C,CBW_1
                 LD      A,H
         ;; Take it away from C0, to convert to a height above ground...
-        ;; So make it the lower of the two.
 CBW_1:          NEG
                 ADD     A,$C0
-        ;; Lower (increase Z coord) door height if it's a value less than A.
-                LD      HL,DoorHeight
+        ;; Increase HighestDoor if it's a value less than A.
+                LD      HL,HighestDoor
                 CP      (HL)
                 JR      C,CBW_2
                 LD      (HL),A

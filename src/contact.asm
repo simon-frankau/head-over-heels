@@ -20,7 +20,7 @@ GetDoorHeight:
                 LD      A,(SavedObjListIdx)
                 AND     A
                 RET     Z
-                LD      IX,DoorLocsCopy
+                LD      IX,DoorHeights
         ;; Return IX+$00 if near MaxV
                 LD      C,(IX+$00)
                 LD      A,(MaxV)

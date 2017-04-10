@@ -53,7 +53,7 @@ InitContinue:	CALL	Reinitialise
 		CALL	UpdateAttribs	; Blacked-out attributes
 		JP	DoContinue	; Tail call
 
-FinishRestore:	CALL	BuildRoom2
+FinishRestore:	CALL	BuildRoomNoObj
 		CALL	Reinitialise
 		DEFW	ReinitThing
 		CALL	SetCharThing
@@ -105,7 +105,7 @@ EnterRoom:	CALL	Reinitialise
 ER_1:		CALL	IsSharedRoom
 		JR	NZ,ER_4
 		CALL	RestoreStuff2
-		CALL	BuildRoom2
+		CALL	BuildRoomNoObj
 		LD	HL,HeelsObj
 		CALL	GetUVZExtentsB
 		EXX

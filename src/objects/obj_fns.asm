@@ -43,6 +43,7 @@
         ;;           Bit 4: Holds switch status for a switch.
         ;;           Bit 5: Used on doors by Case3x56.
         ;;           Bit 6: Object is a special collectable item.
+        ;;           For doors, bits 4 and 5 hold the direction.
 	;; Offset 5: U coordinate
 	;; Offset 6: V coordinate
 	;; Offset 7: Z coordinate, C0 = ground
@@ -75,6 +76,7 @@
         ;;    |
         ;;    Z
 
+O_OFLAGS:       EQU $04
 O_U:            EQU $05
 O_V:            EQU $06
 O_Z:            EQU $07

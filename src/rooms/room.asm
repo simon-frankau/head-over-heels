@@ -6,7 +6,6 @@
 
 ;; Exported functions:
 ;;  * BuildRoom
-;;  * ReadRoom
 ;;  * SetTmpObjUVZ
 ;;  * SetUVZ
 ;;  * AddObjOpt
@@ -41,91 +40,123 @@ CurrData:       DEFB $00
 ;; Set to 0xFF when the current expansion is complete.
 ExpandDone:     DEFB $00
 
-DoorType:	DEFB $00,$00
-        ;; Flags that are used for the sprites for each half of each
-	;; of the 4 doors.
+;; Sprites to use for L and R parts of the door.
+DoorSprites:    DEFB $00,$00
+
+;; Bits 4 and 5 have values as follows:
+;; 2/\1
+;; 3\/0
+;; TODO: Not sure about the lower bits.
 DoorObjFlags:   DEFB $27, $26
                 DEFB $17, $15
                 DEFB $05, $04
                 DEFB $36, $34
 
-DoorwayTest:	DEFB $00
-L7710:	DEFB $00
-FloorCode:	DEFB $00
-        ;; Set if the room above has a floor.
-FloorAboveFlag:	DEFB $00
-        ;; Do we skip processing the objects?
-SkipObj:	DEFB $00
+RoomShapeIdx:   DEFB $00        ; The room shape for the main room.
+RoomShapeIdxTmp:DEFB $00        ; The room shape for the room being processed.
 
-AttribScheme:	DEFB $00
-WorldId:	DEFB $00	; Range 0..7 (I think 7 is 'same as last')
-HasNoWall:	DEFB $00        ; $08 = Extra room in V direction, $04 = Extra in U dir
-HasDoor:	DEFB $00
-        ;; IY is pointed after to byte MaxV to access limits.
-MinU:	        DEFB $00
-MinV:	        DEFB $00
-MaxU:	        DEFB $00
-MaxV:	        DEFB $00
-        ;; AltLimits is also used as IY.
-AltLimits:      DEFB $00
+;; The index of the floor pattern to use.
+FloorCode:      DEFB $00
+
+;; Set if the room above has a floor.
+FloorAboveFlag: DEFB $00
+
+;; Suppress drawing of objects - used when restoring room states.
+SkipObj:        DEFB $00
+
+AttribScheme:   DEFB $00
+WorldId:        DEFB $00        ; Range 0..7 (I think 7 is 'same as last')
+
+;; Bit numbers for the doors:
+;; 3/\2
+;; 0\/1
+HasNoWall:      DEFB $00        ; $8 = Extra room in +V, $04 = Extra in +U
+HasDoor:        DEFB $00
+
+;; IY is pointed to MinU, and values are loaded in (based on RoomShape),
+;; with IY incrementing to point after MaxV when loading is complete.
+MinU:           DEFB $00
+MinV:           DEFB $00
+MaxU:           DEFB $00
+MaxV:           DEFB $00
+;; AltLimits[12] are also used as IY for drawing extra rooms.
+AltLimits1:     DEFB $00
+                DEFB $00
+                DEFB $00
+                DEFB $00
+AltLimits2:     DEFB $00
                 DEFB $00
                 DEFB $00
                 DEFB $00
 
-L7720:	DEFB $00
-L7721:	DEFB $00
-L7722:	DEFB $00
-L7723:	DEFB $00
+;; Coordinates of doors along the walls. cf RoomShapes coordinates.
+DOOR_LOW:       EQU $24
+DOOR_HIGH:      EQU $2C
 
-        ;; Something that looks like extents, and looks like it's to do with doors.
-DoorExts:	DEFB $08,$08,$48,$48
-		DEFB $08,$10,$48,$40
-		DEFB $08,$18,$48,$38
-		DEFB $08,$20,$48,$30
-		DEFB $10,$08,$40,$48
-		DEFB $18,$08,$38,$48
-		DEFB $20,$08,$30,$48
-		DEFB $10,$10,$40,$40
+;; Array of room shapes: Min U, Min V, Max U, Max V
+;; Index into array stored in RoomShapeIdx(Tmp).
+RoomShapes:     DEFB $08,$08,$48,$48
+                DEFB $08,$10,$48,$40
+                DEFB $08,$18,$48,$38
+                DEFB $08,$20,$48,$30
+                DEFB $10,$08,$40,$48
+                DEFB $18,$08,$38,$48
+                DEFB $20,$08,$30,$48
+                DEFB $10,$10,$40,$40
 
-        ;; Copy of DoorLocs? Maybe height of door, given calls made.
-DoorLocsCopy:	DEFB $00, $00, $00, $00
-        ;; Locations of the 4 doors along their respective walls.
-DoorLocs:       DEFB $00, $00, $00, $00
-DoorHeight:	DEFB $C0
+        ;; TODO
+;; Heights of the 4 doors, for the main room.
+;; 0/\1
+;; 3\/2
+DoorHeights:    DEFB $00, $00, $00, $00
+;; Locations of the 4 doors along their respective walls, for the room
+;; currently being processed.
+DoorHeightsTmp: DEFB $00, $00, $00, $00
+;; The height of the highest door present.
+HighestDoor:    DEFB $C0
 
-BuildRoom2:	LD	A,$FF
-		LD	(SkipObj),A
-	;; NB: Fall through
+;; Like BuildRoom, but we skip calling AddObject on the main room.
+;; Used when restoring previously-stashed room state.
+;; (SkipObj will be reset by BuildRoom soon afterwards.)
+BuildRoomNoObj: LD      A,$FF
+                LD      (SkipObj),A
+        ;; NB: Fall through
 
         ;; Set up a room.
-BuildRoom:	LD	IY,MinU 		; Set the base of where we load limits.
+BuildRoom:
+        ;; Set the base of where we load limits.
+		LD	IY,MinU
 	;; Initialise the sprite extents to cover the full screen.
 		LD	HL,$40C0
 		LD	(ViewXExtent),HL
 		LD	HL,$00FF
 		LD	(ViewYExtent),HL
-        ;; TODO
-		LD	HL,$C0C0 ; TODO
-		LD	(DoorLocs),HL
-		LD	(DoorLocs+2),HL
+        ;; Set all doors to ground level to start with
+		LD	HL,$C0C0
+		LD	(DoorHeightsTmp),HL
+		LD	(DoorHeightsTmp+2),HL
+        ;; Go read the room.
 		LD	HL,$0000
 		LD	BC,(RoomId)
 		CALL	ReadRoom
+        ;; Clear a couple of variables.
 		XOR	A
 		LD	(SkipObj),A
-		LD	(DoorHeight),A
-		LD	HL,(ObjDest)
-		LD	(LAF92),HL
-		LD	A,(L7710)
-		LD	(DoorwayTest),A
-		LD	DE,DoorLocsCopy
-		LD	HL,DoorLocs
-		LD	BC,$0004 ; TODO
-		LDIR
-	;; Clear the backdrop info...
-		LD	HL,BkgndData
-		LD	BC,$0040 ; TODO
-		CALL	FillZero
+		LD	(HighestDoor),A
+        ;; Copy the variables created during *this* ReadRoom pass into
+        ;; the main variables.
+                LD      HL,(ObjDest)
+                LD      (SavedObjDest),HL       ; Save current ObjDest
+                LD      A,(RoomShapeIdxTmp)
+                LD      (RoomShapeIdx),A
+                LD      DE,DoorHeights
+                LD      HL,DoorHeightsTmp
+                LD      BC,$0004
+                LDIR
+        ;; Clear the backdrop info...
+                LD      HL,BkgndData
+                LD      BC,BkgndDataLen
+                CALL    FillZero
         ;; ???
 		CALL	CallBothWalls
 		CALL	HasFloorAbove
@@ -152,10 +183,10 @@ BuildRoom:	LD	IY,MinU 		; Set the base of where we load limits.
 		LD	A,(MaxV)        ; Set HL offset to MavV
 		LD	H,A
 		LD	L,$00
-		CALL	ReadRoom
+		CALL	ReadRoom 	; IY pointing to AltLimits1.
 		CALL	CallBothWalls
         
-BRM_1:		LD	IY,AltLimits + 4
+BRM_1:		LD	IY,AltLimits2
 		POP	HL
 		PUSH	HL
 		LD	A,L
@@ -175,11 +206,11 @@ BRM_1:		LD	IY,AltLimits + 4
 		LD	A,(MaxU)        ; Set HL offset to MaxU
 		LD	L,A
 		LD	H,$00
-		CALL	ReadRoom
+		CALL	ReadRoom 	; IY pointing to AltLimits2.
 		CALL	CallBothWalls
         ;; TODO
-BRM_2:		LD	A,(DoorHeight)
-		LD	HL,(DoorType)
+BRM_2:		LD	A,(HighestDoor)
+		LD	HL,(DoorSprites)
 		PUSH	AF
 		CALL	OccludeDoorway
 		POP	AF
@@ -196,63 +227,65 @@ BRM_2:		LD	A,(DoorHeight)
 ;; Takes room id in BC.
 ;; HL holds the UV origin of the room.
 ;;
-ReadRoom:	LD	(DecodeOrgStack),HL 	; Set UV origin.
-		XOR	A
-		LD	(DecodeOrgStack + 2),A  ; And Z origin.
-		PUSH	BC
-		CALL	FindVisitRoom
-		LD	B,$03
-		CALL	FetchData
-		LD	(L7710),A 		; TODO: Probably something to do with doors.
-        ;; Load HL with DoorExts + 4 * A
-		ADD	A,A
-		ADD	A,A
-		ADD	A,DoorExts & $FF
-		LD	L,A
-		ADC	A,DoorExts >> 8
-		SUB	L
-		LD	H,A
+ReadRoom:       LD      (DecodeOrgStack),HL     ; Set UV origin.
+                XOR     A
+                LD      (DecodeOrgStack + 2),A  ; And Z origin.
+                PUSH    BC
+                CALL    FindVisitRoom
+                LD      B,$03
+                CALL    FetchData
+                LD      (RoomShapeIdxTmp),A
+        ;; Load HL with RoomShapes + 4 * A
+                ADD     A,A
+                ADD     A,A
+                ADD     A,RoomShapes & $FF
+                LD      L,A
+                ADC     A,RoomShapes >> 8
+                SUB     L
+                LD      H,A
 
         ;; Loop twice...
-		LD	B,$02
-		LD	IX,DecodeOrgStack
+                LD      B,$02
+                LD      IX,DecodeOrgStack
 RR_1:
-        ;; Load U, then V DoorExt and origin.
-        	LD	C,(HL)
-		LD	A,(IX+$00)
-		AND	A
-		JR	Z,RR_2
-        ;; If origin is non-zero, update by subtracting C and dividing by 8. (?)
-		SUB	C
-		LD	E,A
-		RRA
-		RRA
-		RRA
-		AND	$1F
-		LD	(IX+$00),A
-		LD	A,E
+        ;; Load U, then V room shape and origin.
+                LD      C,(HL)
+                LD      A,(IX+$00)
+                AND     A
+                JR      Z,RR_2
+        ;; If origin is zero, just use C, otherwise update by
+        ;; subtracting C and dividing by 8 to create block
+        ;; coordinates, and store the unadjusted value in IY.
+                SUB     C
+                LD      E,A
+                RRA
+                RRA
+                RRA
+                AND     $1F
+                LD      (IX+$00),A
+                LD      A,E
         ;; And store sum in IY.
-RR_2:		ADD	A,C
-		LD	(IY+$00),A
-		INC	HL
-		INC	IX
-		INC	IY
-		DJNZ	RR_1
+RR_2:           ADD     A,C
+                LD      (IY+$00),A
+                INC     HL
+                INC     IX
+                INC     IY
+                DJNZ    RR_1
 
-	;; Do this bit twice, too (for U and V again)
-		LD	B,$02
-        ;; Take previous origin, multiply by 8 and add the DoorExt.
-RR_3:		LD	A,(IX-$02)
-		ADD	A,A
-		ADD	A,A
-		ADD	A,A
-		ADD	A,(HL)
+        ;; Do this bit twice, too (for U and V again)
+                LD      B,$02
+        ;; Take previous origin, multiply by 8 and add max U/V.
+RR_3:           LD      A,(IX-$02)
+                ADD     A,A
+                ADD     A,A
+                ADD     A,A
+                ADD     A,(HL)
         ;; Then save it.
-		LD	(IY+$00),A
-		INC	IY
-		INC	IX
-		INC	HL
-		DJNZ	RR_3
+                LD      (IY+$00),A
+                INC     IY
+                INC     IX
+                INC     HL
+                DJNZ    RR_3
 
         ;; Now read the room configuration
                 LD      B,$03
@@ -393,49 +426,52 @@ AddObjOpt:      LD      HL,TmpObj
                 POP     IY
                 RET
 
-;; Initialise the doors. Coord destination in IY.
+;; Initialise the doors. IY is pointing after min u/v, max u/v.
 DoDoors:
         ;; Read the door type? Looks like dead functionality.
                 LD      B,$03
                 CALL    FetchData
                 CALL    ToDoorId
-        ;; A contains door number - load in A*2 and A*2 + 1 into (DoorType).
+        ;; A contains door number - load in A*2 and A*2 + 1 into (DoorSprites).
+        ;; This gives the L and R door sprites.
                 ADD     A,A
                 LD      L,A
                 LD      H,A
                 INC     H
-                LD      (DoorType),HL
+                LD      (DoorSprites),HL
         ;; Do each of the doors, with the room size information coming
-        ;; in through IY. Door locations along the walls written out
-        ;; to DoorLocs.
+        ;; in through IY. Door heights are written out to DoorHeightsTmp.
                 LD      IX,DoorObjFlags
-                LD      HL,DoorLocs
+                LD      HL,DoorHeightsTmp
                 EXX
-                LD      A,(IY-$01)
+                LD      A,(IY-$01)      ; MaxV
                 ADD     A,$04
                 CALL    DoDoorU
-                LD      HL,DoorLocs + 1
+                LD      HL,DoorHeightsTmp + 1
                 EXX
-                LD      A,(IY-$02)
+                LD      A,(IY-$02)      ; MaxU
                 ADD     A,$04
                 CALL    DoDoorV
-                LD      HL,DoorLocs + 2
+                LD      HL,DoorHeightsTmp + 2
                 EXX
-                LD      A,(IY-$03)
+                LD      A,(IY-$03)      ; MinV
                 SUB     $04
                 CALL    DoDoorU
-                LD      HL,DoorLocs + 3
+                LD      HL,DoorHeightsTmp + 3
                 EXX
-                LD      A,(IY-$04)
+                LD      A,(IY-$04)      ; MinU
                 SUB     $04
                 JP      DoDoorV         ; Tail call
 
 ;; Reads the code for the kind of door.
 ;;
-;; It rotates flags into the door flags, and sets the door Z coord in
-;; TmpObj and HL'.
+;; It rotates flags into the door flags (HasNoWall and HasDoor), and
+;; sets the door Z coord in TmpObj and HL' (DoorHeightsTmp pointer).
 ;;
-;; TODO: Door stuff is currently only a theory...
+;; For the read value:
+;;  0 means wall, no door
+;;  1 means no wall, no door.
+;;  >= 2 means has wall. Can be 2..7 for heights.
 FetchDoor:      LD      B,$03
                 CALL    FetchData
                 LD      HL,HasNoWall
@@ -456,8 +492,8 @@ FetchDoor:      LD      B,$03
                 ADD     A,A
                 ADD     A,C
                 ADD     A,A
-                ADD     A,$96
-                LD      (TmpObj+7),A
+                ADD     A,$C0 - 6 * 7   ; 2 maps to $C0 ground level.
+                LD      (TmpObj+O_Z),A
         ;; Set carry flag, switch reg set and save Z coord
                 SCF
                 EXX
@@ -479,92 +515,93 @@ FD2:
                 AND     A
                 RET
 
-        ;; These two take the distance along the wall in A,
-        ;; and HL' is where the coordinate is stashed.
-        ;; IX points to flags to use.
+;; These two take the coordinate of the wall plane in A,
+;; and HL' is where the coordinate is stashed.
+;; IX points to flags to use.
 
-        ;; Build a door parallel to the V axis.
-DoDoorV:	LD	(TmpObj+5),A
-		LD	HL,TmpObj+6
-		LD	A,(DecodeOrgStack + 1)
-		JP	DoDoorAux   	; NB: Tail call
+;; Build a door parallel to the V axis.
+DoDoorV:        LD      (TmpObj+O_U),A
+                LD      HL,TmpObj+O_V
+                LD      A,(DecodeOrgStack + 1)  ; V offset
+                JP      DoDoorAux       ; NB: Tail call
 
-        ;; Build a door parallel to the U axis
-DoDoorU:	LD	(TmpObj+6),A
-		LD	HL,TmpObj+5
-		LD	A,(DecodeOrgStack)
+;; Build a door parallel to the U axis
+DoDoorU:        LD      (TmpObj+O_V),A
+                LD      HL,TmpObj+O_U
+                LD      A,(DecodeOrgStack)      ; U offset
         ;; NB: Fall through
 
-        ;; HL points to a place to put a coordinate, and A holds the
-	;; base value in that dimension. Takes extra parameters in IX
-	;; and HL'.
+;; HL points to the object's coordinate field to write to, and A holds
+;; the origin value in that dimension. Takes extra parameters in IX
+;; IX (object flags) and HL' (pointer to relevant DoorHeightsTmp entry).
 DoDoorAux:
         ;; Multiply A by 8
-		ADD	A,A
-		ADD	A,A
-		ADD	A,A
-		PUSH	AF
-        ;; Stash A + $24 in the coordinate
-		ADD	A,$24
-		LD	(HL),A
-		PUSH	HL
+                ADD     A,A
+                ADD     A,A
+                ADD     A,A
+                PUSH    AF
+        ;; Stash A + DOOR_LOW in the coordinate
+                ADD     A,DOOR_LOW
+                LD      (HL),A
+                PUSH    HL
         ;; Get the door Z coordinate set up, return if no object to add.
-		CALL	FetchDoor       ; NB: Does EXX
-		JR	NC,NoDoorRet 	; NB: Tail call
+                CALL    FetchDoor               ; NB: Does EXX
+                JR      NC,NoDoorRet            ; NB: Tail call
         ;; Draw one half
-		LD	A,(IX+$00)
-		LD	(TmpObj+4),A 	; Set the flags
-		INC	IX
-		LD	A,(DoorType)
-		LD	(TmpObj+8),A 	; Set the sprite.
-        	CALL	DoHalfDoor	; And draw.
-        ;; Draw the other (NB: Call deferred to tail call)
-		LD	A,(IX+$00)
-		LD	(TmpObj+4),A
-		INC	IX
-		LD	A,(DoorType+1)
-		LD	(TmpObj+8),A
-        ;; Stash A + $2C in the coordinate this time.
-		POP	HL
-		POP	AF
-		ADD	A,$2C
-		LD	(HL),A
+                LD      A,(IX+$00)
+                LD      (TmpObj+O_OFLAGS),A     ; Set the flags
+                INC     IX
+                LD      A,(DoorSprites)
+                LD      (TmpObj+O_SPRITE),A     ; Set the sprite.
+                CALL    AddHalfDoorObj  ; And draw.
+        ;; Draw the other
+                LD      A,(IX+$00)
+                LD      (TmpObj+O_OFLAGS),A
+                INC     IX
+                LD      A,(DoorSprites+1)
+                LD      (TmpObj+O_SPRITE),A
+        ;; Stash A + DOOR_HIGH in the coordinate this time.
+                POP     HL
+                POP     AF
+                ADD     A,DOOR_HIGH
+                LD      (HL),A
         ;; NB: Fall through
 
-        ;; Adds the current object in TmpObj, and creates a step
-        ;; underneath it if necessary.
-DoHalfDoor:
+;; Adds the current object in TmpObj, and creates a step
+;; underneath it if necessary.
+AddHalfDoorObj:
         ;; Add current object.
                 CALL    AddObjOpt
-        ;; TODO: Do some flags craziness, returning early if necessary...
-                LD      A,(TmpObj+4)
+        ;; Return early for the far doors. Only add ledges for the near doors.
+                LD      A,(TmpObj+O_OFLAGS)
                 LD      C,A
                 AND     $30
                 RET     PO
+        ;; Change flags for the ledge.
                 AND     $10
                 OR      $01
-                LD      (TmpObj+4),A
+                LD      (TmpObj+O_OFLAGS),A
         ;; $C0 is ground level, don't need to put anything underneath.
-                LD      A,(TmpObj+7)
+                LD      A,(TmpObj+O_Z)
                 CP      $C0
                 RET     Z
         ;; Otherwise, add a step under the doorway (6 down)
                 PUSH    AF
                 ADD     A,$06
-                LD      (TmpObj+7),A    ; Update Z coord
+                LD      (TmpObj+O_Z),A          ; Update Z coord
                 LD      A,SPR_STEP
-                LD      (TmpObj+8),A    ; And sprite
-                CALL    AddObjOpt       ; Add the step
+                LD      (TmpObj+O_SPRITE),A     ; And sprite
+                CALL    AddObjOpt               ; Add the step
                 POP     AF
-                LD      (TmpObj+7),A    ; And restore.
+                LD      (TmpObj+O_Z),A          ; And restore.
                 RET
 
 ;; No door case - unwind variables and return
-NoDoorRet:	POP	HL
-		POP	AF
-		INC	IX
-		INC	IX
-		RET
+NoDoorRet:      POP     HL
+                POP     AF
+                INC     IX
+                INC     IX
+                RET
 
 ;; Clears CurrData and returns a pointer to a specific room description macro
 ;; Macro id passed in A', pointer returned in HL.

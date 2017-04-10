@@ -11,7 +11,7 @@
 	;; MinV
 	;; MaxU
 	;; MaxV
-	;; DoorLocsCopy
+	;; DoorHeights
 	;; Movement
 	;; LB218
 
@@ -289,7 +289,7 @@ Down:		CALL	InitMove
 		JR	C,D_4
 		BIT	0,(IX-$01)
 		JR	Z,D_1
-		LD	A,(DoorLocsCopy + 3)
+		LD	A,(DoorHeights + 3)
 		CALL	CommonFn
 		JR	C,D_3
 		CALL	UD_fn2
@@ -335,7 +335,7 @@ Right:		CALL	InitMove
 		JR	C,R_4
 		BIT	1,(IX-$01)
 		JR	Z,R_1
-		LD	A,(DoorLocsCopy + 2)
+		LD	A,(DoorHeights + 2)
 		CALL	CommonFn
 		JR	C,R_3
 		CALL	LR_fn2
@@ -374,7 +374,7 @@ Up:		CALL	InitMove
 		JR	C,U_4
 		BIT	2,(IX-$01)
 		JR	Z,U_1
-		LD	A,(DoorLocsCopy + 1)
+		LD	A,(DoorHeights + 1)
 		CALL	CommonFn
 		JR	C,U_3
 		CALL	UD_fn2
@@ -406,7 +406,7 @@ Left:		CALL	InitMove
 		JR	C,L_4
 		BIT	3,(IX-$01)
 		JR	Z,L_1
-		LD	A,(DoorLocsCopy)
+		LD	A,(DoorHeights)
 		CALL	CommonFn
 		JR	C,L_3
 		CALL	LR_fn2

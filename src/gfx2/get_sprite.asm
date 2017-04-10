@@ -200,14 +200,15 @@ Case3x56:
                 LD      HL,(CurrObject2+1)
                 INC     HL
                 INC     HL
-                BIT     5,(HL)          ; Check flag bit 0x20 for later
+                BIT     5,(HL)          ; Bit 5 = is LHS door
                 EX      AF,AF'
                 LD      A,(HL)
-                SUB     $10
+                SUB     $10             ; NC for < 9 or > 30 - ie near doors
                 CP      $20
                 LD      L,$04
                 JR      NC,C356_1
                 LD      L,$08
+        ;; Use 8 for front doors, 4 for back
 C356_1:         LD      A,B             ; L = (Flag - $10) >= $20 ? 8 : 4
                 ADD     A,L
                 LD      L,A             ; L = B + L
@@ -218,6 +219,7 @@ C356_1:         LD      A,B             ; L = (Flag - $10) >= $20 ? 8 : 4
                 LD      B,$08
                 JR      NZ,C356_2
                 LD      B,$04
+        ;; Use 8 for left doors, 4 for right.
 C356_2:         ADD     A,B             ; B = (Flag & 0x20) ? 8 : 4
                 LD      C,A             ; C = C + B
                 SUB     $0C
@@ -248,14 +250,15 @@ GetSpriteAddr:  LD      A,(SpriteCode)
                 INC     A
                 JR      NZ,Sprite3x56
         ;; flag & 3 == 3 case:
+        ;; TODO: This gets mysterious...
                 LD      A,(SpriteCode)
                 LD      C,A
                 RLA
-                LD      A,(DoorwayTest) ; TODO: ???
+                LD      A,(RoomShapeIdx); Check the shape of the room...
                 JR      C,GSA_1         ; Flip bit set?
-                CP      $06             ; Then special case is 6.
+                CP      $06             ; Narrow-in-U-direction room?
                 JR      GSA_2
-GSA_1:          CP      $03             ; Otherwise it's 3.
+GSA_1:          CP      $03             ; Narrow-in-V-direction room?
 GSA_2:          JR      Z,Sprite3x56
         ;; Use DoorwayBuf.
         ;; TOOD: Occluded doorway case:
