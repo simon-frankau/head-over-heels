@@ -92,7 +92,7 @@ DBL_1:		PUSH	HL
 
 #include "gfx1/char_code.asm"
         
-#include "controls.asm"
+#include "ui/controls.asm"
 
 #include "gfx2/columns.asm"
         
@@ -100,7 +100,7 @@ DBL_1:		PUSH	HL
         
 #include "stuff.asm"
 
-#include "menus.asm"
+#include "ui/menus.asm"
 
 #include "gfx2/occlude.asm"
 
@@ -427,8 +427,8 @@ InsertObject:	PUSH	HL
 		LD	(IX+$0C),$FF
 		RET
 	
-#include "sprite_stuff.asm"
-	
+#include "ui/sprite_stuff.asm"
+
 #include "objects/obj_fns.asm"
 	
 L9376:	DEFB $FD,$F9,$FB,$FA,$FE,$F6,$F7,$F5
@@ -501,7 +501,7 @@ DO_3:		LD	A,H			; loop until null pointer.
 
 #include "gfx1/screen_bits.asm"
 
-#include "controls2.asm"
+#include "ui/controls2.asm"
 
 #include "sound/sound48k.asm"
 
