@@ -104,7 +104,6 @@ RoomShapes:     DEFB $08,$08,$48,$48
                 DEFB $20,$08,$30,$48
                 DEFB $10,$10,$40,$40
 
-        ;; TODO
 ;; Heights of the 4 doors, for the main room.
 ;; 0/\1
 ;; 3\/2
@@ -125,24 +124,24 @@ BuildRoomNoObj: LD      A,$FF
         ;; Set up a room.
 BuildRoom:
         ;; Set the base of where we load limits.
-		LD	IY,MinU
-	;; Initialise the sprite extents to cover the full screen.
-		LD	HL,$40C0
-		LD	(ViewXExtent),HL
-		LD	HL,$00FF
-		LD	(ViewYExtent),HL
+                LD      IY,MinU
+        ;; Initialise the sprite extents to cover the full screen.
+                LD      HL,$40C0
+                LD      (ViewXExtent),HL
+                LD      HL,$00FF
+                LD      (ViewYExtent),HL
         ;; Set all doors to ground level to start with
-		LD	HL,$C0C0
-		LD	(DoorHeightsTmp),HL
-		LD	(DoorHeightsTmp+2),HL
+                LD      HL,$C0C0
+                LD      (DoorHeightsTmp),HL
+                LD      (DoorHeightsTmp+2),HL
         ;; Go read the room.
-		LD	HL,$0000
-		LD	BC,(RoomId)
-		CALL	ReadRoom
+                LD      HL,$0000
+                LD      BC,(RoomId)
+                CALL    ReadRoom
         ;; Clear a couple of variables.
-		XOR	A
-		LD	(SkipObj),A
-		LD	(HighestDoor),A
+                XOR     A
+                LD      (SkipObj),A
+                LD      (HighestDoor),A
         ;; Copy the variables created during *this* ReadRoom pass into
         ;; the main variables.
                 LD      HL,(ObjDest)
@@ -157,68 +156,73 @@ BuildRoom:
                 LD      HL,BkgndData
                 LD      BC,BkgndDataLen
                 CALL    FillZero
-        ;; ???
-		CALL	CallBothWalls
-		CALL	HasFloorAbove
-		LD	A,$00
-		RLA
-		LD	(FloorAboveFlag),A
-		CALL	StoreCorner
-		LD	HL,(HasNoWall)
-		PUSH	HL
-		LD	A,L
-		AND	$08
-		JR	Z,BRM_1
+
+                CALL    DoConfigWalls
+        ;; Set a few variables
+                CALL    HasFloorAbove
+                LD      A,$00
+                RLA
+                LD      (FloorAboveFlag),A
+                CALL    StoreCorner
+
+        ;; Check if we have no wall in +V direction.
+                LD      HL,(HasNoWall)
+                PUSH    HL
+                LD      A,L
+                AND     $08
+                JR      Z,BRM_1
         ;; Optional ReadRoom pass on object list 1:
         ;; Draw the next room in V direction, tacked on.
-		LD	A,$01
-		CALL	SetObjList
-		LD	BC,(RoomId)     ; Increment V nybble of the RoomId
-		LD	A,B
-		INC	A
-		XOR	B
-		AND	$0F
-		XOR	B
-		LD	B,A
-		LD	A,(MaxV)        ; Set HL offset to MavV
-		LD	H,A
-		LD	L,$00
-		CALL	ReadRoom 	; IY pointing to AltLimits1.
-		CALL	CallBothWalls
-        
-BRM_1:		LD	IY,AltLimits2
-		POP	HL
-		PUSH	HL
-		LD	A,L
-		AND	$04
-		JR	Z,BRM_2
+                LD      A,$01
+                CALL    SetObjList
+                LD      BC,(RoomId)     ; Increment V nybble of the RoomId
+                LD      A,B
+                INC     A
+                XOR     B
+                AND     $0F
+                XOR     B
+                LD      B,A
+                LD      A,(MaxV)        ; Set HL offset to MaxV
+                LD      H,A
+                LD      L,$00
+                CALL    ReadRoom        ; IY pointing to AltLimits1.
+                CALL    DoConfigWalls
+
+        ;; Check if we have no wall in +U direction.
+BRM_1:          LD      IY,AltLimits2
+                POP     HL
+                PUSH    HL
+                LD      A,L
+                AND     $04
+                JR      Z,BRM_2
         ;; Optional ReadRoom pass on object list 2:
         ;; Draw the next room in U direction, tacked on.
-		LD	A,$02
-		CALL	SetObjList
-		LD	BC,(RoomId)     ; Increment U byte of the RoomId
-		LD	A,B
-		ADD	A,$10
-		XOR	B
-		AND	$F0
-		XOR	B
-		LD	B,A
-		LD	A,(MaxU)        ; Set HL offset to MaxU
-		LD	L,A
-		LD	H,$00
-		CALL	ReadRoom 	; IY pointing to AltLimits2.
-		CALL	CallBothWalls
-        ;; TODO
-BRM_2:		LD	A,(HighestDoor)
-		LD	HL,(DoorSprites)
-		PUSH	AF
-		CALL	OccludeDoorway
-		POP	AF
-		CALL	SetColHeight
-		POP	HL
-		LD	(HasNoWall),HL
-		XOR	A               ; Switch back to usual object list.
-		JP	SetObjList 	; NB: Tail call.
+                LD      A,$02
+                CALL    SetObjList
+                LD      BC,(RoomId)     ; Increment U byte of the RoomId
+                LD      A,B
+                ADD     A,$10
+                XOR     B
+                AND     $F0
+                XOR     B
+                LD      B,A
+                LD      A,(MaxU)        ; Set HL offset to MaxU
+                LD      L,A
+                LD      H,$00
+                CALL    ReadRoom        ; IY pointing to AltLimits2.
+                CALL    DoConfigWalls
+
+        ;; Final setup
+BRM_2:          LD      A,(HighestDoor)
+                LD      HL,(DoorSprites)
+                PUSH    AF
+                CALL    OccludeDoorway  ; Occlude edge of door sprites at the back.
+                POP     AF
+                CALL    SetColHeight    ; Columns high as the tallest door
+                POP     HL
+                LD      (HasNoWall),HL  ; Restore value from first pass.
+                XOR     A               ; Switch back to usual object list.
+                JP      SetObjList      ; NB: Tail call.
 
 ;; Unpacks a room, adding all its sprites to the lists, and generally
 ;; setting it up.

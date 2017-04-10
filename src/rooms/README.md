@@ -20,12 +20,11 @@ They rely on the following further symbols defined elsewhere:
  * AddSpecials
  * IMG_WALLS
  * InitObj
- * LAF92
  * ObjDest
- * OccludeDoorway
  * PanelFlips
  * RoomId
  * RoomMask
+ * SavedObjDest
  * SetObjList
  * ToDoorId
 
@@ -35,9 +34,9 @@ They export the following symbols used elsewhere:
 
  * AddObjOpt
  * AttribScheme
- * BuildRoom2
  * BuildRoom
- * DoorLocsCopy
+ * BuildRoomNoObj
+ * DoorHeights
  * FloorAboveFlag
  * FloorCode
  * HasDoor

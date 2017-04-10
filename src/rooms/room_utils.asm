@@ -30,8 +30,8 @@ FD_3:           INC     HL
                 RL      C
                 JP      FD_2
 
-;; TODO
-CallBothWalls:
+;; Configure the walls for the current room
+DoConfigWalls:
         ;; Get the heights of the doors on the back walls.
                 LD      HL,(DoorHeightsTmp)
         ;; Take the smaller of H and L - the higher door.
@@ -47,6 +47,6 @@ CBW_1:          NEG
                 CP      (HL)
                 JR      C,CBW_2
                 LD      (HL),A
-        ;; Get door height into A and tail call BothWalls
+        ;; Get door height into A and tail call ConfigWalls
 CBW_2:          LD      A,(HL)
-                JP      BothWalls       ; NB: Tail call.
+                JP      ConfigWalls     ; NB: Tail call.

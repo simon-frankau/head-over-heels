@@ -8,6 +8,8 @@ Specifically:
  * **background.asm** draws the floor and walls.
  * **init_bkgnd.asm** initialises various of the variables used.
  * **scene.asm** renders the scene
+ * **occlude.asm** Code to fix up door sprites when they're occluded
+   by the walls.
 
 The files in this directory depend upon utils/fill_zero.asm and
 gfx1/*.asm.
@@ -38,7 +40,6 @@ They rely on the following symbols defined elsewhere:
 They export the following symbols used elsewhere:
 
  * DoorwayBuf
- * DoorwayFlipped
  * Draw
  * DrawXSafe
  * GetObjExtents
@@ -46,10 +47,10 @@ They export the following symbols used elsewhere:
  * InitRevTbl
  * IntersectObj
  * JpIX
+ * OccludeDoorway
  * SPR_*
  * SetColHeight
  * SetFloorAddr
- * Sprite3x56
  * SpriteCode
  * SpriteFlags
  * StoreObjExtents
