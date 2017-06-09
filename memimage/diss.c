@@ -141,7 +141,7 @@
  *  ©1992 ∑-Soft, Markus Fritze
  ***/
 
-#define SOUND
+// #define SOUND
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -346,7 +346,7 @@ Boolean label = xtrue;
     do {
       adr &= 0xffff;
       if (adr == 0) return;
-      printf("0x%04x\n", adr);
+      // printf("0x%04x\n", adr);
 
       if (adr < 0x5b00) {
             DebugStr("\tToo low?!?");
@@ -898,10 +898,10 @@ CHAR            ireg[3];        // temp.Indexregister
                         break;
                     case 0x7D:
                         strcpy(s,"LD\t\tA,");
-                        strcat(s,ireg);
+                        strcat(s,ireg+1);
                         strcat(s,"L");
                         break;
-					case 0x7E:
+                    case 0x7E:
                         strcpy(s,"LD\t\tA,(");
                         strcat(s,ireg);
                         strcat(s,Opcodes[adr+1] >= 0x80 ? "-" : "+");
@@ -1204,7 +1204,13 @@ ParseOpcodes(0xBA40);
 
     f = stdout;
     f = fopen("memimage.asm","w");
+
     if(!f) return 2;
+
+    fputs("#target ROM\n", f);
+    fputs("#code HOH, 0, $FFFF\n", f);
+    fputs("\n", f);
+
     while(adr < CODESIZE) {
         WORD    len,i;
 
