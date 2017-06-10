@@ -55,37 +55,37 @@ check: out/HOH.bin
 #
 # Somewhat messy as Makefile entries.
 
-out/img_3x56.xbm: graphics/xbmify.lua bin/img_3x56.bin
+out/img_3x56.xbm: tools/xbmify.lua bin/img_3x56.bin
 	mkdir -p out/
-	lua graphics/xbmify.lua 3 bin/img_3x56.bin > out/img_3x56.xbm
+	lua tools/xbmify.lua 3 bin/img_3x56.bin > out/img_3x56.xbm
 
-out/img_3x32.xbm: graphics/xbmify.lua bin/img_3x32.bin
+out/img_3x32.xbm: tools/xbmify.lua bin/img_3x32.bin
 	mkdir -p out/
-	lua graphics/xbmify.lua 3 bin/img_3x32.bin > out/img_3x32.xbm
+	lua tools/xbmify.lua 3 bin/img_3x32.bin > out/img_3x32.xbm
 
-out/img_3x24.xbm: graphics/xbmify.lua bin/img_3x24.bin
+out/img_3x24.xbm: tools/xbmify.lua bin/img_3x24.bin
 	mkdir -p out/
-	lua graphics/xbmify.lua 3 bin/img_3x24.bin > out/img_3x24.xbm
+	lua tools/xbmify.lua 3 bin/img_3x24.bin > out/img_3x24.xbm
 
-out/img_4x28.xbm: graphics/xbmify.lua bin/img_4x28.bin
+out/img_4x28.xbm: tools/xbmify.lua bin/img_4x28.bin
 	mkdir -p out/
-	lua graphics/xbmify.lua 4 bin/img_4x28.bin > out/img_4x28.xbm
+	lua tools/xbmify.lua 4 bin/img_4x28.bin > out/img_4x28.xbm
 
-out/img_2x24.xbm: graphics/xbmify.lua bin/img_2x24.bin
+out/img_2x24.xbm: tools/xbmify.lua bin/img_2x24.bin
 	mkdir -p out/
-	lua graphics/xbmify.lua 2 bin/img_2x24.bin > out/img_2x24.xbm
+	lua tools/xbmify.lua 2 bin/img_2x24.bin > out/img_2x24.xbm
 
-out/img_chars.xbm: graphics/xbmify.lua bin/img_chars.bin
+out/img_chars.xbm: tools/xbmify.lua bin/img_chars.bin
 	mkdir -p out/
-	lua graphics/xbmify.lua 1 bin/img_chars.bin > out/img_chars.xbm
+	lua tools/xbmify.lua 1 bin/img_chars.bin > out/img_chars.xbm
 
-out/img_walls.xbm: graphics/xbmify.lua bin/img_walls.bin
+out/img_walls.xbm: tools/xbmify.lua bin/img_walls.bin
 	mkdir -p out/
-	lua graphics/xbmify.lua 2 bin/img_walls.bin > out/img_walls.xbm
+	lua tools/xbmify.lua 2 bin/img_walls.bin > out/img_walls.xbm
 
-out/img_2x6.xbm: graphics/xbmify.lua bin/img_2x6.bin
+out/img_2x6.xbm: tools/xbmify.lua bin/img_2x6.bin
 	mkdir -p out/
-	lua graphics/xbmify.lua 2 bin/img_2x6.bin > out/img_2x6.xbm
+	lua tools/xbmify.lua 2 bin/img_2x6.bin > out/img_2x6.xbm
 
 out/screen.gif: bin/screen.scr
 	mkdir -p out/
