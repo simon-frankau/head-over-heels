@@ -8,7 +8,7 @@
 -- * Elide internal nodes of known functions
 -- * Show variables referenced
 
-local prefix = "../out/graphs/"
+local prefix = "out/graphs/"
 
 local function extract_label(str)
   -- TODO: Assumes no spaces around "," - currently the convention in the code.

@@ -5,8 +5,11 @@
 ASM_FILES = $(shell find src/ -type f -name '*.asm')
 BIN_FILES = $(wildcard bin/*)
 
+# Strip off the actually directory-free part for making call graphs.
+ASM_FILE_NAMES = $(addprefix out/graphs/,$(notdir $(ASM_FILES)))
+
 .PHONY: all
-all: diss_check check graphics
+all: diss_check check graphics call_graphs
 
 ########################################################################
 # Rules to disassemble the memory image.
@@ -96,3 +99,21 @@ out/screen.gif: bin/screen.scr
 graphics: out/img_3x56.xbm out/img_3x32.xbm out/img_3x24.xbm \
           out/img_4x28.xbm out/img_2x24.xbm out/img_chars.xbm \
           out/img_walls.xbm out/img_2x6.xbm out/screen.gif
+
+########################################################################
+# Call graph generation
+#
+
+# Next two rules are a slightly messy way to build a bunch of .dot files...
+out/dot_files: tools/xrefs.lua $(ASM_FILES)
+	mkdir -p out/graphs
+	lua tools/xrefs.lua $(ASM_FILES)
+	touch out/dot_files
+
+$(ASM_FILE_NAMES:.asm=.dot): out/dot_files
+
+%.svg: %.dot
+	dot -Tsvg $< > $@
+
+.PHONY: call_graphs
+call_graphs: $(ASM_FILE_NAMES:.asm=.svg)
