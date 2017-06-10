@@ -26,6 +26,11 @@ local edges = {}
 local files = {}
 
 local function add_edge(src, dst)
+  if dst == "" then
+    -- Probably jp $...
+    print("INFO: Skipping absolute jump from " .. src)
+    return
+  end
   if string.find(dst, "[(]") then
     -- Indirect jumps etc. Give up.
     print("INFO: Computed jump from " .. src)
@@ -148,9 +153,8 @@ end
 
 local function write_graph(filename)
 print(filename)
-  _, _, name = string.find(filename, "../([A-Za-z0-9_]*).asm")
---  local fout = io.open(prefix .. name .. ".dot", "w")
-  local fout = io.open("temp.dot", "w")
+  _, _, name = string.find(filename, "/([A-Za-z0-9_]*).asm")
+  local fout = io.open(prefix .. name .. ".dot", "w")
   fout:write("digraph calls {\n")
   local seen_nodes = {}
 

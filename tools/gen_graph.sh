@@ -4,8 +4,9 @@ set -e
 
 mkdir -p ../out/graphs
 
-lua ./xrefs.lua ../*.asm
-dot -Tsvg ../out/graphs/HOH.dot > ../out/graphs/HOH.svg
+lua ./xrefs.lua $(find ../src -name '*.asm')
+
+# dot -Tsvg ../out/graphs/HOH.dot > ../out/graphs/HOH.svg
 
 for FILE in ../out/graphs/*.dot
 do
