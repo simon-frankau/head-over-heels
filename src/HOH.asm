@@ -758,7 +758,7 @@ DoMove:		CALL	DoMoveAux
 
 	;; Takes value in A, indexes into table, writes variable, makes call...
 DoMoveAux:	LD	DE,PostMove
-        ;; Pop this on the stack to be called upon return.
+        ;; Stick this on the stack to be called upon return.
 		PUSH	DE
 		LD	C,A
 		ADD	A,A

@@ -281,215 +281,247 @@ RightThing:	CALL	TblFnCommon20
 		CP	(HL)
 		JP	Z,TblArgCommon2
 		JR	TblArgCommon4
-	
+
+        ;; TODO: This part of the function is the most mysterious...
 Down:		CALL	InitMove
-		JR	Z,D_3
+		JR	Z,D_NoExit
 		CALL	UD_fn
 		LD	A,$24
-		JR	C,D_4
-		BIT	0,(IX-$01)
-		JR	Z,D_1
-		LD	A,(DoorHeights + 3)
-		CALL	CommonFn
-		JR	C,D_3
-		CALL	UD_fn2
-		JR	C,D_5
-		LD	A,(MinU)
-		SUB	$04
-		JR	D_2
-D_1:		BIT	0,(IX-$02)
-		JR	Z,D_3
-		LD	A,(MinU)
-D_2:		CP	E
-		RET	NZ
-		LD	A,$01
+		JR	C,D_NoExit2
+        ;; If the wall has a door, and
+        ;; we're the right height to fit through, and
+        ;; we're lined up to go through the frame,
+        ;; set 'A' to be the far side of the door.
+                BIT     0,(IX-$01) ; HasDoor
+                JR      Z,D_NoDoor
+                LD      A,(DoorHeights + 3)
+                CALL    DoorHeightCheck
+                JR      C,D_NoExit
+                CALL    UD_InFrame
+                JR      C,D_NearDoor
+                LD      A,(MinU)
+                SUB     $04
+                JR      D_Exit
+        ;; If there's no wall, put the room end coordinate into 'A'...
+D_NoDoor:       BIT     0,(IX-$02) ; HasNoWall
+                JR      Z,D_NoExit
+                LD      A,(MinU)
+        ;; Case where we can exit the room.
+D_Exit:         CP      E
+                RET     NZ
+                LD      A,$01
 	;; NB: Shared across the various cases:
 CommonRet:	LD	(LB218),A
 		SCF
 		RET
-D_3:		LD	A,(MinU)
-D_4:		CP	E
-		RET	NZ
-		SCF
-		RET
-D_5:		CALL	UD_fn3
-		JR	C,D_3
-		CALL	D_3
-	;; NB: Fall through
-UD_fn4:		RET	NZ
-		LD	A,L
-		CP	$25
-		LD	A,$F7
-		JR	C,CommonFn2
-		LD	A,$FB
-	;; NB: Fall through
-CommonFn2:	LD	(Movement),A
-		XOR	A
-		SCF
-		RET
+
+        ;; The case where we can't exit the room, but may hit the
+        ;; wall.
+D_NoExit:       LD      A,(MinU)
+        ;; (or some other value given in A).
+D_NoExit2:      CP      E
+                RET     NZ
+                SCF
+                RET
+
+        ;; Handle the near-door case: If we're not near the door frame,
+        ;; we do the normal "not door" case. Otherwise, we do that and
+        ;; then nudge into the door.
+D_NearDoor:     CALL    UD_InFrameW
+                JR      C,D_NoExit
+                CALL    D_NoExit
+        ;; NB: Fall through
+
+        ;; Choose a direction to move based on which side of the door
+        ;; we're trying to get through.
+UD_Nudge:       RET     NZ
+                LD      A,L
+                CP      DOOR_LOW + 1
+                LD      A,~$08
+                JR      C,Nudge
+                LD      A,~$04
+        ;; NB: Fall through
+
+        ;; Update the direction with they way to go to get through the door.
+Nudge:          LD      (Movement),A
+                XOR     A
+                SCF
+                RET
 
 Right:		CALL	InitMove
-		JR	Z,R_3
+		JR	Z,R_NoExit
 		CALL	LR_fn
 		LD	A,$24
-		JR	C,R_4
-		BIT	1,(IX-$01)
-		JR	Z,R_1
+		JR	C,R_NoExit2
+		BIT	1,(IX-$01) ; HasDoor
+		JR	Z,R_NoDoor
 		LD	A,(DoorHeights + 2)
-		CALL	CommonFn
-		JR	C,R_3
-		CALL	LR_fn2
-		JR	C,R_5
+		CALL	DoorHeightCheck
+		JR	C,R_NoExit
+		CALL	LR_InFrame
+		JR	C,R_NearDoor
 		LD	A,(MinV)
 		SUB	$04
-		JR	R_2
-R_1:		BIT	1,(IX-$02)
-		JR	Z,R_3
+		JR	R_Exit
+R_NoDoor:		BIT	1,(IX-$02) ; HasNoWall
+		JR	Z,R_NoExit
 		LD	A,(MinV)
-R_2:		CP	L
+R_Exit:		CP	L
 		RET	NZ
 		LD	A,$02
 		JR	CommonRet
-R_3:		LD	A,(MinV)
-R_4:		CP	L
+R_NoExit:		LD	A,(MinV)
+R_NoExit2:		CP	L
 		RET	NZ
 		SCF
 		RET
-R_5:		CALL	LR_fn3
-		JR	C,R_3
-		CALL	R_3
+R_NearDoor:		CALL	LR_InFrameW
+		JR	C,R_NoExit
+		CALL	R_NoExit
 	;; NB: Fall through
-LR_fn4:		RET	NZ
+LR_Nudge:		RET	NZ
 		LD	A,E
 		CP	$25
 		LD	A,$FE
-		JR	C,CommonFn2
+		JR	C,Nudge
 		LD	A,$FD
-		JR	CommonFn2
+		JR	Nudge
 
 Up:		CALL	InitMove
-		JR	Z,U_3
+		JR	Z,U_NoExit
 		CALL	UD_fn
 		LD	A,$2C
-		JR	C,U_4
-		BIT	2,(IX-$01)
-		JR	Z,U_1
+		JR	C,U_NoExit2
+		BIT	2,(IX-$01) ; HasDoor
+		JR	Z,U_NoDoor
 		LD	A,(DoorHeights + 1)
-		CALL	CommonFn
-		JR	C,U_3
-		CALL	UD_fn2
-		JR	C,U_5
+		CALL	DoorHeightCheck
+		JR	C,U_NoExit
+		CALL	UD_InFrame
+		JR	C,U_NearDoor
 		LD	A,(MaxU)
 		ADD	A,$04
-		JR	U_2
-U_1:		BIT	2,(IX-$02)
-		JR	Z,U_3
+		JR	U_Exit
+U_NoDoor:		BIT	2,(IX-$02) ; HasNoWall
+		JR	Z,U_NoExit
 		LD	A,(MaxU)
-U_2:		CP	D
+U_Exit:		CP	D
 		RET	NZ
 		LD	A,$03
 		JP	CommonRet
-U_3:		LD	A,(MaxU)
-U_4:		CP	D
+U_NoExit:		LD	A,(MaxU)
+U_NoExit2:		CP	D
 		RET	NZ
 		SCF
 		RET
-U_5:		CALL	UD_fn3
-		JR	C,U_3
-		CALL	U_3
-		JP	UD_fn4
+U_NearDoor:		CALL	UD_InFrameW
+		JR	C,U_NoExit
+		CALL	U_NoExit
+		JP	UD_Nudge
 
 Left:		CALL	InitMove
-		JR	Z,L_3
+		JR	Z,L_NoExit
 		CALL	LR_fn
 		LD	A,$2C
-		JR	C,L_4
-		BIT	3,(IX-$01)
-		JR	Z,L_1
+		JR	C,L_NoExit2
+		BIT	3,(IX-$01) ; HasDoor
+		JR	Z,L_NoDoor
 		LD	A,(DoorHeights)
-		CALL	CommonFn
-		JR	C,L_3
-		CALL	LR_fn2
-		JR	C,L_5
+		CALL	DoorHeightCheck
+		JR	C,L_NoExit
+		CALL	LR_InFrame
+		JR	C,L_NearDoor
 		LD	A,(MaxV)
 		ADD	A,$04
-		JR	L_2
-L_1:		BIT	3,(IX-$02)
-		JR	Z,L_3
+		JR	L_Exit
+L_NoDoor:		BIT	3,(IX-$02) ; HasNoWall
+		JR	Z,L_NoExit
 		LD	A,(MaxV)
-L_2:		CP	H
+L_Exit:		CP	H
 		RET	NZ
 		LD	A,$04
 		JP	CommonRet
-L_3:		LD	A,(MaxV)
-L_4:		CP	H
+L_NoExit:		LD	A,(MaxV)
+L_NoExit2:		CP	H
 		RET	NZ
 		SCF
 		RET
-L_5:		CALL	LR_fn3
-		JR	C,L_3
-		CALL	L_3
-		JP	LR_fn4
+L_NearDoor:		CALL	LR_InFrameW
+		JR	C,L_NoExit
+		CALL	L_NoExit
+		JP	LR_Nudge
 
 UD_fn:		LD	A,(MaxV)
 		CP	H
 		RET	C
 		LD	A,L
-		CP	A,(IX+$01)
+		CP	A,(IX+$01) ; MinV
 		RET
 
 LR_fn:		LD	A,(MaxU)
 		CP	D
 		RET	C
 		LD	A,E
-		CP	A,(IX+$00)
+		CP	A,(IX+$00) ; MinU
 		RET
 
-LR_fn2:		LD	A,$2C
-		CP	D
-		RET	C
-		LD	A,E
-		CP	$24
-		RET
+;; Return NC if within the interval associated with the door.
+;; Specifically, returns NC if D <= DOOR_HIGH and E >= DOOR_LOW
+LR_InFrame:     LD      A,DOOR_HIGH
+                CP      D
+                RET     C
+                LD      A,E
+                CP      DOOR_LOW
+                RET
 
-LR_fn3:		LD	A,$30
-		CP	D
-		RET	C
-		LD	A,E
-		CP	$20
-		RET
+;; Same, but for the whole door, not just the inner arch
+LR_InFrameW:    LD      A,DOOR_HIGH + 4
+                CP      D
+                RET     C
+                LD      A,E
+                CP      DOOR_LOW - 4
+                RET
 
-UD_fn2:		LD	A,$2C
-		CP	H
-		RET	C
-		LD	A,L
-		CP	$24
-		RET
+;; Return NC if within the interval associated with the door.
+;; Specifically, returns NC if H <= DOOR_HIGH and L >= DOOR_LOW
+UD_InFrame:     LD      A,DOOR_HIGH
+                CP      H
+                RET     C
+                LD      A,L
+                CP      DOOR_LOW
+                RET
 
-UD_fn3:		LD	A,$30
-		CP	H
-		RET	C
-		LD	A,L
-		CP	$20
-		RET
+UD_InFrameW:    LD      A,DOOR_HIGH + 4
+                CP      H
+                RET     C
+                LD      A,L
+                CP      DOOR_LOW - 4
+                RET
 
-	;; Checks to see if A is between B and B + 3 / 9
-	;; (depending on if you're both head and heels currently)
-CommonFn:	SUB	B
-		RET	C
-		PUSH	AF
-		LD	A,(Character)
-		CP	$03
-		JR	NZ,CF_1
-		POP	AF
-		CP	$03
-		CCF
-		RET
-CF_1:		POP	AF
-		CP	$09
-		CCF
-		RET
+;; Door height check.
+;;
+;; Checks to see if the character Z coord (in A) is between B
+;; and either B + 3 or B + 9 (depending on if you're both head
+;; and heels currently). Returns NC if the character is in the right
+;; height range to go through door.
+DoorHeightCheck:SUB     B
+                RET     C
+                PUSH    AF
+                LD      A,(Character)
+                CP      $03
+                JR      NZ,DHC_1
+                POP     AF
+                CP      $03
+                CCF
+                RET
+DHC_1:          POP     AF
+                CP      $09
+                CCF
+                RET
 
+        ;; Points IX at the room boundaries, sets zero flag if:
+        ;; Bit 0 of IY+09 is not zero and
+        ;; Bottom 7 bits of IY+0A are zero.
 InitMove:	LD	IX,MinU
 		BIT	0,(IY+$09)
 		RET	Z
