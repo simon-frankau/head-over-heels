@@ -2,7 +2,7 @@
 # Makefile for the Head Over Heels reverse-engineering.
 #
 
-ASM_FILES = $(shell find src/ -type f -name '*.asm')
+ASM_FILES = $(shell find src -type f -name '*.asm')
 BIN_FILES = $(wildcard bin/*)
 
 # Strip off the actually directory-free part for making call graphs.
@@ -116,4 +116,4 @@ $(ASM_FILE_NAMES:.asm=.dot): out/dot_files
 	dot -Tsvg $< > $@
 
 .PHONY: call_graphs
-call_graphs: $(ASM_FILE_NAMES:.asm=.svg)
+call_graphs: $(ASM_FILE_NAMES:.asm=.svg) out/graphs/connections.svg

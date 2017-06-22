@@ -20,19 +20,19 @@
         ;; Second is the function to move that direction.
         ;; Third element is ???
 MoveTbl:        DEFB ~$02
-                DEFW Down,SomeTableArg0
+                DEFW Down,DownThing
                 DEFB ~$00
                 DEFW DownRight,0
                 DEFB ~$04
-                DEFW Right,SomeTableArg2
+                DEFW Right,RightThing
                 DEFB ~$00
                 DEFW UpRight,0
                 DEFB ~$01
-                DEFW Up,SomeTableArg4
+                DEFW Up,UpThing
                 DEFB ~$00
                 DEFW UpLeft,0
                 DEFB ~$08
-                DEFW Left,SomeTableArg6
+                DEFW Left,LeftThing
                 DEFB ~$00
                 DEFW DownLeft,0
 
@@ -150,7 +150,7 @@ DL_1:           LD      A,$06
                 LD      A,$06
                 RET
 
-SomeTableArg4:	INC	HL
+UpThing:	INC	HL
 		INC	HL
 		CALL	TblFnCommon20
 		LD	A,(HL)
@@ -211,7 +211,7 @@ TblArgCommon4:	LD	A,$FF
 		AND	A
 		RET
 
-SomeTableArg6:	INC	HL
+LeftThing:	INC	HL
 		INC	HL
 		CALL	TblFnCommon20
 		LD	A,(HL)
@@ -233,7 +233,7 @@ SomeTableArg6:	INC	HL
 		JR	Z,TblArgCommon2
 		JR	TblArgCommon4
 
-SomeTableArg0:	CALL	TblFnCommon20
+DownThing:	CALL	TblFnCommon20
 		EXX
 		LD	A,E
 		EXX
@@ -260,7 +260,7 @@ TblArgCommon5:	EXX
 		XOR	A
 		RET
 
-SomeTableArg2:	CALL	TblFnCommon20
+RightThing:	CALL	TblFnCommon20
 		EXX
 		LD	A,E
 		EXX

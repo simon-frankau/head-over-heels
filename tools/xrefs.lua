@@ -205,6 +205,60 @@ local function write_remaining()
   write_graph("HOH.dot", remaining_list)
 end
 
+-- Build a graph of the edges between files.
+local function write_cross_edges()
+  local cross_edges = {}
+  local owners = {}
+
+  for node, src_file in pairs(nodes) do
+    local list = edges[node]
+    if list ~= nil then
+      for dest, _ in pairs(list) do
+        local dest_file = nodes[dest]
+        if src_file ~= dest_file then
+          if cross_edges[src_file] == nil then
+            cross_edges[src_file] = {}
+          end
+          cross_edges[src_file][dest] = true
+          if owners[dest_file] == nil then
+            owners[dest_file] = {}
+          end
+          owners[dest_file][dest] = true
+
+        end
+      end
+    end
+  end
+
+  local fout = io.open(prefix .. "connections.dot", "w")
+  fout:write("digraph calls {\n")
+  fout:write("  ranksep = 3;\n")
+  fout:write("  rankdir = LR;\n")
+
+  for file, dests in pairs(cross_edges) do
+    for node, _ in pairs(dests) do
+        local _, _, name = string.find(file, "/([A-Za-z0-9_]*).asm")
+        name, _ = owners[file] and next(owners[file], nil) or name
+        fout:write("  " .. name .. " -> " .. node .. ";\n")
+    end
+  end
+
+  for owner_file, owned_nodes in pairs(owners) do
+    _, _, name = string.find(owner_file, "/([A-Za-z0-9_]*).asm")
+    fout:write("  subgraph cluster_" .. name .. "{\n")
+    fout:write("    node [style=filled];\n")
+    fout:write("    label=\"" .. owner_file .. "\";\n")
+    for node, _ in pairs(owned_nodes) do
+      fout:write("    " .. node .. ";\n")
+    end
+    fout:write("  }\n")
+  end
+
+  fout:write("}\n")
+  fout:close()
+
+end
+
 ------------------------------------------------------------------------
 -- Main running code
 
@@ -221,6 +275,8 @@ check_nodes()
 if edges["FinishGame"] then
   edges["FinishGame"]["Main"] = nil
 end
+
+write_cross_edges()
 
 for filename, _ in pairs(files) do
   write_graph(filename)

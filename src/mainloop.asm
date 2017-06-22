@@ -27,8 +27,8 @@
 
 ;; Main entry point
 Entry:          LD      SP,$FFF4
-                CALL    InitStuff
-                CALL    InitStick
+                CALL    InitStuff       ; Install interrupts, mirror table.
+                CALL    InitStick       ; Initialise joystick
                 JR      Main
 
 RoomId:		DEFW $00
