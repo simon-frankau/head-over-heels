@@ -48,7 +48,7 @@ DownRight:      EXX
                 XOR     A
                 CALL    DoMove
                 JR      C,DR_1
-        ;; Update extents in DE
+        ;; Restore extents in DE
                 EXX
                 DEC     D
                 DEC     E
@@ -76,6 +76,7 @@ UpRight:        EXX
                 LD      A,$04
                 CALL    DoMove
                 JR      C,UR_1
+        ;; Restore extents in DE
                 EXX
                 INC     D
                 INC     E
@@ -104,6 +105,7 @@ UpLeft:         EXX
                 LD      A,$04
                 CALL    DoMove
                 JR      C,UL_1
+        ;; Restore extents in DE
                 EXX
                 INC     D
                 INC     E
@@ -131,6 +133,7 @@ DownLeft:       EXX
                 XOR     A
                 CALL    DoMove
                 JR      C,DL_1
+        ;; Restore extents in DE
                 EXX
                 DEC     D
                 DEC     E
@@ -320,10 +323,11 @@ D_NoDoor:       BIT     0,(IX-$02) ; HasNoWall
 D_Exit:         CP      E
                 RET     NZ
                 LD      A,$01
-	;; NB: Shared across the various cases:
-CommonRet:	LD	(LB218),A
-		SCF
-		RET
+        ;; NB: Fall through.
+
+LeaveRoom:      LD      (LB218),A
+                SCF
+                RET
 
         ;; The case where we can't exit the room, but may hit the
         ;; wall.
@@ -386,7 +390,7 @@ R_NoDoor:       BIT     1,(IX-$02) ; HasNoWall
 R_Exit:         CP      L
                 RET     NZ
                 LD      A,$02
-                JR      CommonRet
+                JR      LeaveRoom
 
         ;; The case where we can't exit the room, but may hit the
         ;; wall.
@@ -442,7 +446,7 @@ U_NoDoor:       BIT     2,(IX-$02) ; HasNoWall
 U_Exit:         CP      D
                 RET     NZ
                 LD      A,$03
-                JP      CommonRet
+                JP      LeaveRoom
 
         ;; The case where we can't exit the room, but may hit the
         ;; wall.
@@ -490,7 +494,7 @@ L_NoDoor:       BIT     3,(IX-$02) ; HasNoWall
 L_Exit:         CP      H
                 RET     NZ
                 LD      A,$04
-                JP      CommonRet
+                JP      LeaveRoom
 
         ;; The case where we can't exit the room, but may hit the
         ;; wall.
@@ -582,9 +586,10 @@ DHC_1:          POP     AF
                 CCF
                 RET
 
-        ;; Points IX at the room boundaries, sets zero flag if:
-        ;; Bit 0 of IY+09 is not zero and
-        ;; Bottom 7 bits of IY+0A are zero.
+;; Points IX at the room boundaries, sets zero flag (can't leave room) if:
+;; Bit 0 of IY+09 is not zero, or bottom 7 bits of IY+0A are not zero.
+;;
+;; TODO: What does that test mean?
 InitMove:	LD	IX,MinU
 		BIT	0,(IY+$09)
 		RET	Z

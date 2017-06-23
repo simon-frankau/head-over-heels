@@ -738,6 +738,7 @@ SDO_2:          POP     HL
 #include "objects/depthcmp.asm"
 
 LB217:		DEFB $00
+;; 1 = Down, 2 = Right, 3 = Up, 4 = Left, 5 = Vertically down.
 LB218:		DEFB $00
 LB219:		DEFB $00
 Dying:		DEFB $00                ; Mask of the characters who are dying
