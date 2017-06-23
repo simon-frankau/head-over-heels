@@ -282,12 +282,22 @@ RightThing:	CALL	TblFnCommon20
 		JP	Z,TblArgCommon2
 		JR	TblArgCommon4
 
+;; Up, Down, Left and Right
+;;
+;; Takes U extent in DE, V extent in HL.
+;; U/D work in U direction, L/R work in V direction.
+;;
+;; Sets NZ and C if you can move in a direction.
+;; Sets Z and C if you cannot.
+;; Leaving room sets direction in LB218, sets C and Z.
+
         ;; TODO: This part of the function is the most mysterious...
 Down:		CALL	InitMove
 		JR	Z,D_NoExit
-		CALL	UD_fn
-		LD	A,$24
-		JR	C,D_NoExit2
+        ;; Inside the door frame to the side? Check a limited extent, then.
+                CALL    UD_InOtherDoor
+                LD      A,DOOR_LOW
+                JR      C,D_NoExit2
         ;; If the wall has a door, and
         ;; we're the right height to fit through, and
         ;; we're lined up to go through the frame,
@@ -350,9 +360,10 @@ Nudge:          LD      (Movement),A
 
 Right:		CALL	InitMove
 		JR	Z,R_NoExit
-		CALL	LR_fn
-		LD	A,$24
-		JR	C,R_NoExit2
+        ;; Inside the door frame to the side? Check a limited extent, then.
+                CALL    LR_InOtherDoor
+                LD      A,DOOR_LOW
+                JR      C,R_NoExit2
         ;; If the wall has a door, and
         ;; we're the right height to fit through, and
         ;; we're lined up to go through the frame,
@@ -405,9 +416,10 @@ LR_Nudge:       RET     NZ
 
 Up:		CALL	InitMove
 		JR	Z,U_NoExit
-		CALL	UD_fn
-		LD	A,$2C
-		JR	C,U_NoExit2
+        ;; Inside the door frame to the side? Check a limited extent, then.
+                CALL    UD_InOtherDoor
+                LD      A,DOOR_HIGH
+                JR      C,U_NoExit2
         ;; If the wall has a door, and
         ;; we're the right height to fit through, and
         ;; we're lined up to go through the frame,
@@ -451,9 +463,10 @@ U_NearDoor:     CALL    UD_InFrameW
 
 Left:		CALL	InitMove
 		JR	Z,L_NoExit
-		CALL	LR_fn
-		LD	A,$2C
-		JR	C,L_NoExit2
+        ;; Inside the door frame to the side? Check a limited extent, then.
+                CALL    LR_InOtherDoor
+                LD      A,DOOR_HIGH
+                JR      C,L_NoExit2
         ;; If the wall has a door, and
         ;; we're the right height to fit through, and
         ;; we're lined up to go through the frame,
@@ -496,19 +509,23 @@ L_NearDoor:     CALL    LR_InFrameW
                 CALL    L_NoExit
                 JP      LR_Nudge
 
-UD_fn:		LD	A,(MaxV)
-		CP	H
-		RET	C
-		LD	A,L
-		CP	A,(IX+$01) ; MinV
-		RET
+;; If we're not inside the V extent, we must be in the doorframes to
+;; the side. Set C if this is the case.
+UD_InOtherDoor: LD      A,(MaxV)
+                CP      H
+                RET     C
+                LD      A,L
+                CP      A,(IX+$01) ; MinV
+                RET
 
-LR_fn:		LD	A,(MaxU)
-		CP	D
-		RET	C
-		LD	A,E
-		CP	A,(IX+$00) ; MinU
-		RET
+;; If we're not inside the U extent, we must be in the doorframes to
+;; the side. Set C if this is the case.
+LR_InOtherDoor: LD      A,(MaxU)
+                CP      D
+                RET     C
+                LD      A,E
+                CP      A,(IX+$00) ; MinU
+                RET
 
 ;; Return NC if within the interval associated with the door.
 ;; Specifically, returns NC if D <= DOOR_HIGH and E >= DOOR_LOW
@@ -536,6 +553,7 @@ UD_InFrame:     LD      A,DOOR_HIGH
                 CP      DOOR_LOW
                 RET
 
+;; Same, but for the whole door, not just the inner arch
 UD_InFrameW:    LD      A,DOOR_HIGH + 4
                 CP      H
                 RET     C
