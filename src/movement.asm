@@ -353,103 +353,148 @@ Right:		CALL	InitMove
 		CALL	LR_fn
 		LD	A,$24
 		JR	C,R_NoExit2
-		BIT	1,(IX-$01) ; HasDoor
-		JR	Z,R_NoDoor
-		LD	A,(DoorHeights + 2)
-		CALL	DoorHeightCheck
-		JR	C,R_NoExit
-		CALL	LR_InFrame
-		JR	C,R_NearDoor
-		LD	A,(MinV)
-		SUB	$04
-		JR	R_Exit
-R_NoDoor:		BIT	1,(IX-$02) ; HasNoWall
-		JR	Z,R_NoExit
-		LD	A,(MinV)
-R_Exit:		CP	L
-		RET	NZ
-		LD	A,$02
-		JR	CommonRet
-R_NoExit:		LD	A,(MinV)
-R_NoExit2:		CP	L
-		RET	NZ
-		SCF
-		RET
-R_NearDoor:		CALL	LR_InFrameW
-		JR	C,R_NoExit
-		CALL	R_NoExit
-	;; NB: Fall through
-LR_Nudge:		RET	NZ
-		LD	A,E
-		CP	$25
-		LD	A,$FE
-		JR	C,Nudge
-		LD	A,$FD
-		JR	Nudge
+        ;; If the wall has a door, and
+        ;; we're the right height to fit through, and
+        ;; we're lined up to go through the frame,
+        ;; set 'A' to be the far side of the door.
+                BIT     1,(IX-$01) ; HasDoor
+                JR      Z,R_NoDoor
+                LD      A,(DoorHeights + 2)
+                CALL    DoorHeightCheck
+                JR      C,R_NoExit
+                CALL    LR_InFrame
+                JR      C,R_NearDoor
+                LD      A,(MinV)
+                SUB     $04
+                JR      R_Exit
+        ;; If there's no wall, put the room end coordinate into 'A'...
+R_NoDoor:       BIT     1,(IX-$02) ; HasNoWall
+                JR      Z,R_NoExit
+                LD      A,(MinV)
+        ;; Case where we can exit the room.
+R_Exit:         CP      L
+                RET     NZ
+                LD      A,$02
+                JR      CommonRet
+
+        ;; The case where we can't exit the room, but may hit the
+        ;; wall.
+R_NoExit:       LD      A,(MinV)
+        ;; (or some other value given in A).
+R_NoExit2:      CP      L
+                RET     NZ
+                SCF
+                RET
+
+        ;; The case where we can't exit the room, but may hit the
+        ;; wall.
+R_NearDoor:     CALL    LR_InFrameW
+                JR      C,R_NoExit
+                CALL    R_NoExit
+        ;; NB: Fall through
+
+        ;; Choose a direction to move based on which side of the door
+        ;; we're trying to get through.
+LR_Nudge:       RET     NZ
+                LD      A,E
+                CP      $25
+                LD      A,$FE
+                JR      C,Nudge
+                LD      A,$FD
+                JR      Nudge
 
 Up:		CALL	InitMove
 		JR	Z,U_NoExit
 		CALL	UD_fn
 		LD	A,$2C
 		JR	C,U_NoExit2
-		BIT	2,(IX-$01) ; HasDoor
-		JR	Z,U_NoDoor
-		LD	A,(DoorHeights + 1)
-		CALL	DoorHeightCheck
-		JR	C,U_NoExit
-		CALL	UD_InFrame
-		JR	C,U_NearDoor
-		LD	A,(MaxU)
-		ADD	A,$04
-		JR	U_Exit
-U_NoDoor:		BIT	2,(IX-$02) ; HasNoWall
-		JR	Z,U_NoExit
-		LD	A,(MaxU)
-U_Exit:		CP	D
-		RET	NZ
-		LD	A,$03
-		JP	CommonRet
-U_NoExit:		LD	A,(MaxU)
-U_NoExit2:		CP	D
-		RET	NZ
-		SCF
-		RET
-U_NearDoor:		CALL	UD_InFrameW
-		JR	C,U_NoExit
-		CALL	U_NoExit
-		JP	UD_Nudge
+        ;; If the wall has a door, and
+        ;; we're the right height to fit through, and
+        ;; we're lined up to go through the frame,
+        ;; set 'A' to be the far side of the door.
+                BIT     2,(IX-$01) ; HasDoor
+                JR      Z,U_NoDoor
+                LD      A,(DoorHeights + 1)
+                CALL    DoorHeightCheck
+                JR      C,U_NoExit
+                CALL    UD_InFrame
+                JR      C,U_NearDoor
+                LD      A,(MaxU)
+                ADD     A,$04
+                JR      U_Exit
+        ;; If there's no wall, put the room end coordinate into 'A'...
+U_NoDoor:       BIT     2,(IX-$02) ; HasNoWall
+                JR      Z,U_NoExit
+                LD      A,(MaxU)
+        ;; Case where we can exit the room.
+U_Exit:         CP      D
+                RET     NZ
+                LD      A,$03
+                JP      CommonRet
+
+        ;; The case where we can't exit the room, but may hit the
+        ;; wall.
+U_NoExit:       LD      A,(MaxU)
+        ;; (or some other value given in A).
+U_NoExit2:      CP      D
+                RET     NZ
+                SCF
+                RET
+
+        ;; Handle the near-door case: If we're not near the door frame,
+        ;; we do the normal "not door" case. Otherwise, we do that and
+        ;; then nudge into the door.
+U_NearDoor:     CALL    UD_InFrameW
+                JR      C,U_NoExit
+                CALL    U_NoExit
+                JP      UD_Nudge
 
 Left:		CALL	InitMove
 		JR	Z,L_NoExit
 		CALL	LR_fn
 		LD	A,$2C
 		JR	C,L_NoExit2
-		BIT	3,(IX-$01) ; HasDoor
-		JR	Z,L_NoDoor
-		LD	A,(DoorHeights)
-		CALL	DoorHeightCheck
-		JR	C,L_NoExit
-		CALL	LR_InFrame
-		JR	C,L_NearDoor
-		LD	A,(MaxV)
-		ADD	A,$04
-		JR	L_Exit
-L_NoDoor:		BIT	3,(IX-$02) ; HasNoWall
-		JR	Z,L_NoExit
-		LD	A,(MaxV)
-L_Exit:		CP	H
-		RET	NZ
-		LD	A,$04
-		JP	CommonRet
-L_NoExit:		LD	A,(MaxV)
-L_NoExit2:		CP	H
-		RET	NZ
-		SCF
-		RET
-L_NearDoor:		CALL	LR_InFrameW
-		JR	C,L_NoExit
-		CALL	L_NoExit
-		JP	LR_Nudge
+        ;; If the wall has a door, and
+        ;; we're the right height to fit through, and
+        ;; we're lined up to go through the frame,
+        ;; set 'A' to be the far side of the door.
+                BIT     3,(IX-$01) ; HasDoor
+                JR      Z,L_NoDoor
+                LD      A,(DoorHeights)
+                CALL    DoorHeightCheck
+                JR      C,L_NoExit
+                CALL    LR_InFrame
+                JR      C,L_NearDoor
+                LD      A,(MaxV)
+                ADD     A,$04
+                JR      L_Exit
+        ;; If there's no wall, put the room end coordinate into 'A'...
+L_NoDoor:       BIT     3,(IX-$02) ; HasNoWall
+                JR      Z,L_NoExit
+                LD      A,(MaxV)
+
+        ;; Case where we can exit the room.
+L_Exit:         CP      H
+                RET     NZ
+                LD      A,$04
+                JP      CommonRet
+
+        ;; The case where we can't exit the room, but may hit the
+        ;; wall.
+L_NoExit:       LD      A,(MaxV)
+        ;; (or some other value given in A).
+L_NoExit2:      CP      H
+                RET     NZ
+                SCF
+                RET
+
+        ;; Handle the near-door case: If we're not near the door frame,
+        ;; we do the normal "not door" case. Otherwise, we do that and
+        ;; then nudge into the door.
+L_NearDoor:     CALL    LR_InFrameW
+                JR      C,L_NoExit
+                CALL    L_NoExit
+                JP      LR_Nudge
 
 UD_fn:		LD	A,(MaxV)
 		CP	H
