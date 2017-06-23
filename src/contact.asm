@@ -78,8 +78,8 @@ HitFloor:	SCF
 		OR	$03
 		LD	(HL),A
 		JR	RetZeroC 	; Tail call.
-HF_1:		LD	A,$05
-		LD	(LB218),A
+HF_1:		LD	A,$05           ; Next room below.
+		LD	(NextRoom),A
 		AND	A
 		RET
 

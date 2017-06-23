@@ -374,7 +374,7 @@ DC_3:		RL	(HL)
 		LD	DE,Lives
 		LDI
 		LDI
-		LD	DE,LB218
+		LD	DE,NextRoom
 		LDI
 		BIT	0,A
 		LD	DE,LA2C5
@@ -410,7 +410,7 @@ DC_5:		LD	DE,RoomId
 		LD	HL,L8ADC
 		CALL	SetUVZ
 		LD	A,$08
-		LD	(LB218),A
+		LD	(NextRoom),A
 		LD	(LA297),A
 		RET
 
@@ -478,12 +478,12 @@ DecrementBCD:	LD	A,(HL)
 
 ;; Given a count index in A, return the pick-up increment in A, and address in HL.
 ;; Leaves the count index in C.
-;; If LB218 is non-zero, return 3 as the increment.
+;; If NextRoom is non-zero, return 3 as the increment.
 GetCountAddr:   LD      C,A
                 LD      B,$00
                 LD      HL,DefCounts
                 ADD     HL,BC
-                LD      A,(LB218)
+                LD      A,(NextRoom)
                 AND     A
                 LD      A,(HL)
                 JR      Z,GCA_1

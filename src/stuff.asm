@@ -9,7 +9,7 @@ InitStuff:	CALL	IrqInstall
 
 InitNewGame:	XOR	A
 		LD	(WorldMask),A
-		LD	(LB218),A
+		LD	(NextRoom),A
 		LD	(Continues),A
 		LD	A,$18
 		LD	(HeelsFrame),A
@@ -26,7 +26,7 @@ InitNewGame:	XOR	A
 		LD	HL,$8A40 ; TODO: Starting room?
 		LD	(RoomId),HL
 		XOR	A
-		LD	(LB218),A
+		LD	(NextRoom),A
 		RET
 
 InitThings:	LD	(Character),A

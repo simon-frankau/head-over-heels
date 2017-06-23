@@ -70,7 +70,7 @@ EPIC_1:		LD	HL,LA296
 		CALL	C,DecCount
 EPIC_2:		LD	A,$FF
 		LD	(Movement),A
-		LD	A,(LB218)
+		LD	A,(NextRoom)
 		AND	A
 		JR	Z,EPIC_4
 		LD	A,(SavedObjListIdx)
@@ -81,7 +81,7 @@ EPIC_2:		LD	A,$FF
 		RLA
 		LD	(CurrDir),A
 		JR	EPIC_4
-EPIC_3:		LD	(LB218),A
+EPIC_3:		LD	(NextRoom),A
 EPIC_4:		CALL	CharThing4
 	;; NB: Big loop back up to here.
 EPIC_5:		CALL	GetCharObj
@@ -96,7 +96,7 @@ EPIC_5:		CALL	GetCharObj
 		AND	A
 		JR	NZ,DoFire
 		LD	A,$06
-		LD	(LB218),A
+		LD	(NextRoom),A
 	;;  NB: Fall through
 
 	;; Check for Fire being pressed
@@ -148,7 +148,7 @@ DoFire:		LD	A,(FirePressed)
 		JR	NotFire
 NopeFire:	CALL	NopeNoise
 	;; Next section?
-NotFire:	LD	HL,LB218
+NotFire:	LD	HL,NextRoom
 		LD	A,(HL)
 		AND	$7F
 		RET	Z
@@ -191,7 +191,7 @@ EPIC_14:	DEC	(HL)
 		LD	HL,(Character)
 		JP	NZ,CharThing19 		; NB: Tail call
 		LD	A,$07
-		LD	(LB218),A
+		LD	(NextRoom),A
 		JP	EPIC_5
 
 	;; TODO: Almost certainly, "die"
@@ -271,7 +271,7 @@ HD_9:		LD	A,(LA2A6)
 		LDIR
         ;; TODO: Restore something, jump somewhere.
 		LD	A,(LA2A2)
-		LD	(LB218),A
+		LD	(NextRoom),A
 		JP	RoomLongJmp
 
 CharThing18:	PUSH	HL
@@ -371,13 +371,13 @@ EPIC_36:	LD	A,(CurrDir)
 EPIC_37:	SET	4,(IY+$0B)
 		SET	5,(IY+$0C)
 		CALL	GetCharObj
-		LD	A,(LB218)
+		LD	A,(NextRoom)
 		AND	A
 		JR	NZ,EPIC_38
 		CALL	DoorContact
 		JP	NC,CharThing23 		; NB: Tail call
 		JP	NZ,CharThing22		; NB: Tail call
-EPIC_38:	LD	A,(LB218)
+EPIC_38:	LD	A,(NextRoom)
 		RLA
 		JR	NC,EPIC_39
 		LD	(IY+$0C),$FF
@@ -839,7 +839,7 @@ CharThing15:	XOR	A 	; FIXME: Unused?
 		PUSH	HL
 		PUSH	HL
 		POP	IY
-		LD	A,(LB218)
+		LD	A,(NextRoom)
 		LD	(LA2A2),A
 		PUSH	AF
 		SUB	$01
@@ -924,7 +924,7 @@ EPIC_96:	POP	AF
 		LD	A,(HL)
 		LD	(CharDir),A
 EPIC_97:	LD	A,$80
-		LD	(LB218),A
+		LD	(NextRoom),A
 		POP	HL
 		LD	DE,5    ; TODO
 		ADD	HL,DE

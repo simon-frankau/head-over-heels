@@ -13,7 +13,7 @@
 	;; MaxV
 	;; DoorHeights
 	;; Movement
-	;; LB218
+	;; NextRoom
 
         ;; Table is indexed on a direction, as per LookupDir.
         ;; First element is bit mask for directions.
@@ -292,7 +292,7 @@ RightThing:	CALL	TblFnCommon20
 ;;
 ;; Sets NZ and C if you can move in a direction.
 ;; Sets Z and C if you cannot.
-;; Leaving room sets direction in LB218, sets C and Z.
+;; Leaving room sets direction in NextRoom, sets C and Z.
 
         ;; TODO: This part of the function is the most mysterious...
 Down:		CALL	InitMove
@@ -325,7 +325,7 @@ D_Exit:         CP      E
                 LD      A,$01
         ;; NB: Fall through.
 
-LeaveRoom:      LD      (LB218),A
+LeaveRoom:      LD      (NextRoom),A
                 SCF
                 RET
 

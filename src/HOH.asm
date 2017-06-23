@@ -738,8 +738,8 @@ SDO_2:          POP     HL
 #include "objects/depthcmp.asm"
 
 LB217:		DEFB $00
-;; 1 = Down, 2 = Right, 3 = Up, 4 = Left, 5 = Vertically down.
-LB218:		DEFB $00
+;; 1 = Down, 2 = Right, 3 = Up, 4 = Left, 5 = Below, 6 = Above.
+NextRoom:	DEFB $00
 LB219:		DEFB $00
 Dying:		DEFB $00                ; Mask of the characters who are dying
 Direction:	DEFB $00
@@ -944,8 +944,8 @@ DCO_3:		LD	A,B
 		RET	Z
         ;; Update a thing...
 		LD	(HL),$0C
-        ;; And do invulnerability if LB218 is non-zero.
-		LD	A,(LB218)
+        ;; And do invulnerability if NextRoom is non-zero.
+		LD	A,(NextRoom)
 		AND	A
 		CALL	NZ,BoostInvuln2
 		LD	B,$C6

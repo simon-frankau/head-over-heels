@@ -113,7 +113,7 @@ DoVictoryRoom:
 
 	;; FIXME: ???
 GoToRoom:	LD	HL,RoomId+1
-		LD	A,(LB218)
+		LD	A,(NextRoom)
 		DEC	A
 		CP	$06
 		JR	Z,TeleportRoom
