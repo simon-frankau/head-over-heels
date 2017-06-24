@@ -15,6 +15,274 @@
 	;; Movement
 	;; NextRoom
 
+LB217:		DEFB $00
+;; Set to 0 if we're staying in the current room.
+;; 1 = Down, 2 = Right, 3 = Up, 4 = Left, 5 = Below, 6 = Above, 7 = Teleport
+NextRoom:	DEFB $00
+LB219:		DEFB $00
+Dying:		DEFB $00                ; Mask of the characters who are dying
+Direction:	DEFB $00
+
+;; HL contains an object, A contains a direction
+;; TODO: I guess IY holds the character object?
+Move:           PUSH    AF
+                CALL    GetUVZExtentsE
+                EXX
+                POP     AF
+                LD      (Direction),A
+        ;; NB: Fall through
+
+;; Called from Move and recursively from the functions in movement.asm.
+;; Expects UV extents in DE', HL', and movement direction in A.
+;; Sets C flag if there's collision.
+DoMove:         CALL    DoMoveAux
+                LD      A,(Direction)
+                RET
+
+;; Only used by DoMove.
+;;
+;; Takes direction in A, and UV extents in DE', HL'.
+;;
+;; It indexes into the move table, pulls out first
+;; function entry into HL, and calls the second, having EXX'd,
+;; arranging to return to PostMove.
+DoMoveAux:      LD      DE,PostMove
+        ;; Stick this on the stack to be called upon return.
+                PUSH    DE
+                LD      C,A
+                ADD     A,A
+                ADD     A,A
+                ADD     A,C             ; Multiply by 5
+                ADD     A,MoveTbl & $FF
+                LD      L,A
+                ADC     A,MoveTbl >> 8
+                SUB     L
+                LD      H,A             ; Generate index into table
+                LD      A,(HL)
+                LD      (LB217),A       ; Load first value here
+                INC     HL
+                LD      E,(HL)
+                INC     HL
+                LD      D,(HL)          ; Next two in DE
+                INC     HL
+                LD      A,(HL)
+                INC     HL
+                LD      H,(HL)
+                LD      L,A             ; Next two in HL
+                PUSH    DE
+                EXX                     ; Save regs, and...
+                RET                     ; tail call DE.
+
+;; Called after the call to the function in DoMoveAux.
+;; The second movement function is in HL', the direction in C'.
+PostMove:       EXX
+        ;; Can't move in that direction? Return.
+                RET     Z               ; Sets C (collision).
+        ;; Put the second movement function from MoveTbl into IX.
+                PUSH    HL
+                POP     IX
+        ;; There are two similar loops, based on which direction we
+        ;; want to traverse the object list:
+                BIT     2,C
+                JR      NZ,PM_Alt
+        ;; Down or right case. Traverse the object list.
+                LD      HL,ObjectLists
+PM_ALoop:       LD      A,(HL)
+                INC     HL
+                LD      H,(HL)
+                LD      L,A
+                OR      H
+                JR      Z,PM_ABreak     ; End of list - break.
+                PUSH    HL
+                CALL    JpIX            ; Call the function from MoveTbl.
+                POP     HL
+                JR      C,PM_AFound     ; Found case
+                JR      NZ,PM_ALoop     ; Loop case
+                JR      PM_ABreak       ; Break case
+        ;; Up or left case. Traverse the object list in opposite direction.
+PM_Alt:         LD      HL,ObjectLists + 2
+PM_BLoop:       LD      A,(HL)
+                INC     HL
+                LD      H,(HL)
+                LD      L,A
+                OR      H
+                JR      Z,PM_BBreak     ; End of list - break.
+                PUSH    HL
+                CALL    JpIX            ; Call the function from MoveTbl.
+                POP     HL
+                JR      C,PM_BFound     ; Other found case
+                JR      NZ,PM_BLoop     ; Loop case
+PM_BBreak:      CALL    GetCharObj      ; Break case...
+                LD      E,L
+                JR      PM_Break
+PM_ABreak:      CALL    GetCharObj
+                LD      E,L
+                INC     HL
+                INC     HL
+        ;; Both "Break" cases end up here.
+        ;; HL points 2 into object
+        ;; TODO: ??? I think it may be checking if the other character
+        ;; is relevant? Or the main character???
+PM_Break:       BIT     0,(IY+$09)
+                JR      Z,PM_Break2
+                LD      A,YL
+                CP      E
+                RET     Z
+PM_Break2:      LD      A,(SavedObjListIdx)
+                AND     A
+                RET     Z               ; Sets NC (no collision).
+                CALL    JpIX
+                RET     NC              ; Sets NC (no collision).
+        ;; Adjust pointer and fall through...
+                CALL    GetCharObj
+                INC     HL
+                INC     HL
+        ;; Fall through into found cases:
+PM_AFound:      DEC     HL
+                DEC     HL
+PM_BFound:      PUSH    HL
+                POP     IX
+                LD      A,(LB217)
+                BIT     1,(IX+$09) ; Second of double-height character?
+                JR      Z,PM_Found2
+        ;; Adjust first, then.
+                AND     A,(IX+$0C-18)
+                LD      (IX+$0C-18),A
+                JR      PM_Found3
+        ;; Otherwise, adjust it.
+PM_Found2:      AND     A,(IX+$0C)
+                LD      (IX+$0C),A
+        ;; Call "Contact" with $FF in A.
+PM_Found3:      XOR     A
+                SUB     $01             ; Sets C (collided).
+        ;; NB: Fall through
+
+;; Handle contact between a pair of objects in IX and IY
+Contact:        PUSH	AF
+		PUSH	IX
+		PUSH	IY
+		CALL	ContactAux
+		POP	IY
+		POP	IX
+		POP	AF
+		RET
+
+;; IX and IY are both objects, may be characters.
+;; Something is in A.
+ContactAux:     BIT	0,(IY+$09)
+		JR	NZ,CA_1 		; Bit 0 set on IY? Proceed.
+		BIT	0,(IX+$09)
+		JR	Z,ContactNonChar 	; Bit 0 not set on IX? ContactNonChar instead.
+        ;; Swap IY and IX.
+		PUSH	IY
+		EX	(SP),IX
+		POP	IY
+        ;; At this point, bit 0 set on IY.
+CA_1:		LD	C,(IY+$09) 		; IY's sprite flags in C.
+		LD	B,(IY+$04)		; IY's flags in B.
+		BIT	5,(IX+$04)              ; Bit 5 not set in IX's flags?
+		RET	Z			; Then return.
+		BIT	6,(IX+$04)		; Bit 6 set?
+		JR	NZ,CollectSpecial       ; CollectSpecial instead, then.
+        ;; Return if A is non-zero and bit 4 of IX is set.
+		AND	A
+		JR	Z,DeadlyContact
+		BIT	4,(IX+$09)
+		RET	NZ
+        ;; NB: Fall through.
+
+;; TODO: Current theory...
+;; IY holds character sprite. We've hit a deadly floor or object.
+;; C is character's sprite flags (offset 9)
+;; B is character's other flags (offset 4)
+DeadlyContact:
+        ;; If we're double-height (i.e. joined), set bottom two bits
+	;; of B and jump.
+		BIT	3,B
+		LD	B,$03
+		JR	NZ,DCO_1
+		DEC	B
+        ;; Otherwise, if bit 2 of C is set (we're Head), set to 2.
+		BIT	2,C
+		JR	NZ,DCO_1
+        ;; Otherwise (we're Heels), set to 1.
+		DEC	B
+DCO_1:
+        ;; Now clear bits based on invulnerability...
+        ;; If Heels is invuln, reset bit 0.
+        	XOR	A
+		LD	HL,Invuln
+		CP	(HL)
+		JR	Z,DCO_2
+		RES	0,B
+DCO_2:		INC	HL
+        ;; If Head is invuln, reset bit 1.
+		CP	(HL)
+		JR	Z,DCO_3
+		RES	1,B
+        ;; No bits set = invulnerable, so return.
+DCO_3:		LD	A,B
+		AND	A
+		RET	Z
+        ;; Update Dying - the mask of which characters should die.
+		LD	HL,Dying
+		OR	(HL)
+		LD	(HL),A
+        ;; Another check.
+		DEC	HL
+		LD	A,(HL)
+		AND	A
+		RET	NZ
+        ;; Return if emperor
+		LD	A,(WorldMask)
+		CP	$1F
+		RET	Z
+        ;; Update a thing...
+		LD	(HL),$0C
+        ;; And do invulnerability if NextRoom is non-zero.
+		LD	A,(NextRoom)
+		AND	A
+		CALL	NZ,BoostInvuln2
+		LD	B,$C6
+		JP	PlaySound 	; Tail call.
+
+;; Make the special object disappear and call the associated function.
+CollectSpecial:
+        ;; Set flags etc. for fading
+                LD      (IX+$0F),$08
+                LD      (IX+$04),$80
+        ;; Switch to fade function
+                LD      A,(IX+$0A)
+                AND     $80
+                OR      OBJFN_FADE
+                LD      (IX+$0A),A
+        ;; Clear special collectable item status.
+                RES     6,(IX+$09)
+        ;; Extract the item id for the call to GetSpecial.
+                LD      A,(IX+$11)
+                JP      GetSpecial      ; Tail call
+
+;; Contact between two non-character objects.
+ContactNonChar:	BIT		3,(IY+$09)
+		JR		NZ,CNC_1
+		BIT		3,(IX+$09)
+		RET		Z
+		PUSH	IY
+		POP		IX
+        ;; Object in IX has bit 3 of sprite flags set.
+        ;; If we're second part of double-height object, find the first part.
+CNC_1:		BIT		1,(IX+$09)
+		JR		Z,CNC_2
+		LD		DE,-18
+		ADD		IX,DE
+        ;; Return if bit 7 reset
+CNC_2:		BIT		7,(IX+$09)
+		RET		Z
+        ;; Set bit 6, clear movement (?)
+		SET		6,(IX+$09)
+		LD		(IX+$0B),$FF
+		RET
+
 ;; MoveTbl is indexed on a direction, as per LookupDir.
 ;; First element is bit mask for directions.
 ;; Second is the function to move that direction.
