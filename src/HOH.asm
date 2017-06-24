@@ -745,122 +745,138 @@ LB219:		DEFB $00
 Dying:		DEFB $00                ; Mask of the characters who are dying
 Direction:	DEFB $00
 
-        ;; HL contains an object, A contains a direction
-Move:		PUSH	AF
-		CALL	GetUVZExtentsE
-		EXX
-		POP	AF
-		LD	(Direction),A
-	;; NB: Fall through
+;; HL contains an object, A contains a direction
+;; TODO: I guess IY holds the character object?
+Move:           PUSH    AF
+                CALL    GetUVZExtentsE
+                EXX
+                POP     AF
+                LD      (Direction),A
+        ;; NB: Fall through
 
-        ;; Takes value in A etc. plus extra return value.
-DoMove:		CALL	DoMoveAux
-		LD	A,(Direction)
-		RET
+;; Called from Move and recursively from the functions in movement.asm.
+;; Expects UV extents in DE', HL', and movement direction in A.
+;; Sets C flag if there's collision.
+DoMove:         CALL    DoMoveAux
+                LD      A,(Direction)
+                RET
 
-	;; Takes value in A, indexes into table, writes variable, makes call...
-DoMoveAux:	LD	DE,PostMove
+;; Only used by DoMove.
+;;
+;; Takes direction in A, and UV extents in DE', HL'.
+;;
+;; It indexes into the move table, pulls out first
+;; function entry into HL, and calls the second, having EXX'd,
+;; arranging to return to PostMove.
+DoMoveAux:      LD      DE,PostMove
         ;; Stick this on the stack to be called upon return.
-		PUSH	DE
-		LD	C,A
-		ADD	A,A
-		ADD	A,A
-		ADD	A,C		; Multiply by 5
-		ADD	A,MoveTbl & $FF
-		LD	L,A
-		ADC	A,MoveTbl >> 8
-		SUB	L
-		LD	H,A		; Generate index into table
-		LD	A,(HL)
-		LD	(LB217),A 	; Load first value here
-		INC	HL
-		LD	E,(HL)
-		INC	HL
-		LD	D,(HL)		; Next two in DE
-		INC	HL
-		LD	A,(HL)
-		INC	HL
-		LD	H,(HL)
-		LD	L,A		; Next two in HL
-		PUSH	DE
-		EXX			; Save regs, and...
-		RET			; tail call DE.
+                PUSH    DE
+                LD      C,A
+                ADD     A,A
+                ADD     A,A
+                ADD     A,C             ; Multiply by 5
+                ADD     A,MoveTbl & $FF
+                LD      L,A
+                ADC     A,MoveTbl >> 8
+                SUB     L
+                LD      H,A             ; Generate index into table
+                LD      A,(HL)
+                LD      (LB217),A       ; Load first value here
+                INC     HL
+                LD      E,(HL)
+                INC     HL
+                LD      D,(HL)          ; Next two in DE
+                INC     HL
+                LD      A,(HL)
+                INC     HL
+                LD      H,(HL)
+                LD      L,A             ; Next two in HL
+                PUSH    DE
+                EXX                     ; Save regs, and...
+                RET                     ; tail call DE.
 
+;; Called after the call to the function in DoMoveAux.
+;; The second movement function is in HL', the direction in C'.
 PostMove:       EXX
-                RET     Z
+        ;; Can't move in that direction? Return.
+                RET     Z               ; Sets C (collision).
+        ;; Put the second movement function from MoveTbl into IX.
                 PUSH    HL
                 POP     IX
+        ;; There are two similar loops, based on which direction we
+        ;; want to traverse the object list:
                 BIT     2,C
-                JR      NZ,PM_2
-        ;; Object list traversal time!
+                JR      NZ,PM_Alt
+        ;; Down or right case. Traverse the object list.
                 LD      HL,ObjectLists
-PM_1:           LD      A,(HL)
+PM_ALoop:       LD      A,(HL)
                 INC     HL
                 LD      H,(HL)
                 LD      L,A
                 OR      H
-                JR      Z,PM_5
+                JR      Z,PM_ABreak     ; End of list - break.
                 PUSH    HL
-                CALL    JpIX
+                CALL    JpIX            ; Call the function from MoveTbl.
                 POP     HL
-                JR      C,PM_8  ; Found case
-                JR      NZ,PM_1 ; Loop case
-                JR      PM_5    ; Break case
-        ;; Bit 2 of C was set - other object list traversal.
-PM_2:           LD      HL,ObjectLists + 2
-PM_3:           LD      A,(HL)
+                JR      C,PM_AFound     ; Found case
+                JR      NZ,PM_ALoop     ; Loop case
+                JR      PM_ABreak       ; Break case
+        ;; Up or left case. Traverse the object list in opposite direction.
+PM_Alt:         LD      HL,ObjectLists + 2
+PM_BLoop:       LD      A,(HL)
                 INC     HL
                 LD      H,(HL)
                 LD      L,A
                 OR      H
-                JR      Z,PM_4
+                JR      Z,PM_BBreak     ; End of list - break.
                 PUSH    HL
-                CALL    JpIX
+                CALL    JpIX            ; Call the function from MoveTbl.
                 POP     HL
-                JR      C,PM_9  ; Other found case
-                JR      NZ,PM_3 ; Loop case
-PM_4:           CALL	GetCharObj ; Break case...
+                JR      C,PM_BFound     ; Other found case
+                JR      NZ,PM_BLoop     ; Loop case
+PM_BBreak:      CALL    GetCharObj      ; Break case...
                 LD      E,L
-                JR      PM_6
-        ;; Exit point for first loop, line up with exit point for second loop...
-PM_5:           CALL    GetCharObj
+                JR      PM_Break
+PM_ABreak:      CALL    GetCharObj
                 LD      E,L
                 INC     HL
                 INC     HL
+        ;; Both "Break" cases end up here.
         ;; HL points 2 into object
-PM_6:           BIT     0,(IY+$09)
-                JR      Z,PM_7
+        ;; TODO: ??? I think it may be checking if the other character
+        ;; is relevant? Or the main character???
+PM_Break:       BIT     0,(IY+$09)
+                JR      Z,PM_Break2
                 LD      A,YL
                 CP      E
                 RET     Z
-PM_7:           LD      A,(SavedObjListIdx)
+PM_Break2:      LD      A,(SavedObjListIdx)
                 AND     A
-                RET     Z
+                RET     Z               ; Sets NC (no collision).
                 CALL    JpIX
-                RET     NC
+                RET     NC              ; Sets NC (no collision).
         ;; Adjust pointer and fall through...
                 CALL    GetCharObj
                 INC     HL
                 INC     HL
-        ;; Exit point for second loop, adjust to merge with exit point from first...
-PM_8:           DEC     HL
+        ;; Fall through into found cases:
+PM_AFound:      DEC     HL
                 DEC     HL
-        ;; FIXME
-PM_9:           PUSH    HL
+PM_BFound:      PUSH    HL
                 POP     IX
                 LD      A,(LB217)
                 BIT     1,(IX+$09) ; Second of double-height character?
-                JR      Z,PM_10
+                JR      Z,PM_Found2
         ;; Adjust first, then.
                 AND     A,(IX+$0C-18)
                 LD      (IX+$0C-18),A
-                JR      PM_11
+                JR      PM_Found3
         ;; Otherwise, adjust it.
-PM_10:          AND     A,(IX+$0C)
+PM_Found2:      AND     A,(IX+$0C)
                 LD      (IX+$0C),A
         ;; Call "Contact" with $FF in A.
-PM_11:          XOR     A
-                SUB     $01
+PM_Found3:      XOR     A
+                SUB     $01             ; Sets C (collided).
         ;; NB: Fall through
 
 ;; Handle contact between a pair of objects in IX and IY

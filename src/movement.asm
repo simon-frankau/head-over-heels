@@ -15,31 +15,38 @@
 	;; Movement
 	;; NextRoom
 
-        ;; Table is indexed on a direction, as per LookupDir.
-        ;; First element is bit mask for directions.
-        ;; Second is the function to move that direction.
-        ;; Third element is ???
+;; MoveTbl is indexed on a direction, as per LookupDir.
+;; First element is bit mask for directions.
+;; Second is the function to move that direction.
+;; Third element is the function to check collisions.
 MoveTbl:        DEFB ~$02
-                DEFW Down,DownThing
+                DEFW Down,DownCollide
                 DEFB ~$00
                 DEFW DownRight,0
                 DEFB ~$04
-                DEFW Right,RightThing
+                DEFW Right,RightCollide
                 DEFB ~$00
                 DEFW UpRight,0
                 DEFB ~$01
-                DEFW Up,UpThing
+                DEFW Up,UpCollide
                 DEFB ~$00
                 DEFW UpLeft,0
                 DEFB ~$08
-                DEFW Left,LeftThing
+                DEFW Left,LeftCollide
                 DEFB ~$00
                 DEFW DownLeft,0
 
-        ;; Movement functions expects extents in primed registers.
-        ;; Returns direction actually travelled.
-        ;; TODO: And sets some flags?
-
+;; The diagonal movement functions rearrange things:
+;; * They remove two elements of the stack, removing the call to
+;;   PostMove and the return into DoMove (which puts (Direction)
+;;   into A).
+;; * They call DoMove, and check the resultant carry flag. Carry means
+;;   failure to move in that direction. They move one direction, then the
+;;   other.
+;; * If the first move succeeds, the extents are updated to represent the
+;;   successful move, before the second check is attempted.
+;; * Depending on what works, they generate a movement direction in A,
+;;   and success/failure in the carry flag.
 DownRight:      EXX
         ;; Remove original return path, hit DoMove again.
                 POP     HL
@@ -48,7 +55,7 @@ DownRight:      EXX
                 XOR     A
                 CALL    DoMove
                 JR      C,DR_1
-        ;; Restore extents in DE
+        ;; Update extents in DE
                 EXX
                 DEC     D
                 DEC     E
@@ -76,7 +83,7 @@ UpRight:        EXX
                 LD      A,$04
                 CALL    DoMove
                 JR      C,UR_1
-        ;; Restore extents in DE
+        ;; Update extents in DE
                 EXX
                 INC     D
                 INC     E
@@ -105,7 +112,7 @@ UpLeft:         EXX
                 LD      A,$04
                 CALL    DoMove
                 JR      C,UL_1
-        ;; Restore extents in DE
+        ;; Update extents in DE
                 EXX
                 INC     D
                 INC     E
@@ -133,7 +140,7 @@ DownLeft:       EXX
                 XOR     A
                 CALL    DoMove
                 JR      C,DL_1
-        ;; Restore extents in DE
+        ;; Update extents in DE
                 EXX
                 DEC     D
                 DEC     E
@@ -153,137 +160,165 @@ DL_1:           LD      A,$06
                 LD      A,$06
                 RET
 
-UpThing:	INC	HL
-		INC	HL
-		CALL	TblFnCommon20
-		LD	A,(HL)
-		SUB	C
-		EXX
-		CP	D
-		EXX
-		JR	C,TblArgCommon4
-		JR	NZ,TblArgCommon3
-		INC	HL
-	;; NB: Fall through
-	
-TblArgCommon1:	LD	A,(HL)
-		SUB	B
-		EXX
-		CP	H
-		LD	A,L
-		EXX
-		JR	NC,TblArgCommon4
-		SUB	B
-		CP	(HL)
-		JR	NC,TblArgCommon4
-	;; NB: Fall through
-	
-TblArgCommon2:	INC	HL
-		EXX
-		LD	A,C
-		EXX
-		CP	(HL)
-		JR	NC,TblArgCommon4
-		LD	A,(HL)
-		SUB	E
-		EXX
-		CP	B
-		EXX
-		JR	NC,TblArgCommon4
-		SCF
-		RET
-	
-TblArgCommon3:	INC	HL
-		LD	A,(HL)
-		SUB	B
-		EXX
-		CP	H
-		EXX
-		JR	C,TblArgCommon4
-		INC	HL
-		LD	A,(HL)
-		SUB	E
-		EXX
-		CP	B
-		EXX
-		JR	C,TblArgCommon4
-		XOR	A
-		RET
-	
-TblArgCommon4:	LD	A,$FF
-		AND	A
-		RET
+;; *Collide functions take an object in HL, and check it against the
+;; character whose extents are in DE' and HL'
+;;
+;; Returned flags are:
+;;  Carry = Collided
+;;  NZ = No collision, but further collisions are possible.
+;;  Z = Stop now, no further collisions possible.
 
-LeftThing:	INC	HL
-		INC	HL
-		CALL	TblFnCommon20
-		LD	A,(HL)
-		SUB	C
-		EXX
-		CP	D
-		LD	A,E
-		EXX
-		JR	NC,TblArgCommon3
-		SUB	C
-		CP	(HL)
-		JR	NC,TblArgCommon4
-		INC	HL
-		LD	A,(HL)
-		SUB	B
-		EXX
-		CP	H
-		EXX
-		JR	Z,TblArgCommon2
-		JR	TblArgCommon4
+UpCollide:      INC     HL
+                INC     HL
+                CALL    GetSimpleSize
+        ;; Check U coordinate
+                LD      A,(HL)
+                SUB     C
+                EXX
+                CP      D
+                EXX
+                JR      C,CollideContinue ; Too far? Skip.
+                JR      NZ,ChkBack        ; Are we done yet?
+        ;; U coordinate matches.
+                INC     HL
+        ;; NB: Fall through
 
-DownThing:	CALL	TblFnCommon20
-		EXX
-		LD	A,E
-		EXX
-		SUB	C
-		CP	(HL)
-		JR	C,TblArgCommon4
-		INC	HL
-		JR	Z,TblArgCommon1
-	;; NB: Fall through
-	
-TblArgCommon5:	EXX
-		LD	A,L
-		EXX
-		SUB	B
-		CP	(HL)
-		JR	C,TblArgCommon4
-		INC	HL
-		LD	A,(HL)
-		ADD	A,E
-		EXX
-		CP	B
-		EXX
-		JR	NC,TblArgCommon4
-		XOR	A
-		RET
+;; U coordinate matches. Check V overlaps.
+ChkVCollide:    LD      A,(HL)
+                SUB     B
+                EXX
+                CP      H
+                LD      A,L
+                EXX
+                JR      NC,CollideContinue
+                SUB     B
+                CP      (HL)
+                JR      NC,CollideContinue
+        ;; If we reached here, there's a V overlap.
+        ;; NB: Fall through
 
-RightThing:	CALL	TblFnCommon20
-		EXX
-		LD	A,E
-		EXX
-		SUB	C
-		CP	(HL)
-		INC	HL
-		JR	NC,TblArgCommon5
-		DEC	HL
-		LD	A,(HL)
-		SUB	C
-		EXX
-		CP	D
-		LD	A,L
-		EXX
-		JR	NC,TblArgCommon4
-		INC	HL
-		SUB	B
-		CP	(HL)
-		JP	Z,TblArgCommon2
-		JR	TblArgCommon4
+ChkZCollide:    INC     HL
+                EXX
+                LD      A,C
+                EXX
+                CP      (HL)
+                JR      NC,CollideContinue
+                LD      A,(HL)
+                SUB     E
+                EXX
+                CP      B
+                EXX
+                JR      NC,CollideContinue
+        ;; If we reached here, there's a Z overlap.
+                SCF             ; Collision!
+                RET
+
+ChkBack:
+        ;; Check V coordinate
+                INC     HL
+                LD      A,(HL)
+                SUB     B
+                EXX
+                CP      H
+                EXX
+                JR      C,CollideContinue
+        ;; Check Z coordinate
+                INC     HL
+                LD      A,(HL)
+                SUB     E
+                EXX
+                CP      B
+                EXX
+                JR      C,CollideContinue
+        ;; Passed our object, can stop now.
+                XOR     A
+                RET
+
+;; No carry = no collision, non-zero = keep searching.
+CollideContinue:LD      A,$FF
+                AND     A
+                RET
+
+LeftCollide:    INC     HL
+                INC     HL
+                CALL    GetSimpleSize
+        ;; Check U coordinates overlap...
+                LD      A,(HL)
+                SUB     C
+                EXX
+                CP      D
+                LD      A,E
+                EXX
+                JR      NC,ChkBack
+                SUB     C
+                CP      (HL)
+                JR      NC,CollideContinue
+        ;; U overlaps, check V for contact.
+                INC     HL
+                LD      A,(HL)
+                SUB     B
+                EXX
+                CP      H
+                EXX
+                JR      Z,ChkZCollide   ; U and V match.
+                JR      CollideContinue ; Not a collision.
+
+DownCollide:    CALL    GetSimpleSize
+        ;; Check U coordinate.
+                EXX
+                LD      A,E
+                EXX
+                SUB     C
+                CP      (HL)
+                JR      C,CollideContinue ; Past it? Skip
+                INC     HL
+                JR      Z,ChkVCollide     ; Are we done yet?
+        ;; U coordinate matches.
+        ;; NB: Fall through
+
+ChkFront:
+        ;; Check U coordinate.
+                EXX
+                LD      A,L
+                EXX
+                SUB     B
+                CP      (HL)
+                JR      C,CollideContinue
+        ;; Check Z coordinate.
+                INC     HL
+                LD      A,(HL)
+                ADD     A,E
+                EXX
+                CP      B
+                EXX
+                JR      NC,CollideContinue
+        ;; Passed our object, can stop now.
+                XOR     A
+                RET
+
+RightCollide:   CALL    GetSimpleSize
+        ;; Check U coordinate overlap...
+                EXX
+                LD      A,E
+                EXX
+                SUB     C
+                CP      (HL)
+                INC     HL
+                JR      NC,ChkFront
+                DEC     HL
+                LD      A,(HL)
+                SUB     C
+                EXX
+                CP      D
+                LD      A,L
+                EXX
+                JR      NC,CollideContinue
+        ;; U overlaps, checks V for contact.
+                INC     HL
+                SUB     B
+                CP      (HL)
+                JP      Z,ChkZCollide   ; U and V match.
+                JR      CollideContinue ; Not a collision.
 
 ;; Up, Down, Left and Right
 ;;
@@ -294,9 +329,8 @@ RightThing:	CALL	TblFnCommon20
 ;; Sets Z and C if you cannot.
 ;; Leaving room sets direction in NextRoom, sets C and Z.
 
-        ;; TODO: This part of the function is the most mysterious...
-Down:		CALL	InitMove
-		JR	Z,D_NoExit
+Down:           CALL    ChkCantLeave
+                JR      Z,D_NoExit
         ;; Inside the door frame to the side? Check a limited extent, then.
                 CALL    UD_InOtherDoor
                 LD      A,DOOR_LOW
@@ -362,8 +396,8 @@ Nudge:          LD      (Movement),A
                 SCF
                 RET
 
-Right:		CALL	InitMove
-		JR	Z,R_NoExit
+Right:          CALL    ChkCantLeave
+                JR      Z,R_NoExit
         ;; Inside the door frame to the side? Check a limited extent, then.
                 CALL    LR_InOtherDoor
                 LD      A,DOOR_LOW
@@ -418,8 +452,8 @@ LR_Nudge:       RET     NZ
                 LD      A,$FD
                 JR      Nudge
 
-Up:		CALL	InitMove
-		JR	Z,U_NoExit
+Up:             CALL    ChkCantLeave
+                JR      Z,U_NoExit
         ;; Inside the door frame to the side? Check a limited extent, then.
                 CALL    UD_InOtherDoor
                 LD      A,DOOR_HIGH
@@ -465,8 +499,8 @@ U_NearDoor:     CALL    UD_InFrameW
                 CALL    U_NoExit
                 JP      UD_Nudge
 
-Left:		CALL	InitMove
-		JR	Z,L_NoExit
+Left:           CALL    ChkCantLeave
+                JR      Z,L_NoExit
         ;; Inside the door frame to the side? Check a limited extent, then.
                 CALL    LR_InOtherDoor
                 LD      A,DOOR_HIGH
@@ -589,33 +623,47 @@ DHC_1:          POP     AF
 ;; Points IX at the room boundaries, sets zero flag (can't leave room) if:
 ;; Bit 0 of IY+09 is not zero, or bottom 7 bits of IY+0A are not zero.
 ;;
-;; TODO: What does that test mean?
-InitMove:	LD	IX,MinU
-		BIT	0,(IY+$09)
-		RET	Z
-		LD	A,(IY+$0A)
-		AND	$7F
-		SUB	$01
-		RET	C
-		XOR	A
-		RET
+;; Assumes IY points at the object.
+;; Returns with zero flag set if it can't leave the room.
+;; Also points IX at the room boundaries.
+;;
+;; TODO: Can't leave room if it's a not a player, or the object
+;; function is zero'd.
+ChkCantLeave:   LD      IX,MinU
+                BIT     0,(IY+$09)      ; Low bit of sprite flag (TODO: Is player?)
+                RET     Z               ; If it's zero, can't leave room.
+                LD      A,(IY+$0A)      ; Check the object function...
+                AND     $7F
+                SUB     $01
+                RET     C               ; If fn is 0, zero not set, can leave
+                XOR     A
+                RET                     ; in other cases, can.
 
-TblFnCommon20:	INC	HL
-		INC	HL
-		LD	A,(HL)
-		INC	HL
-		LD	E,$06
-		BIT	1,A
-		JR	NZ,TFC20_1
-		RRA
-		LD	A,$03
-		ADC	A,$00
-		LD	B,A
-		LD	C,A
-		RET
-TFC20_1:	RRA
-		JR	C,TFC20_2
-		LD	BC,$0104 ; TODO
-		RET
-TFC20_2:	LD	BC,$0401 ; TODO
-		RET
+;; HL points to the object to check + 2.
+;; Assumes flags are in range 0-3.
+;; Returns fixed height of 6 in E.
+;; Returns V extent in B, U extent in C.
+;; Leaves HL pointing at the U coordinate.
+GetSimpleSize:  INC     HL
+                INC     HL
+                LD      A,(HL)          ; Load flags into A.
+                INC     HL
+                LD      E,$06           ; Fixed height of 6.
+                BIT     1,A
+                JR      NZ,GSS_1
+        ;; Cases 0, 1:
+                RRA
+                LD      A,$03
+                ADC     A,$00
+                LD      B,A
+                LD      C,A
+                RET                     ; Either 3x3 or 4x4.
+        ;; Cases 2, 3:
+GSS_1:          RRA
+                JR      C,GSS_2
+        ;; Case 2:
+                LD      BC,$0104
+                RET                     ; 1x4
+        ;; Case 3:
+GSS_2:          LD      BC,$0401        ; 4x1
+                RET
