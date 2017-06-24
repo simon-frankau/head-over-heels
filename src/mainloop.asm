@@ -111,31 +111,38 @@ DoVictoryRoom:
                 CALL    Z,PrintChar
                 RET
 
-	;; FIXME: ???
-GoToRoom:	LD	HL,RoomId+1
-		LD	A,(NextRoom)
-		DEC	A
-		CP	$06
-		JR	Z,TeleportRoom
-		JR	NC,RoomLongJmp
-		CP	$04
-		JR	C,GTR_1
-		ADD	A,A
-		XOR	$02
-		DEC	HL
-GTR_1:		LD	C,$01
-		BIT	1,A
-		JR	NZ,GTR_2
-		LD	C,$FF
-GTR_2:		RRA
-		JR	C,GTR_3
-		RLD
-		ADD	A,C
-		RRD
-		JR	RoomLongJmp
-GTR_3:		RRD
-		ADD	A,C
-		RLD
+;; Update the room location, given the value in NextRoom.
+GoToRoom:       LD      HL,RoomId+1
+                LD      A,(NextRoom)
+                DEC     A
+                CP      $06
+        ;; NextRoom == 7 -> Teleport
+                JR      Z,TeleportRoom
+        ;; NextRoom > 7 or NextRoom == 0 -> RoomLongJump
+                JR      NC,RoomLongJmp
+        ;; Special case for above or below
+                CP      $04
+                JR      C,GTR_1
+                ADD     A,A
+                XOR     $02
+                DEC     HL      ; For Above/Below, modify first byte.
+        ;; 0 = Down, 1 = Right, 2 = Up, 3 = Left, 8 = Below, 14 = Above
+GTR_1:          LD      C,$01
+                BIT     1,A
+                JR      NZ,GTR_2
+                LD      C,$FF
+        ;; C = 1 if Up, Left, Above, C = -1 if Down, Right, Below.
+GTR_2:          RRA
+                JR      C,GTR_3
+        ;; Modify upper bits of location - Up, Down, Below, Above.
+                RLD
+                ADD     A,C
+                RRD
+                JR      RoomLongJmp
+        ;; Modify bottom bits of location - Left/Right
+GTR_3:          RRD
+                ADD     A,C
+                RLD
         ;; NB: Fall through
 
 ;; Perform a longjmp to the enter-a-room code.

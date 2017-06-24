@@ -190,7 +190,7 @@ EPIC_13:	DEC	(HL)
 EPIC_14:	DEC	(HL)
 		LD	HL,(Character)
 		JP	NZ,CharThing19 		; NB: Tail call
-		LD	A,$07
+		LD	A,$07                   ; Teleport
 		LD	(NextRoom),A
 		JP	EPIC_5
 

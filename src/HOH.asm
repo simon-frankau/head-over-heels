@@ -738,7 +738,8 @@ SDO_2:          POP     HL
 #include "objects/depthcmp.asm"
 
 LB217:		DEFB $00
-;; 1 = Down, 2 = Right, 3 = Up, 4 = Left, 5 = Below, 6 = Above.
+;; Set to 0 if we're staying in the current room.
+;; 1 = Down, 2 = Right, 3 = Up, 4 = Left, 5 = Below, 6 = Above, 7 = Teleport
 NextRoom:	DEFB $00
 LB219:		DEFB $00
 Dying:		DEFB $00                ; Mask of the characters who are dying
