@@ -5,7 +5,7 @@
 ;;
 
 ;; Exported functions:
-;;  * SetCharThing
+;;  * SetCharFlags
 ;;  * IsSharedRoom
 ;;  * SetSens
 ;;  * InVictoryRoom
@@ -45,22 +45,27 @@ FirePressed:	DEFB $00
 FrameCounter:	DEFB $01
 L7044:		DEFB $FB,$FB
 
-FinishGame:	CALL	GameOverScreen
+        ;; Finish the game and then loop back into the main entry point.
+FinishGame:     CALL    GameOverScreen
 
-Main:		LD	SP,$FFF4
-		CALL	GoMainMenu
-		JR	NC,MainContinue
-		CALL	InitNewGame
-		JR	MainStart
-MainContinue:	CALL	AltPlaySound
-		CALL	InitContinue
-MainStart:	CALL	CrownScreen
-		LD	A,$40
-		LD	(ObjFn36Val),A
-MainGoRoom:	XOR	A
-		LD	(Phase),A
-		CALL	EnterRoom2
-	;; The main game-playing loop
+        ;; Main menu start point, after first loading, or finishing a game.
+Main:           LD      SP,$FFF4
+                CALL    GoMainMenu
+                JR      NC,MainContinue
+                CALL    InitNewGame
+                JR      MainStart
+        ;; Play the game from a continue.
+MainContinue:   CALL    AltPlaySound
+                CALL    InitContinue
+        ;; Play the game from the start.
+MainStart:      CALL    CrownScreen
+                LD      A,$40
+                LD      (ObjFn36Val),A  ; TODO: ???
+        ;; Called when entering a room.
+MainGoRoom:     XOR     A
+                LD      (Phase),A
+                CALL    EnterRoom2
+        ;; The main game-playing loop, within a room.
 MainLoop:       CALL    WaitFrame
                 CALL    CheckCtrls
                 CALL    DoVictoryRoom
@@ -152,250 +157,271 @@ RoomLongJmp:    LD      SP,$FFF4
 TeleportRoom:   CALL    Teleport
                 JR      RoomLongJmp
 
-	;; Wait for the frame counter to reduce to zero
-WaitFrame:	LD	A,(FrameCounter)
-		AND	A
-		JR	NZ,WaitFrame
-	;; 12.5 FPS, then.
-		LD	A,$04
-		LD	(FrameCounter),A
-		RET
+;; Wait for the frame counter to reduce to zero
+WaitFrame:      LD      A,(FrameCounter)
+                AND     A
+                JR      NZ,WaitFrame
+        ;; 12.5 FPS, then.
+                LD      A,$04
+                LD      (FrameCounter),A
+                RET
 
-	;; Checks for pausing key, and if it's pressed, pauses. 
-CheckPause:	CALL	IsHPressed
-		RET	NZ
-	;; Play pause sound
-		LD	B,$C0
-		CALL	PlaySound
-	;; Display pause message...
-		CALL	WaitInputClear
-		LD	A,STR_FINISH_RESTART
-		CALL	PrintChar
-	;; Wait for a key...
-CP_1:		CALL	GetInputEntSh
-		JR	C,CP_1
-		DEC	C
-		JP	Z,FinishGame		; Pressed a shift key.
-	;; Continue
-	;; FIXME: Interesting one to understand...
-		CALL	WaitInputClear
-		CALL	RevealScreen
-		LD	HL,$4C50 ; TODO
-CP_2:		PUSH	HL
-		LD	DE,$6088 ; TODO
-		CALL	Draw
-		POP	HL
-		LD	A,L
-		LD	H,A
-		ADD	A,$14
-		LD	L,A
-		CP	$B5
-		JR	C,CP_2
-		RET
+;; Checks for pausing key, and if it's pressed, pauses.
+CheckPause:     CALL    IsHPressed
+                RET     NZ
+        ;; Play pause sound
+                LD      B,$C0
+                CALL    PlaySound
+        ;; Display pause message...
+                CALL    WaitInputClear
+                LD      A,STR_FINISH_RESTART
+                CALL    PrintChar
+        ;; Wait for a key...
+CP_1:           CALL    GetInputEntSh
+                JR      C,CP_1
+                DEC     C
+                JP      Z,FinishGame            ; Pressed a shift key.
+        ;; Continue
+                CALL    WaitInputClear
+                CALL    RevealScreen
+        ;; Redraw over the message, in a loop updating the X extent.
+                LD      HL,$4C50 ; X extent
+CP_2:           PUSH    HL
+                LD      DE,$6088 ; Y extent
+                CALL    Draw
+                POP     HL
+                LD      A,L
+                LD      H,A
+                ADD     A,$14
+                LD      L,A
+                CP      $B5
+                JR      C,CP_2
+                RET
 
-	;; Receives sensitivity in A
-SetSens:	LD	HL,HighSensFn 		; High sensitivity routine
-		AND	A
-		JR	Z,SetSens_1		; Low sensitivity routine
-		LD	HL,LowSensFn
-SetSens_1:	LD	(SensFnCall+1),HL	; Modifies code
-		RET
+;; Receives sensitivity in A
+SetSens:        LD      HL,HighSensFn           ; High sensitivity routine
+                AND     A
+                JR      Z,SetSens_1             ; Low sensitivity routine
+                LD      HL,LowSensFn
+SetSens_1:      LD      (SensFnCall+1),HL       ; Modifies code
+                RET
 
-	;; Read all the inputs and set input variables
-CheckCtrls:	CALL	GetInputCtrls
-		BIT	7,A			; Carry pressed?
-		LD	HL,CarryPressed
-		CALL	KeyTrigger2
-		BIT	5,A			; Swop pressed?
-		CALL	KeyTrigger
-		BIT	6,A			; Fire pressed?
-		CALL	KeyTrigger
-		LD	C,A
-		RRA
-		CALL	LookupDir
-		CP	$FF
-		JR	Z,NoKeysPressed
-		RRA				; Lowest bit held 'is diagonal?'
-SensFnCall:	JP	C,LowSensFn 		; NB: Self-modifying code target
-		LD	A,C			; Not a diagonal move. Simple write.
-		LD	(LastDir),A
-		LD	(CurrDir),A
-		RET
+        ;; Read all the inputs and set input variables
+CheckCtrls:     CALL    GetInputCtrls
+                BIT     7,A                     ; Carry pressed?
+                LD      HL,CarryPressed
+                CALL    KeyTrigger2
+                BIT     5,A                     ; Swop pressed?
+                CALL    KeyTrigger
+                BIT     6,A                     ; Fire pressed?
+                CALL    KeyTrigger
+                LD      C,A
+                RRA
+                CALL    LookupDir
+                CP      $FF
+                JR      Z,NoKeysPressed
+                RRA                             ; Lowest bit held 'is diagonal?'
+SensFnCall:     JP      C,LowSensFn             ; NB: Self-modifying code target
+                LD      A,C                     ; Not a diagonal move. Simple write.
+                LD      (LastDir),A
+                LD      (CurrDir),A
+                RET
 
-	;; If we receive diagonal input, set the new direction
-HighSensFn:	LD	A,(LastDir)
-		XOR	C
-		CPL
-		XOR	C
-		AND	$FE
-		XOR	C
-		LD	(CurrDir),A
-		RET
+        ;; If we receive diagonal input, set the new direction
+HighSensFn:     LD      A,(LastDir)
+                XOR     C
+                CPL
+                XOR     C
+                AND     $FE
+                XOR     C
+                LD      (CurrDir),A
+                RET
 
-	;; If we receive diagonal input, prefer the old direction
-LowSensFn:	LD	A,(LastDir)
-		XOR	C
-		AND	$FE
-		XOR	C
-		LD	B,A
-		OR	C
-		CP	B
-		JR	Z,LSF
-		LD	A,B
-		XOR	$FE
-LSF:		LD	(CurrDir),A
-		RET
+        ;; If we receive diagonal input, prefer the old direction
+LowSensFn:      LD      A,(LastDir)
+                XOR     C
+                AND     $FE
+                XOR     C
+                LD      B,A
+                OR      C
+                CP      B
+                JR      Z,LSF
+                LD      A,B
+                XOR     $FE
+LSF:            LD      (CurrDir),A
+                RET
 
-NoKeysPressed:	LD	A,C
-		LD	(CurrDir),A
-		RET
+NoKeysPressed:  LD      A,C
+                LD      (CurrDir),A
+                RET
 
-	;; Keytrigger: Writes to (HL+1), based on whether Z flag is set (meaning key pressed).
-	;; Bit 1 is 'is currently set', bit 0 is 'newly pressed'.
-KeyTrigger:	INC	HL
-	;; Version without the inc
-KeyTrigger2:	RES	0,(HL)
-		JR	Z,KT
-		RES	1,(HL) 		; Key not pressed, reset bits 0 and 1 and return.
-		RET
-	;; Key pressed:
-KT:		BIT	1,(HL) 		; If bit 1 set, already processed already...
-		RET	NZ		; so return (bit 0 reset).
-		SET	1,(HL)		; Otherwise set both bits.
-		SET	0,(HL)
-		RET
+;; KeyTrigger: Writes to (HL+1), based on whether Z flag is set (meaning key pressed).
+;; Bit 1 is 'is currently set', bit 0 is 'newly pressed'.
+KeyTrigger:     INC     HL
+        ;; Version without the inc
+KeyTrigger2:    RES     0,(HL)
+                JR      Z,KT
+                RES     1,(HL)          ; Key not pressed, reset bits 0 and 1 and return.
+                RET
+        ;; Key pressed:
+KT:             BIT     1,(HL)          ; If bit 1 set, already processed already...
+                RET     NZ              ; so return (bit 0 reset).
+                SET     1,(HL)          ; Otherwise set both bits.
+                SET     0,(HL)
+                RET
 
-	;; Played when we can't do something.
-NopeNoise:	LD		B,$C4
-		JP		PlaySound
+;; Played when we can't do something.
+NopeNoise:      LD      B,$C4
+                JP      PlaySound
 
-	;; Checks if 'swop' has just been pressed, and if it has, do it.
-CheckSwop:	LD		A,(SwopPressed)
-		RRA
-		RET		NC 		; Return if not pressed...
+;; Checks if 'swop' has just been pressed, and if it has, do it.
+CheckSwop:      LD      A,(SwopPressed)
+                RRA
+                RET     NC              ; Return if not pressed...
 	;; FIXME: Don't know what these variables are that prevent us swopping
-		LD		A,(SavedObjListIdx)
-		LD		HL,LB219
-		OR		(HL)
-		LD		HL,(LA296)
-		OR		H
-		OR		L
-		JR		NZ,NopeNoise 	; Tail call
-	;; Can't swop if out of lives for the other character
-		LD		HL,(Lives)
-		CP		H
-		JR		Z,NopeNoise 	; Tail call
-		CP		L
-		JR		Z,NopeNoise 	; Tail call
-	;; NB: Fall through
+		LD	A,(SavedObjListIdx)
+		LD	HL,LB219
+		OR	(HL)
+		LD	HL,(LA296)
+		OR	H
+		OR	L
+		JR	NZ,NopeNoise 	; Tail call
+        ;; Can't swop if out of lives for the other character
+                LD      HL,(Lives)
+                CP      H
+                JR      Z,NopeNoise     ; Tail call
+                CP      L
+                JR      Z,NopeNoise     ; Tail call
+        ;; NB: Fall through
 
 	;; FIXME: Lots to reverse here
-SwitchChar:	CALL	SwitchHelper
-		LD	BC,(CharDir)
-		JR	NC,SwC_1
-		LD	(HL),C
-SwC_1:		INC	HL
-		RRA
-		JR	NC,SwC_2
-		LD	(HL),C
-SwC_2:		LD	HL,SwopPressed
-		LD	IY,HeelsObj
-		LD	A,E
-		CP	$03
-		JR	Z,SwC_6
-		LD	A,(LA295)
-		AND	A
-		JR	Z,SwC_6
-		LD	A,(IY+$05)
-		INC	A
-		SUB	(IY+$17)
-		CP	$03
-		JR	NC,SwC_6
-		LD	C,A
-		LD	A,(IY+$06)
-		INC	A
-		SUB	(IY+$18)
-		CP	$03
-		JR	NC,SwC_6
-		LD	B,A
-		LD	A,(IY+$07)
-		SUB	$06
-		CP	A,(IY+$19)
-		JR	NZ,SwC_6
-		LD	E,$FF
-		RR	B
-		JR	C,SwC_3
-		RR	B
-		CCF
-		CALL	SwitchGet
-SwC_3:		RR	C
-		JR	C,SwC_4
-		RR	C
-		CALL	SwitchGet
-		JR	SwC_5
-SwC_4:		RLC	E
-		RLC	E
-SwC_5:		LD	A,$03
-		INC	E
-		JR	Z,SwC_7 	; Switch to Both
-		DEC	E
-		LD	(IY+$1E),E
-		RES	1,(HL)
-		RET
-SwC_6:		LD	A,$04
-		XOR	(HL)
-		LD	(HL),A
-		AND	$04
-		LD	A,$02
-		JR	Z,SwC_7       	; Zero: Switch to Head
-		DEC	A             	; Otherwise Heels
+SwitchChar:     CALL    SwitchHelper
+                LD      BC,(CharDir)
+                JR      NC,SwC_1        ; Jump if no heels
+                LD      (HL),C          ; Save CharDir in L7044 if Heels.
+SwC_1:          INC     HL
+                RRA
+                JR      NC,SwC_2        ; Jump if no head
+                LD      (HL),C          ; Save CharDir in L7044+1 if Head.
+SwC_2:          LD      HL,SwopPressed
+        ;; First, let's check if we're going to switch to Both.
+                LD      IY,HeelsObj
+                LD      A,E
+                CP      $03
+                JR      Z,SwC_6         ; Jump to SwC_6 if both active now.
+                LD      A,(InSameRoom)  ; Jump to SwC_6 if not in diff rooms.
+                AND     A
+                JR      Z,SwC_6
+                LD      A,(IY+$05)      ; U coordinate of Heels
+                INC     A
+                SUB     (IY+18+$05)     ; U coordinate of Head
+                CP      $03
+                JR      NC,SwC_6        ; Jump to SwC_6 if apart in U.
+                LD      C,A
+                LD      A,(IY+$06)      ; V coordinate of Heels
+                INC     A
+                SUB     (IY+18+$06)     ; V coordinate of Head
+                CP      $03
+                JR      NC,SwC_6        ; Jump to SwC_6 if apart in V.
+                LD      B,A
+                LD      A,(IY+$07)      ; Z coordinate of Heels
+                SUB     $06
+                CP      A,(IY+18+$07)   ; Z coordinate of Head
+                JR      NZ,SwC_6        ; Jump to SwC_6 if Head not on Heels.
+        ;; We're switching to Head on Heels. Move to align them, if needed.
+                LD      E,$FF
+                RR      B               ; Lowest bit set means aligned in V.
+                JR      C,SwC_3
+        ;; Unaligned, so put movement needed into E.
+                RR      B
+                CCF
+                CALL    GetMove
+SwC_3:          RR      C               ; Lowest bit set means aligned in U.
+                JR      C,SwC_4
+        ;; Unaligned, so put movement needed into E.
+                RR      C
+                CALL    GetMove
+                JR      SwC_5
+        ;; Aligned in U, so put no movement into the next two bits of E.
+SwC_4:          RLC     E
+                RLC     E
+        ;; Already fully aligned? Go to SwC_7.
+SwC_5:          LD      A,$03           ; Switch to "Both".
+                INC     E
+                JR      Z,SwC_7
+                DEC     E
+        ;; If not aligned, put the movement into Head's movement flag,
+        ;; and clear the flag that says we've seen the swap button be pressed,
+        ;; so we'll have another go next time.
+                LD      (IY+18+$0C),E
+                RES     1,(HL)
+                RET
+        ;; Switch to just Head or Heels.
+SwC_6:
+        ;; Flip bit 2 of SwopPressed, which we use to store the next
+        ;; single character to swop to.
+                LD      A,$04
+                XOR     (HL)
+                LD      (HL),A
+        ;; And then choose which one we're swopping to.
+                AND     $04
+                LD      A,$02
+                JR      Z,SwC_7         ; Zero: Switch to Head
+                DEC     A               ; Otherwise Heels
+        ;; Perform the actual switch.
 SwC_7:		LD	(Character),A
-		CALL	SetCharFlags
+		CALL	SetCharFlags2
 		CALL	SwitchHelper
 		JR	C,SwC_8
 		INC	HL
 SwC_8:		LD	A,(HL)
 		LD	(CharDir),A
-		LD	A,(LA295)
+		LD	A,(InSameRoom)
 		AND	A
 		JP	NZ,DrawScreenPeriphery
 		JR	RestoreStuff
 
-SwitchGet:	PUSH	AF
-		RL	E
-		POP	AF
-		CCF
-		RL	E
-		RET
+;; Fill in two bits of E with a direction - depending on C flag, set
+;; one bit or the other, to create a direction to move to align
+;; Head and Heels.
+GetMove:        PUSH    AF
+                RL      E       ; Rotate in one bit
+                POP     AF
+                CCF
+                RL      E       ; And its complement.
+                RET
 
-SetCharThing:	LD	IY,HeelsObj
-		LD	A,(Character)
-	;; NB: Fall through
-	
-SetCharFlags:	LD	(IY+$0A),$00 	; Default to 0.
-		RES	3,(IY+$04)
-		BIT	0,A 		; Have a Heels?
-		JR	NZ,SCF_1
-		LD	(IY+$0A),$01 	; No, set to 1.
-SCF_1:		LD	(IY+$1C),$00	; Default to 0.
-		RES	3,(IY+$16)
-		BIT	1,A 		; Have a Head?
-		JR	NZ,SCF_2
-		LD	(IY+$1C),$01 	; No, set to 1.
-SCF_2:		RES	1,(IY+$1B)
-		CP	$03
-		RET	NZ
-		SET	3,(IY+$04) 	; If Both, set these. Otherwise, was reset.
-		SET	1,(IY+$1B)
-		RET
+;; Set the character flags for the current character.
+SetCharFlags:   LD      IY,HeelsObj
+                LD      A,(Character)
+        ;; NB: Fall through
+
+;; Expects IY to point at Heels, and A to identify the current character.
+SetCharFlags2:  LD      (IY+O_FUNC),$00         ; Clear func for Heels.
+                RES     3,(IY+O_OFLAGS)         ; Clear the 'tall' flag on Heels.
+                BIT     0,A                     ; Is Heels active?
+                JR      NZ,SCF_1
+                LD      (IY+O_FUNC),$01         ; If not, set func to 1.
+SCF_1:          LD      (IY+18+O_FUNC),$00      ; Clear func for Head.
+                RES     3,(IY+18+O_OFLAGS)      ; Clear the 'tall' flag on Head.
+                BIT     1,A                     ; Is Head active?
+                JR      NZ,SCF_2
+                LD      (IY+18+O_FUNC),$01      ; If not, set func to 1.
+SCF_2:          RES     1,(IY+18+$09)           ; Clear double-height flag on Head.
+                CP      $03
+                RET     NZ
+        ;; If Both is selected:
+                SET     3,(IY+O_OFLAGS)         ; Set the 'tall' flag on Heels...
+                SET     1,(IY+18+$09)           ; and the double-height flag on Head.
+                RET
 
 ;; Returns whether or not we're in the same room as the other character.
 ;; Zero flag is set if it's a shared room.
-IsSharedRoom:	LD	HL,(RoomId)
-		LD	DE,(OtherState)
-		AND	A
-		SBC	HL,DE
-		RET
+IsSharedRoom:   LD      HL,(RoomId)
+                LD      DE,(OtherState)
+                AND     A
+                SBC     HL,DE
+                RET
 
 SwitchHelper:	LD	A,(Character)
 		LD	HL,L7044

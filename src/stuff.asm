@@ -56,14 +56,14 @@ InitContinue:	CALL	Reinitialise
 FinishRestore:	CALL	BuildRoomNoObj
 		CALL	Reinitialise
 		DEFW	ReinitThing
-		CALL	SetCharThing
+		CALL	SetCharFlags
 		CALL	GetScreenEdges
 		CALL	DrawBlacked
 		XOR	A
-		LD	(LA295),A
+		LD	(InSameRoom),A
 		JR	RevealScreen	; Tail call
 
-L7B8F:	DEFB $00
+L7B8F:		DEFB $00
 WorldIdSnd:	DEFB $00
 
 ;; Enter the room, and then also make the sound and display it.
@@ -104,6 +104,7 @@ EnterRoom:	CALL	Reinitialise
 		JR	ER_5
 ER_1:		CALL	IsSharedRoom
 		JR	NZ,ER_4
+        ;; Same room case...
 		CALL	RestoreStuff2
 		CALL	BuildRoomNoObj
 		LD	HL,HeelsObj
@@ -126,9 +127,10 @@ ER_2:		LD	A,B
 		LD	(L7B8F),A
 ER_3:		LD	A,$01
 		JR	ER_5
+        ;; Different rooms case
 ER_4:		CALL	BuildRoom
 		XOR	A
-ER_5:		LD	(LA295),A
+ER_5:		LD	(InSameRoom),A
 		JP	GetScreenEdges
 
 #include "gfx2/init_bkgnd.asm"

@@ -181,7 +181,7 @@ GetScore:	CALL	InVictoryRoom 		; Zero set if end reached.
 		LD	HL,0
 		JR	NZ,GS_1
 		LD	HL,$0501
-		LD	A,(LA295) 	; TODO: Non-zero gets you points.
+		LD	A,(InSameRoom) 	; TODO: Non-zero gets you points.
 		AND	A
 		JR	Z,GS_1
 		LD	HL,$1002
@@ -539,7 +539,7 @@ Lives:		DEFB $04	; Heels lives
 Donuts:		DEFB $00	; Donuts
 LA293:		DEFB $00
 Character:	DEFB $03	; $3 = Both, $2 = Head, $1 = Heels
-LA295:	DEFB $01
+InSameRoom:	DEFB $01
 LA296:	DEFB $00
 LA297:	DEFB $00
 InvulnModulo:	DEFB $03

@@ -157,7 +157,7 @@ NotFire:	LD	HL,NextRoom
 		JR	Z,EPIC_9
 		LD	(HL),$00
 		RET
-EPIC_9:		LD	A,(LA295)
+EPIC_9:		LD	A,(InSameRoom)
 		AND	A
 		JR	Z,EPIC_12
 		CALL	GetCharObj
@@ -228,7 +228,7 @@ HD_2:		INC	HL
 		JR	NZ,HD_9
         ;; FIXME: Messy below here.
 		LD	HL,Lives
-		LD	A,(LA295)
+		LD	A,(InSameRoom)
 		AND	A
 		JR	Z,HD_6
 		LD	A,(LA2A6)
@@ -249,7 +249,8 @@ HD_4:		RRA
 HD_5:		LD	A,(HL)
 		AND	A
 		JR	NZ,HD_8
-		LD	(LA295),A
+		LD	(InSameRoom),A
+        ;; Assuming this is "all lives lost, try other character"
 HD_6:		CALL	SwitchChar
 		LD	HL,0
 		LD	(LB219),HL
@@ -831,7 +832,7 @@ CharThing15:	XOR	A 	; FIXME: Unused?
 		LD	(VapeLoop2),A
 		LD	A,$08
 		LD	(FiredObj+$0F),A
-		CALL	SetCharThing
+		CALL	SetCharFlags
 		LD	A,(Character)
 		LD	(LA2A6),A
 		CALL	GetCharObj
@@ -950,11 +951,11 @@ SaveObjListIdx:	LD	A,(ObjListIdx)
 
 	
 DrawCarriedObject:	LD	A,(Character)
-			LD	HL,LA295
+			LD	HL,InSameRoom
 			RRA
 			OR	(HL)
 			RRA
-			RET	NC		; Return if low bit not set on LA295 and not head
+			RET	NC		; Return if low bit not set on InSameRoom and not head
 			LD	HL,(Carrying)
 			INC	H
 			DEC	H
