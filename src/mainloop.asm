@@ -10,7 +10,7 @@
 ;;  * SetSens
 ;;  * InVictoryRoom
 ;;  * NopeNoise
-;;  * FirePresed
+;;  * FirePressed
 ;;  * GoToRoom
 ;;  * FinishGame
 ;;  * SwitchChar
@@ -43,7 +43,7 @@ SwopPressed:	DEFB $00
 FirePressed:	DEFB $00
 
 FrameCounter:	DEFB $01
-L7044:		DEFB $FB,$FB
+SavedDir:		DEFB $FB,$FB
 
         ;; Finish the game and then loop back into the main entry point.
 FinishGame:     CALL    GameOverScreen
@@ -294,15 +294,17 @@ CheckSwop:      LD      A,(SwopPressed)
                 JR      Z,NopeNoise     ; Tail call
         ;; NB: Fall through
 
-	;; FIXME: Lots to reverse here
-SwitchChar:     CALL    SwitchHelper
+;; Perform the character switchover.
+SwitchChar:
+        ;; Write out the current character's direction into SavedDir.
+                CALL    GetSavedDir
                 LD      BC,(CharDir)
                 JR      NC,SwC_1        ; Jump if no heels
-                LD      (HL),C          ; Save CharDir in L7044 if Heels.
+                LD      (HL),C          ; Save CharDir in SavedDir if Heels.
 SwC_1:          INC     HL
                 RRA
                 JR      NC,SwC_2        ; Jump if no head
-                LD      (HL),C          ; Save CharDir in L7044+1 if Head.
+                LD      (HL),C          ; Save CharDir in SavedDir+1 if Head.
 SwC_2:          LD      HL,SwopPressed
         ;; First, let's check if we're going to switch to Both.
                 LD      IY,HeelsObj
@@ -369,17 +371,21 @@ SwC_6:
                 JR      Z,SwC_7         ; Zero: Switch to Head
                 DEC     A               ; Otherwise Heels
         ;; Perform the actual switch.
-SwC_7:		LD	(Character),A
-		CALL	SetCharFlags2
-		CALL	SwitchHelper
-		JR	C,SwC_8
-		INC	HL
-SwC_8:		LD	A,(HL)
-		LD	(CharDir),A
-		LD	A,(InSameRoom)
-		AND	A
-		JP	NZ,DrawScreenPeriphery
-		JR	RestoreStuff
+SwC_7:          LD      (Character),A
+                CALL    SetCharFlags2
+        ;; Restore the appropriate SavedDir into CharDir.
+                CALL    GetSavedDir
+                JR      C,SwC_8
+                INC     HL
+SwC_8:          LD      A,(HL)
+                LD      (CharDir),A
+        ;; If both characters are on the same screen, we just redraw
+        ;; the screen periphery. If they're not, we do restore all the
+        ;; state.
+                LD      A,(InSameRoom)
+                AND     A
+                JP      NZ,DrawScreenPeriphery
+                JR      RestoreStuff
 
 ;; Fill in two bits of E with a direction - depending on C flag, set
 ;; one bit or the other, to create a direction to move to align
@@ -423,12 +429,13 @@ IsSharedRoom:   LD      HL,(RoomId)
                 SBC     HL,DE
                 RET
 
-SwitchHelper:	LD	A,(Character)
-		LD	HL,L7044
-		LD	E,A
-		RRA
-		RET
-
+;; Returns Carry set if using Heels, and HL points to where we stash
+;; the directions the characters are facing.
+GetSavedDir:    LD      A,(Character)
+                LD      HL,SavedDir
+                LD      E,A
+                RRA
+                RET
 
 SaveStuff:      XOR     A
                 JR      CopyStuff2
