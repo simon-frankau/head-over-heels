@@ -14,6 +14,83 @@
 
 OBJECT_LEN:     EQU 18
 
+
+ObjVars:        DEFB $1B                ; Reinitialisation size
+
+                DEFB $00
+                DEFW Objects
+                DEFW ObjectLists + 0
+                DEFW ObjectLists + 2
+                DEFW $0000
+                DEFW $0000
+                DEFW $0000,$0000
+                DEFW $0000,$0000
+                DEFW $0000,$0000
+                DEFW $0000,$0000
+
+        ;; The index into ObjectLists.
+ObjListIdx:     DEFB $00
+        ;; Current pointer for where we write objects into
+ObjDest:        DEFW Objects
+        ;; 'A' list item pointers are offset +2 from 'B' list pointers.
+ObjListAPtr:    DEFW ObjectLists
+ObjListBPtr:    DEFW ObjectLists + 2
+        ;; Each list consists of a pair of pointers to linked lists of
+        ;; objects (ListA and ListB). They're opposite directions in a
+        ;; doubly-linked list, and each side has a head node, it seems.
+ObjectLists:    DEFW $0000,$0000 ; 0 - Usual list
+                DEFW $0000,$0000 ; 1 - Next room in V direction
+                DEFW $0000,$0000 ; 2 - Next room in U direction
+                DEFW $0000,$0000 ; 3 - Far
+                DEFW $0000,$0000 ; 4 - Near
+
+SavedObjDest:	DEFW Objects
+SortObj:	DEFW $0000
+
+        ;; Given an index in A, set the object list index and pointers.
+SetObjList:     LD      (ObjListIdx),A
+                ADD     A,A
+                ADD     A,A
+                ADD     A,ObjectLists & $ff
+                LD      L,A
+                ADC     A,ObjectLists >> 8
+                SUB     L
+                LD      H,A
+        ;; ObjListAPtr = ObjectLists + (ObjListIdx) * 4
+                LD      (ObjListAPtr),HL
+                INC     HL
+                INC     HL
+        ;; ObjListBPtr = ObjectLists + (ObjListIdx) * 4 + 2
+                LD      (ObjListBPtr),HL
+                RET
+
+;; DE contains an 'A' object pointer. Assumes the other half of the object
+;; is in the next slot (+0x12). Syncs the object state.
+SyncDoubleObject:
+        ;; Copy 5 bytes, from the pointer location onwards:
+        ;; Next pointer, flags, U & V coordinates.
+                LD      HL,$0012
+                ADD     HL,DE
+                PUSH    HL
+                EX      DE,HL
+                LD      BC,$0005
+                LDIR
+        ;; Copy across Z coordinate, sutracting 6.
+                LD      A,(HL)
+                SUB     $06
+                LD      (DE),A
+        ;; If bit 5 of byte 9 is set on first object, we're done.
+                INC     DE
+                INC     HL
+                INC     HL
+                BIT     5,(HL)
+                JR      NZ,SDO_2
+        ;; Otherwise, copy the sprite over (byte 8).
+                DEC     HL
+                LDI
+SDO_2:          POP     HL
+                RET
+
 ;; Copy an object into the object buffer, add a second object if it's
 ;; doubled, and link it into the depth-sorted lists.
 ;;

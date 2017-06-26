@@ -785,3 +785,67 @@ ObjAgain11:	LD		A,(IY+O_DIRECTION)
 		LD		H,A
 		LD		A,(HL)
 		RET
+
+L9376:	DEFB $FD,$F9,$FB,$FA,$FE,$F6,$F7,$F5
+
+SetFacingDirEx: LD      C,(IY+$10)      ; Read direction code
+                BIT     1,C             ; Heading 'down'?
+                RES     4,(IY+$04)      ; Set bit 4 of flags, if so.
+                JR      NZ,SetFacingDir
+                SET     4,(IY+$04)
+        ;; NB: Fall through
+SetFacingDir:   LD      A,(IY+$0F)      ; Load animation code.
+                AND     A
+                RET     Z               ; Return if not animated
+                BIT     2,C             ; Heading right?
+        ;; TODO: All seems a bit complicated for what I think it does.
+                LD      C,A
+                JR      Z,SFD1          ; Then jump to that case.
+                BIT     3,C
+                RET     NZ
+                LD      A,$08
+                JR      SFD2
+SFD1:           BIT     3,C             ; Ret if sprite currently faces forward.
+                RET     Z
+                XOR     A               ; ...
+SFD2:           XOR     C
+                AND     $0F
+                XOR     C
+                LD      (IY+$0F),A
+                RET
+
+L93AA:	DEFB $00,$00,$00,$00,$00,$00
+
+	;; The phase mechanism allows an object to not get processed
+	;; for one frame.
+DoObjects:	LD	A,(Phase)
+		XOR	$80
+		LD	(Phase),A 		; Toggle top bit of Phase
+		CALL	CharThing
+	;; Loop over main object list...
+		LD	HL,(ObjectLists + 2)
+		JR	DO_3
+DO_1:		PUSH	HL
+		LD	A,(HL)
+		INC	HL
+		LD	H,(HL)
+		LD	L,A
+		EX	(SP),HL			; Next item on top of stack, curr item in HL
+		EX	DE,HL
+		LD	HL,10   ; TODO
+		ADD	HL,DE
+	;; Check position +10
+		LD	A,(Phase)
+		XOR	(HL)
+		CP	$80			; Skip if top bit doesn't match Phase
+		JR	C,DO_2
+		LD	A,(HL)
+		XOR	$80
+		LD	(HL),A			; Flip top bit - will now mismatch Phase
+		AND	$7F
+		CALL	NZ,CallObjFn 		; And if any other bits set, call CallObjFn
+DO_2:		POP	HL
+DO_3:		LD	A,H			; loop until null pointer.
+		OR	L
+		JR	NZ,DO_1
+		RET

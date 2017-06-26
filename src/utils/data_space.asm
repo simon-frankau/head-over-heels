@@ -33,7 +33,7 @@ ObjectsLen:     EQU $03F0       ; Goes up to $BE20.
 Buffer:         EQU $BF20
 ;; TODO: Length?
 
-;; This data area sites after the moved-down data.
+;; This data area sits after the moved-down data.
 ;; (MoveDownEnd - MAGIC_OFFSET = 0xF944)
 
 ;; Buffer for drawing columns into.
