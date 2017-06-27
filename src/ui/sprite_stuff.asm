@@ -12,7 +12,7 @@
 ;;  * Draw3x24
 ;;  * Clear3x24
 
-;; Draw the crown screen and continue.
+;; Draw the crown screen and then go back to the game screen.
 CrownScreenCont:LD      A,(WorldMask)
                 CP      $1F
                 JR      NZ,ES_1
@@ -20,7 +20,7 @@ CrownScreenCont:LD      A,(WorldMask)
                 LD      A,STR_WIN_SCREEN
                 CALL    PrintChar
                 CALL    AltPlaySound
-                LD      DE,$040F ; TODO: Screen location
+                LD      DE,$040F
                 LD      HL,MainMenuSpriteList
                 CALL    DrawFromList
                 CALL    WaitKey
@@ -28,14 +28,14 @@ CrownScreenCont:LD      A,(WorldMask)
 ES_1:           CALL    CrownScreen
         ;; Then back to the normal display.
                 CALL    DrawBlacked
-                JP      RevealScreen            ; NB: Tail call
+                JP      RevealScreen    ; NB: Tail call
 
 ;; Just draw the crown screen and wait for a keypress
 CrownScreen:    LD      A,STR_EMPIRE_BLURB
                 CALL    PrintChar
                 CALL    AltPlaySound
                 LD      HL,PlanetsSpriteList
-                LD      DE,$05FF ; TODO: Screen location
+                LD      DE,$05FF
                 CALL    DrawFromList
                 LD      HL,CrownsSpriteList
                 LD      DE,(WorldMask)
@@ -47,9 +47,9 @@ WaitKey:        CALL    WaitInputClear
                 CALL    WaitKeyPressed
                 CALL    ScreenWipe
                 LD      B,$C1
-                JP      PlaySound               ; NB: Tail call
+                JP      PlaySound       ; NB: Tail call
 
-WaitKeyPressed: LD      HL,$A800 ; TODO: Calculate timeout
+WaitKeyPressed: LD      HL,$A800
 WKP_1:          PUSH    HL
                 CALL    AltPlaySound
                 CALL    GetInputEntSh
@@ -107,7 +107,7 @@ DFL_1:          POP     DE
                 JR      NZ,DrawFromList
                 RET
 DFL_2:          LD      D,$01
-                CALL    Draw2x24
+                CALL    Draw3x24b
                 JR      DFL_1
 
 ;; All the icons around the edge of the screen
@@ -117,35 +117,38 @@ PeripherySpriteList:    DEFB SPR_PURSE,            $B0,$F0
                         DEFB SPR_HEELS1 | SPR_FLIP,$94,$F0
                         DEFB SPR_HEAD1,            $60,$F0
 
-Draw2x24w3:             LD      D,$03
+;; Call Draw3x24b with attribute type 3.
+Draw3x24a:      LD      D,$03
         ;; NB: Fall through
 
-;; Draw a 2 byte x 24 row sprite on clear background, complete with
+;; Draw a 3 byte x 24 row sprite on clear background, complete with
 ;; attributes, via DrawSprite.
 ;;
 ;; Sprite code in A.
-;; Origin in BC - Y coordinate gets adjusted by 72
+;; Origin in BC - Y coordinate gets adjusted by 72 (size of sprite)
 ;; Attribute style in D
-Draw2x24:       LD      (SpriteCode),A
+Draw3x24b:      LD      (SpriteCode),A
                 LD      A,B
                 SUB     $48
                 LD      B,A
                 PUSH    DE
                 PUSH    BC
-                CALL    GetSpriteAddr           ; Loads image into DE
-                LD      HL,$180C                ; Size is 24 * 12 (double pixels)
+                CALL    GetSpriteAddr   ; Loads image into DE
+                LD      HL,$180C        ; Size is 24 * 12 (double pixels)
                 POP     BC
-                POP     AF                      ; Move contents from D to A.
+                POP     AF              ; Move contents from D to A.
                 AND     A
-                JP      DrawSprite              ; NB: Tail call
+                JP      DrawSprite      ; NB: Tail call
 
 ;; Draw a 3 byte x 24 row sprite on clear background.
 ;; Takes sprite code in A, coordinates in BC.
-;; Attribute style in D
+;; Attribute style in D.
 Draw3x24:       LD      L,$00
                 DEC     L
                 INC     L
-                JR      Z,Draw2x24w3            ; FIXME: Not sure what that's about
+                JR      Z,Draw3x24a     ; And just use Draw3x24a.
+        ;; This code here is dead. Some other way of doing things, but
+        ;; the Draw3x24a jump is always triggered, so it's never used.
                 LD      (SpriteCode),A
                 CALL    SetExtents3x24
                 CALL    ClearViewBuf
@@ -180,16 +183,16 @@ Draw3x32:       LD      (SpriteCode),A
                 CALL    SetExtents3x24
                 LD      A,B
                 ADD     A,$20
-                LD      (ViewYExtent),A         ; Set adjusted extents.
-                CALL    ClearViewBuf            ; Clear buffer
+                LD      (ViewYExtent),A ; Set adjusted extents.
+                CALL    ClearViewBuf    ; Clear buffer
                 LD      A,$02
                 LD      (SpriteFlags),A
                 CALL    GetSpriteAddr
                 LD      BC,ViewBuff
                 EXX
                 LD      B,$20
-                CALL    BlitMask3of3            ; Draw into buffer.
-                JP      BlitScreen              ; Buffer to screen.
+                CALL    BlitMask3of3    ; Draw into buffer.
+                JP      BlitScreen      ; Buffer to screen.
 
 ClearViewBuf:   LD      HL,ViewBuff
                 LD      BC,$0100

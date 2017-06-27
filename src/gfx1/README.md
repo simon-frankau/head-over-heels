@@ -19,16 +19,21 @@ utils/data_space.asm.
 
 They rely on the following symbols defined elsewhere:
 
+ * Buffer
+ * EDGE_HEIGHT
+ * FillZero
  * IMG_CHARS
+ * SpriteRowCount
  * SpriteWidth
  * Strings
  * Strings2
- * SpriteRowCount
+ * ViewBuff
  * ViewXExtent
  * ViewYExtent
 
 They export the following symbols used elsewhere:
 
+ * ATTR_START
  * BlitMask[12345]of[345]
  * BlitRot
  * BlitScreen
@@ -48,4 +53,4 @@ They export the following symbols used elsewhere:
  * SetAttribs
  * SetCursor
  * UpdateAttribs
- * ViewBuff
+ * Y_START

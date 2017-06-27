@@ -7,7 +7,7 @@
 ;; Exported functions:
 ;; * BlitMaskXofX
 
-;; BlitMaskNofM does a masked blit into a destination buffer assumed 6 bytes wide.
+;; BlitMaskNofM does a masked blit into a dest buffer assumed 6 bytes wide.
 ;; The blit is from a source N bytes wide in a buffer M bytes wide.
 ;; The height is in B.
 ;; Destination is BC', source image is in DE', mask is in HL'.
