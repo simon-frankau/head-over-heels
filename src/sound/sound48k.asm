@@ -538,66 +538,47 @@ SoundTable1:    DEFW S_47,S_48
 SoundTable0:    DEFW S_04,S_05
 SoundTable3:    DEFW S_C0,S_C1,S_C2,S_C3,S_C4,S_C5,S_C6,S_C7,S_C8
 
-S_C6:	DEFB $10,$95,$6A,$62,$6A,$7D,$6D,$04
-	DEFB $8D,$96,$FF,$FF
-
-        ;; Immediate
-S_04:	DEFB $16,$90,$00
-
-        ;; Immediate
-S_05:	DEFB $14,$00,$02
-
-S_80:	DEFB $82,$31,$52,$41,$2A,$31
-	DEFB $1A,$29,$42,$FF,$00
-
-S_81:	DEFB $82,$31,$51,$41,$29,$31,$19,$29,$41,$FF,$00
-
-S_82:	DEFB $22,$F3,$EB,$E3,$DB,$EB,$E3,$DB,$D3,$E3,$DB,$D3,$CB,$DB,$D3,$CB
-	DEFB $C3,$FF,$00
-
-S_83:	DEFB $22,$BB,$A3,$8B,$73,$5B,$43,$2B,$23,$FF,$00
-
-S_84:	DEFB $22,$13
-	DEFB $33,$53,$73,$93,$B3,$D3,$DB,$E3,$EE,$FF,$00
-
-        ;; Immediate
-S_85:	DEFB $64,$80,$00
-
-        ;; Immediate
-S_86:	DEFB $46,$A0,$00
-
-S_87:	DEFB $31,$DA,$65,$F4 ; Fall through?
-
-S_C0:	DEFB $01,$01,$FF,$FF
-
-        ;; Immediate
-S_88:	DEFB $46,$D0,$00
-
-S_48:	DEFB $01,$51,$BB,$FF
-	DEFB $08,$04,$30,$04,$28,$04,$20,$04,$18,$FF,$FF
-
-S_47:	DEFB $41,$10,$5C,$5C,$43
-	DEFB $07,$FF,$FF
-
-S_C1:	DEFB $61,$0C,$36,$FF,$60,$35,$35,$35,$45,$35,$45,$FF,$61
-	DEFB $56,$56,$FF,$FF
-S_C2:	DEFB $30,$B2,$BA,$CC,$34,$34,$6A,$5A,$52,$6A,$92,$8A
-	DEFB $94,$C2,$CA,$DC,$44,$44,$A2,$92,$8A,$92,$8A,$7A,$6E,$FF,$FF
-
-S_C4:	DEFB $11
-	DEFB $30,$52,$01,$19,$3A,$01,$09,$22,$FF,$FF
-
-S_C5:	DEFB $20,$45,$FF,$80,$7B,$73
-	DEFB $7B,$6B,$FF,$20,$2D,$FF,$80,$63,$5B,$63,$53,$FF,$20,$0D,$FF,$80
-	DEFB $43,$3B,$43,$33,$FF,$20,$1D,$FF,$80,$53,$4B,$53,$FF,$FF
-
-S_C7:	DEFB $41,$09,$3E,$5E,$CE,$F6,$FF,$FF
-
-S_C8:	DEFB $41,$F0,$A6,$5E,$3E,$0E,$FF,$FF
-
-S_C3:	DEFB $02,$52
-	DEFB $32,$54,$6A,$52,$6C,$82,$6A,$7A,$92,$FF,$61,$F6,$00,$FF,$2A,$52
-	DEFB $32,$54,$6A,$52,$6C,$82,$6A,$7A,$92,$FF,$89,$32,$0A,$32,$32,$00
-	DEFB $FF,$3A,$52,$32,$54,$6A,$52,$6C,$82,$6A,$7A,$92,$FF,$99,$F6,$FF
-	DEFB $62,$F2,$EA,$DA,$CA,$BA,$B2,$A2,$92,$8A,$7A,$6A,$FF,$61,$50,$53
-	DEFB $34,$34,$FF,$00,$FF,$FF
+S_C6:
+#insert "../../bin/sound/C6.bin"
+S_04:
+#insert "../../bin/sound/04.bin"        ; Immediate
+S_05:
+#insert "../../bin/sound/05.bin"        ; Immediate
+S_80:
+#insert "../../bin/sound/80.bin"
+S_81:
+#insert "../../bin/sound/81.bin"
+S_82:
+#insert "../../bin/sound/82.bin"
+S_83:
+#insert "../../bin/sound/83.bin"
+S_84:
+#insert "../../bin/sound/84.bin"
+S_85:
+#insert "../../bin/sound/85.bin"        ; Immediate
+S_86:
+#insert "../../bin/sound/86.bin"        ; Immediate
+S_87:
+#insert "../../bin/sound/87.bin"        ; Fall through...
+S_C0:
+#insert "../../bin/sound/C0.bin"
+S_88:
+#insert "../../bin/sound/88.bin"        ; Immediate
+S_48:
+#insert "../../bin/sound/48.bin"
+S_47:
+#insert "../../bin/sound/47.bin"
+S_C1:
+#insert "../../bin/sound/C1.bin"
+S_C2:
+#insert "../../bin/sound/C2.bin"
+S_C4:
+#insert "../../bin/sound/C4.bin"
+S_C5:
+#insert "../../bin/sound/C5.bin"
+S_C7:
+#insert "../../bin/sound/C7.bin"
+S_C8:
+#insert "../../bin/sound/C8.bin"
+S_C3:
+#insert "../../bin/sound/C3.bin"
