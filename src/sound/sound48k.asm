@@ -35,10 +35,10 @@ IrqFn:          JP      SndHandler
 ;; notes in a scale.
 ;; (Overwritten by 128K patch)
 ;;
-;; 3.5MHz clock, count of 4 cycles takes 24 T-states, so this list is for
-;; the octave containing middle C.
+;; 3.5MHz clock, count of 4 takes 24 T-states, 2 edges per cycle, so this
+;; list is for the octave below the one containing middle C.
 ;;
-;; I think the base octave in the code is one octave above.
+;; I think the base octave in the code is the next octave up
 ;;                   A    A#   B    C    C#   D   D#  E   F   F#  G   G#
 ScaleTable:     DEFW 1316,1241,1171,1105,1042,983,927,875,825,778,734,692
 
@@ -146,9 +146,9 @@ PS_6:           LD      E,C
 PlayInt:
                 LD      A,C
         ;; Cases for C & $03:
-        ;; 0: B =             $02 - usual.
-        ;; 1: B = $80 | $10 | $02 - glissando.
-        ;; 2: B = $08 |       $02 - silence.
+        ;; 0: B =             $02 - usual
+        ;; 1: B = $80 | $10 | $02 - glissando
+        ;; 2: B = $08 |       $02 - stacatto
         ;; Basically same flags as in PlayNextPhrase.
                 AND     $02
                 LD      B,$0A
@@ -250,9 +250,9 @@ PlayNextPhrase: LD      D,(IX+$00)
         ;; Load an absolute value for the note.
                 LD      (IY+SND_NOTE),D
         ;; Cases for E & $03:
-        ;; 0: B = $00 - usual.
-        ;; 1: B = $80 - glissando.
-        ;; 2: B = $08 - silence.
+        ;; 0: B = $00 - usual
+        ;; 1: B = $80 - glissando
+        ;; 2: B = $08 - stacatto
                 LD      B,$08
                 LD      A,E
                 AND     $02
@@ -306,7 +306,7 @@ GetScoreByte:   INC     IX              ; Contains ScorePtr + ScoreIdx
                 RET
 
 ;; Play a new note, specified in Sound Note.
-;; Note is passed in in A, as an offset from previous note.
+;; Note is passed in in A, as an offset from the base note.
 DoNote:         ADD     A,(IY+SND_NOTE)
         ;; Divide A by 12 to get octave and note:
         ;; Result plus one in C (octave), remainder in A (note in scale).
@@ -449,7 +449,7 @@ DoNoteCont:
                 AND     $80
                 RET     Z
                 LD      A,B
-        ;; Silent if 0x8 (silent phrase) or 0x4 (rest) bit set in SndCtrl
+        ;; Silent if 0x08 (stacatto) or 0x04 (rest) bit set in SndCtrl
 DNC_1:          AND     $0C
                 RET     NZ
         ;; Just go play sound if not glissando (SndCtrl & 0x90 != 0x80)
@@ -502,7 +502,7 @@ NoteLens:       DEFB $01,$02,$04,$06,$08,$0C,$10,$20
 ;; Flags for SndCtrl:
 ;; $02 - start score
 ;; $04 - is a rest - silence
-;; $08 - silence for whole phrase
+;; $08 - stacatto - only plays for first frame
 ;; $10 - glissando completed
 ;; $80 - glissando wanted
 
@@ -514,7 +514,7 @@ SndCtrl:                DEFB $00         ; Flags controlling how sound plays.
 NoteLen:                DEFB $00         ; Time until note completes.
 ScorePtr:               DEFW $0000       ; Pointer to current score.
 ScoreIdx:               DEFB $00         ; Index into the score.
-SndNote:                DEFB $00         ; Musical scale note number.
+SndNote:                DEFB $00         ; Base musical scale note number.
 SndWavelenTgt:          DEFW $0000       ; Target wavelen for glissando.
 SndWavelen:             DEFW $0000       ; Delay between edges to play.
 SndLen:                 DEFB $00         ; Number of edges to play.
