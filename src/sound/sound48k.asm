@@ -34,6 +34,12 @@ IrqFn:          JP      SndHandler
 ;; Ratio between elements are twelth root of two - definitions for
 ;; notes in a scale.
 ;; (Overwritten by 128K patch)
+;;
+;; 3.5MHz clock, count of 4 cycles takes 24 T-states, so this list is for
+;; the octave containing middle C.
+;;
+;; I think the base octave in the code is one octave above.
+;;                   A    A#   B    C    C#   D   D#  E   F   F#  G   G#
 ScaleTable:     DEFW 1316,1241,1171,1105,1042,983,927,875,825,778,734,692
 
 ;; Plays a sound. Sound is passed in in B.
@@ -423,11 +429,11 @@ DS_1:           OUT     ($FE),A
         ;; Delay loop.
                 LD      C,A
                 PUSH    DE
-DS_2:           DEC     DE
-                LD      A,D
-                OR      E
-                JP      NZ,DS_2
-                POP     DE
+DS_2:           DEC     DE              ; 6 T-states
+                LD      A,D             ; 4 T-states
+                OR      E               ; 4 T-states
+                JP      NZ,DS_2         ; 10 T-states
+                POP     DE              ; Total: 24 T-states
                 LD      A,C
         ;; And loop.
 DS_3:           DJNZ    DS_1            ; Target of self-modifying code!
