@@ -5,50 +5,52 @@
 ;;
 
 ;; Main exported functions:
-;; * AltPlaySound
+;; * PlayTune
 ;; * IrqFn
 ;; * PlaySound
 
-	;; FIXME: Needs a good, old tidy-up.
-	
-SndCount:	DEFB $00
-Snd2:		DEFB $FF        ; TODO: $FF = end of sound?
-L964C:		DEFB $00
-L964D:		DEFB $00
-SndEnable:	DEFB $80	; Top bit set if sound enabled.
+;; The last sound played. Gets copied to IntSnd for interrupt-based playing.
+CurrSnd:        DEFB $00
+
+;; The sound currently playing via interrupts.
+;; $FF = Nothing playing right now
+;; $00 = Don't play any sounds on interrupts
+;; Three bytes for 128K. 48K only uses first byte.
+IntSnd:         DEFB $FF,$00,$00
+
+;; Top bit set if sound enabled.
+SndEnable:      DEFB $80
 
 ;; (Overwritten by 128K patch)
-AltPlaySound:	LD	A,(Snd2)
-		CP	$00
-		RET	Z
-		LD	B,$C3
-		JP	PlaySound
+PlayTune:       LD      A,(IntSnd)
+                CP      $00
+                RET     Z               ; Don't play if disabled.
+                LD      B,$C3
+                JP      PlaySound
 
 ;; (Overwritten by 128K patch)
 IrqFn:          JP      SndHandler
 
-;; (Overwritten by 128K patch)
 ;; Ratio between elements are twelth root of two - definitions for
 ;; notes in a scale.
+;; (Overwritten by 128K patch)
 ScaleTable:     DEFW 1316,1241,1171,1105,1042,983,927,875,825,778,734,692
 
-        ;; This is patched by 128K patch
-	;; FIXME: Called from everywhere.
-	;; Called with B containing the sound id.
-        
+;; Plays a sound. Sound is passed in in B.
 ;; May play the sound either immediately or using the interrupt-driven
 ;; mechanism.
+;; (Overwritten by 128K patch)
 PlaySound:
         ;; Exit early if sound is disabled.
 		LD	A,(SndEnable)
 		RLA
 		RET	NC
-        ;; If sound is currently playing, don't play again. TODO?
-		LD	HL,Snd2
+        ;; If sound is currently playing, don't play again.
+		LD	HL,IntSnd
 		LD	A,(HL)
 		CP	B
 		RET	Z
-        ;; 
+        ;;
 		LD	A,B
 		AND	$3F
 		CP	$3F
@@ -63,7 +65,7 @@ PlaySound:
 		XOR	(HL)
 		AND	$C0
 		RET	NZ
-        ;; Set Snd2 to $FF to stop playing.
+        ;; Set IntSnd to $FF to stop playing.
 PS_1:		LD	A,$FF
 		LD	(HL),A
 		RET
@@ -71,7 +73,7 @@ PS_1:		LD	A,$FF
 PS_2:		LD	C,A
 		LD	A,B
 		LD	D,$00
-		DEC	HL      ; HL = SndCount
+		DEC	HL      ; HL = CurrSnd
 		LD	(HL),A  ; Store unmasked sound id.
 		RLCA
 		RLCA
@@ -85,9 +87,9 @@ PS_2:		LD	C,A
                 LD      HL,SoundTable3
                 JR      PS_6
         ;; Look up into the SoundTable list, with weird adjustments.
-PS_3:           LD      A,(Snd2)
+PS_3:           LD      A,(IntSnd)
                 AND     A
-                RET     Z       ; Return if Snd2 == 0
+                RET     Z       ; Return if IntSnd == 0
                 LD      A,B
                 CP      $02
                 JR      Z,PS_5  ; Top two bits = $02 - go indirect.
@@ -144,11 +146,11 @@ PlayInt:
         ;; We scribble over locations the interrupt handler cares about.
         ;; So, disable interrupts.
 PI_2:           DI
-        ;; Copy SndCount into Snd2.
-		LD	HL,SndCount
-		LD	A,(HL)
-		INC	HL
-		LD	(HL),A
+        ;; Copy CurrSnd into IntSnd.
+                LD      HL,CurrSnd
+                LD      A,(HL)
+                INC     HL
+                LD      (HL),A
         ;; Then write the main sound-triggering variables
                 LD      HL,SndCtrl
                 LD      (HL),B          ; Write SndCtrl
@@ -164,31 +166,35 @@ PI_2:           DI
                 RET
 
 ;; Set up a sound to play immediately.
-PlayImm:	EX	DE,HL
-		LD	B,(HL)
-		INC	HL
-		LD	E,(HL)
-		INC	HL
-		LD	D,(HL)
-		LD	A,B
-		AND	$02
-		JR	Z,PS_9
-		LD	A,(Snd2)
-		AND	A
-		JR	Z,PS_9
-		LD	A,$FF
-		LD	(Snd2),A
-PS_9:		XOR	A
-		LD	(SndThing),A
-		CALL	DoSound
-		LD	A,$FF
-		LD	(SndThing),A
-		RET
+;; ScorePtr in DE, flags in C
+PlayImm:        EX      DE,HL
+                LD      B,(HL)  ; First byte in B
+                INC     HL
+                LD      E,(HL)  ; Then E
+                INC     HL
+                LD      D,(HL)  ; Then D
+        ;; If $02 set on first byte, stop any running sound.
+                LD      A,B
+                AND     $02
+                JR      Z,PI_3
+                LD      A,(IntSnd)
+                AND     A
+                JR      Z,PI_3
+                LD      A,$FF
+                LD      (IntSnd),A
+        ;; Set SndNotImm to 0 as we play, then $FF when completed,
+        ;; to stop interrupt sound from playing.
+PI_3:           XOR     A
+                LD      (SndNotImm),A
+                CALL    DoSound ; Play B cycles of length DE.
+                LD      A,$FF
+                LD      (SndNotImm),A
+                RET
 
 ;; Sound interrupt handler.
 SndHandler:     LD      IY,SndCtrl
-        ;; If Snd2 == $FF, nothing to do.
-                LD      A,(Snd2)
+        ;; If IntSnd == $FF, nothing to do.
+                LD      A,(IntSnd)
                 INC     A
                 RET     Z
         ;; Generate the current score pointer, put it in IX.
@@ -214,8 +220,8 @@ SndHandler:     LD      IY,SndCtrl
                 CALL    GetScoreByte
                 CP      D
                 JR      NZ,SH_1
-        ;; Following byte also $FF? End of score. Set Snd2 to $FF and return.
-                LD      (Snd2),A
+        ;; Following byte also $FF? End of score. Set IntSnd to $FF and return.
+                LD      (IntSnd),A
                 RET
 SH_1:           AND     A
                 JR      NZ,PlayNextPhrase
@@ -378,7 +384,8 @@ DN_8:           LD      (SndWavelen),DE
 ;; Play the sound with the current length (cycle count) and wavelength.
 DoCurrSound:    LD      B,(IY+SND_LEN)
                 LD      DE,(SndWavelen)
-                LD      A,(SndThing)
+        ;; If immediate sound is running, don't interrupt it.
+                LD      A,(SndNotImm)
                 INC     A
                 RET     NZ
         ;; Fall through!
@@ -485,27 +492,30 @@ NoteLens:       DEFB $01,$02,$04,$06,$08,$0C,$10,$20
 ;; $10 - glissando completed
 ;; $80 - glissando wanted
 
-SndThing:		DEFB $FF
-SndCtrl:		DEFB $00
-NoteLen:		DEFB $00
-ScorePtr:		DEFW $0000
-ScoreIdx:		DEFB $00
-SndNote:		DEFB $00         ; Musical scale note number.
-SndWavelenTgt:		DEFW $0000       ; Target wavelen for glissando.
-SndWavelen:		DEFW $0000       ; Delay between edges to play.
-SndLen:			DEFB $00         ; Number of edges to play.
-SndWavelenDelta:	DEFW $0000       ; Delta to apply when glissando-ing.
+;; This is set by sounds playing immediately, so they're not interrupted by
+;; the sounds that play in interrupts.
+SndNotImm:      DEFB $FF
+
+SndCtrl:                DEFB $00         ; Flags controlling how sound plays.
+NoteLen:                DEFB $00         ; Time until note completes.
+ScorePtr:               DEFW $0000       ; Pointer to current score.
+ScoreIdx:               DEFB $00         ; Index into the score.
+SndNote:                DEFB $00         ; Musical scale note number.
+SndWavelenTgt:          DEFW $0000       ; Target wavelen for glissando.
+SndWavelen:             DEFW $0000       ; Delay between edges to play.
+SndLen:                 DEFB $00         ; Number of edges to play.
+SndWavelenDelta:        DEFW $0000       ; Delta to apply when glissando-ing.
 
 ;; Offsets from SndCtrl, used with IY.
-SND_CTRL:		EQU 0
-NOTE_LEN:		EQU 1
-SCORE_PTR:		EQU 2
-SCORE_IDX:		EQU 4
-SND_NOTE:		EQU 5
-SND_WAVELEN_TGT:	EQU 6
-SND_WAVELENGTH:		EQU 8
-SND_LEN:		EQU 10
-SND_WAVELEN_DELTA:	EQU 11
+SND_CTRL:               EQU 0
+NOTE_LEN:               EQU 1
+SCORE_PTR:              EQU 2
+SCORE_IDX:              EQU 4
+SND_NOTE:               EQU 5
+SND_WAVELEN_TGT:        EQU 6
+SND_WAVELENGTH:         EQU 8
+SND_LEN:                EQU 10
+SND_WAVELEN_DELTA:      EQU 11
 
 SoundTable:     DEFW SoundTable0,SoundTable1,SoundTable2
 
@@ -517,15 +527,17 @@ SoundTable3:    DEFW S_C0,S_C1,S_C2,S_C3,S_C4,S_C5,S_C6,S_C7,S_C8
 S_C6:	DEFB $10,$95,$6A,$62,$6A,$7D,$6D,$04
 	DEFB $8D,$96,$FF,$FF
 
+        ;; Immediate
 S_04:	DEFB $16,$90,$00
 
+        ;; Immediate
 S_05:	DEFB $14,$00,$02
 
 S_80:	DEFB $82,$31,$52,$41,$2A,$31
 	DEFB $1A,$29,$42,$FF,$00
 
 S_81:	DEFB $82,$31,$51,$41,$29,$31,$19,$29,$41,$FF,$00
-	
+
 S_82:	DEFB $22,$F3,$EB,$E3,$DB,$EB,$E3,$DB,$D3,$E3,$DB,$D3,$CB,$DB,$D3,$CB
 	DEFB $C3,$FF,$00
 
@@ -534,15 +546,18 @@ S_83:	DEFB $22,$BB,$A3,$8B,$73,$5B,$43,$2B,$23,$FF,$00
 S_84:	DEFB $22,$13
 	DEFB $33,$53,$73,$93,$B3,$D3,$DB,$E3,$EE,$FF,$00
 
+        ;; Immediate
 S_85:	DEFB $64,$80,$00
 
+        ;; Immediate
 S_86:	DEFB $46,$A0,$00
 
 S_87:	DEFB $31,$DA,$65,$F4 ; Fall through?
 
 S_C0:	DEFB $01,$01,$FF,$FF
 
-S_88:	DEFB $46,$D0,$00 	; Fall through?
+        ;; Immediate
+S_88:	DEFB $46,$D0,$00
 
 S_48:	DEFB $01,$51,$BB,$FF
 	DEFB $08,$04,$30,$04,$28,$04,$20,$04,$18,$FF,$FF

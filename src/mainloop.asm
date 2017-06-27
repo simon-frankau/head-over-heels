@@ -55,7 +55,7 @@ Main:           LD      SP,$FFF4
                 CALL    InitNewGame
                 JR      MainStart
         ;; Play the game from a continue.
-MainContinue:   CALL    AltPlaySound
+MainContinue:   CALL    PlayTune
                 CALL    InitContinue
         ;; Play the game from the start.
 MainStart:      CALL    CrownScreen

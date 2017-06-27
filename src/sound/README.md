@@ -10,7 +10,7 @@ It relies on the LastOut variable.
 
 It exports the following symbols:
 
- * AltPlaySound
+ * PlayTune
  * IrqFn
  * PlaySound
  * ShuffleMem

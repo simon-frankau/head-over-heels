@@ -19,7 +19,7 @@ CrownScreenCont:LD      A,(WorldMask)
         ;; Get proclaimed Emperor!
                 LD      A,STR_WIN_SCREEN
                 CALL    PrintChar
-                CALL    AltPlaySound
+                CALL    PlayTune
                 LD      DE,$040F
                 LD      HL,MainMenuSpriteList
                 CALL    DrawFromList
@@ -33,7 +33,7 @@ ES_1:           CALL    CrownScreen
 ;; Just draw the crown screen and wait for a keypress
 CrownScreen:    LD      A,STR_EMPIRE_BLURB
                 CALL    PrintChar
-                CALL    AltPlaySound
+                CALL    PlayTune
                 LD      HL,PlanetsSpriteList
                 LD      DE,$05FF
                 CALL    DrawFromList
@@ -51,7 +51,7 @@ WaitKey:        CALL    WaitInputClear
 
 WaitKeyPressed: LD      HL,$A800
 WKP_1:          PUSH    HL
-                CALL    AltPlaySound
+                CALL    PlayTune
                 CALL    GetInputEntSh
                 POP     HL
                 RET     NC              ; Return if key was pressed.

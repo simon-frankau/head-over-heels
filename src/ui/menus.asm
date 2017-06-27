@@ -155,7 +155,7 @@ MENU_PLAY_GAME: DEFB $00                ; Selected menu item
                 DEFB STR_OLD_GAME       ; Old game, new game, main menu.
 
 ;; Game Over screen
-GameOverScreen: CALL    AltPlaySound
+GameOverScreen: CALL    PlayTune
                 CALL    ScreenWipe
                 LD      A,STR_TITLE_SCREEN_EXT
                 CALL    PrintChar
@@ -192,7 +192,7 @@ GOS_2:          CALL    PrintChar
                 CALL    Print2DigitsL
                 LD      A,STR_PLANETS
                 CALL    PrintChar
-GOS_3:          CALL    AltPlaySound    ; Loop here until key pressed.
+GOS_3:          CALL    PlayTune        ; Loop here until key pressed.
                 CALL    GetInputEntSh
                 JR      C,GOS_3
                 LD      B,$C0

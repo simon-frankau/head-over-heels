@@ -51,7 +51,7 @@ ShuffleMem_1:   LD      (HL),$00
                 LD      ($FFF5),HL
                 ; Overwrite the 48K sound handler with the 128K one.
                 LD      BC,SoundPatchEnd - SoundPatchStart
-                LD      DE,AltPlaySound
+                LD      DE,PlayTune
                 LD      HL,SoundPatchStart
                 LDIR
                 ; We write a page of $FFs over the 48K sound handler,
@@ -91,10 +91,10 @@ MoveMem:        ; New that we're done with the 128K music code, we
 ;; 48K sound-playing code.
 SoundPatchStart:
 
-                .phase AltPlaySound
+                .phase PlayTune
 
-        ;; Patches AltPlaySound
-AltPlaySound128:LD      A,(Snd2)
+        ;; Patches PlayTune
+PlayTune128:    LD      A,(IntSnd)
                 CP      $80
                 RET     Z
                 LD      B,$C3

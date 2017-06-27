@@ -298,7 +298,7 @@ XF_3:		LD	(IY+$04),A
 		RET
 
 DisableCurrVoice:
-		LD	HL,Snd2
+		LD	HL,IntSnd
 		LD	A,(CurrVoice)
 		LD	E,A
 		LD	D,$00
@@ -343,7 +343,7 @@ P128_1:		LD	C,A
 		CP	$03
 		JR	Z,P128_2
         ;; TODO
-		LD	HL,Snd2
+		LD	HL,IntSnd
 		LD	E,B
 		LD	D,$00
 		ADD	HL,DE
@@ -436,8 +436,8 @@ P128_3:
                 LD      A,$07
                 OR      (HL)
                 LD      (HL),A
-        ;; Load $80 into the 3 elements of the Snd2 array.
-                LD      HL,Snd2
+        ;; Load $80 into the 3 elements of the IntSnd array.
+                LD      HL,IntSnd
                 LD      BC,$0380
                 LD      A,B
 P128_4:         LD      (HL),C
