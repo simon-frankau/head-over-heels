@@ -38,13 +38,17 @@ ScaleTable:     DEFW 1316,1241,1171,1105,1042,983,927,875,825,778,734,692
         
 ;; May play the sound either immediately or using the interrupt-driven
 ;; mechanism.
-PlaySound:	LD	A,(SndEnable)
+PlaySound:
+        ;; Exit early if sound is disabled.
+		LD	A,(SndEnable)
 		RLA
-		RET	NC		; Exit early if sound disabled.
+		RET	NC
+        ;; If sound is currently playing, don't play again. TODO?
 		LD	HL,Snd2
 		LD	A,(HL)
 		CP	B
 		RET	Z
+        ;; 
 		LD	A,B
 		AND	$3F
 		CP	$3F
@@ -59,89 +63,108 @@ PlaySound:	LD	A,(SndEnable)
 		XOR	(HL)
 		AND	$C0
 		RET	NZ
+        ;; Set Snd2 to $FF to stop playing.
 PS_1:		LD	A,$FF
 		LD	(HL),A
 		RET
+        ;; At this point, masked sound in A, unmasked in B.
 PS_2:		LD	C,A
 		LD	A,B
 		LD	D,$00
-		DEC	HL
-		LD	(HL),A
+		DEC	HL      ; HL = SndCount
+		LD	(HL),A  ; Store unmasked sound id.
 		RLCA
 		RLCA
 		AND	$03
-		LD	B,A
+		LD	B,A     ; Store top 2 bits at the bottom of B.
 		CP	$03
 		JR	NZ,PS_3
-		XOR	A
-		LD	(HL),A
-		LD	HL,$98E5
-		JR	PS_6
-PS_3:		LD	A,(Snd2)
-		AND	A
-		RET	Z
-		LD	A,B
-		CP	$02
-		JR	Z,PS_5
-		CP	$01
-		LD	A,$F9
-		JR	Z,PS_4
-		LD	A,$FC
-PS_4:		ADD	A,C
-		RET	NC
-		LD	C,A
-PS_5:		LD	HL,SoundTable
-		LD	E,B
-		SLA	E
-		ADD	HL,DE
-		LD	E,(HL)
-		INC	HL
-		LD	H,(HL)
-		LD	L,E
-PS_6:		LD	E,C
-		SLA	E
-		ADD	HL,DE
-		LD	E,(HL)
-		INC	HL
-		LD	D,(HL)
-		LD	A,(DE)
-		AND	$07
-		LD	C,A
-		AND	$04
-		JR	NZ,PS_8
-        ;; Interrupt-driven sound-playing.
-		LD	A,C
-		AND	$02
-		LD	B,$0A
-		JR	NZ,PS_7
-		LD	B,$92
-		RR	C
-		JR	C,PS_7
-		LD	B,$02
-        ;; TODO: SndCtrl is 8|2, 80|10|2 or 2...
-	;; Scribble over locations the interrupt handler cares about.
-	;; So, disable interrupts.
-PS_7:		DI
+        ;; Top two bits set - use SoundTable3 directly.
+                XOR     A
+                LD      (HL),A
+                LD      HL,SoundTable3
+                JR      PS_6
+        ;; Look up into the SoundTable list, with weird adjustments.
+PS_3:           LD      A,(Snd2)
+                AND     A
+                RET     Z       ; Return if Snd2 == 0
+                LD      A,B
+                CP      $02
+                JR      Z,PS_5  ; Top two bits = $02 - go indirect.
+                CP      $01
+                LD      A,$F9   ; Top bits = $01, adjust C by -7
+                JR      Z,PS_4
+                LD      A,$FC   ; Top bits = $00, adjust C by -4
+PS_4:           ADD     A,C
+                RET     NC
+                LD      C,A
+        ;; Two layers of indirection. B indexes into top-level table...
+PS_5:           LD      HL,SoundTable
+                LD      E,B
+                SLA     E
+                ADD     HL,DE
+                LD      E,(HL)
+                INC     HL
+                LD      H,(HL)
+                LD      L,E
+        ;; HL now contains second-level table.
+        ;; C contains index into list of scores.
+        ;; Load the address of the score (the ScorePtr) into DE.
+PS_6:           LD      E,C
+                SLA     E
+                ADD     HL,DE
+                LD      E,(HL)
+                INC     HL
+                LD      D,(HL)
+        ;; If $04 set on the first byte of score, play immediately
+                LD      A,(DE)
+                AND     $07
+                LD      C,A
+                AND     $04
+                JR      NZ,PlayImm
+        ;; Otherwise, play using interrupts.
+        ;; NB: Fall through.
+
+;; Interrupt-driven sound-playing.
+;; ScorePtr in DE, flags in C
+PlayInt:
+                LD      A,C
+        ;; Cases for C & $03:
+        ;; 0: B =             $02 - usual.
+        ;; 1: B = $80 | $10 | $02 - glissando.
+        ;; 2: B = $08 |       $02 - silence.
+        ;; Basically same flags as in PlayNextPhrase.
+                AND     $02
+                LD      B,$0A
+                JR      NZ,PI_2
+                LD      B,$92
+                RR      C
+                JR      C,PI_2
+                LD      B,$02
+        ;; We scribble over locations the interrupt handler cares about.
+        ;; So, disable interrupts.
+PI_2:           DI
         ;; Copy SndCount into Snd2.
 		LD	HL,SndCount
 		LD	A,(HL)
 		INC	HL
 		LD	(HL),A
         ;; Then write the main sound-triggering variables
-		LD	HL,SndCtrl
-		LD	(HL),B 		; Write SndCtrl
-		INC	HL
-		INC	HL
-		LD	(HL),E		; Write ScorePtr
-		INC	HL
-		LD	(HL),D
-		XOR	A
-		INC	HL
-		LD	(HL),A		; Clear ScoreIdx
-		EI
-		RET
-        ;; Immediate sound-playing case.
-PS_8:		EX	DE,HL
+                LD      HL,SndCtrl
+                LD      (HL),B          ; Write SndCtrl
+                INC     HL
+                INC     HL
+                LD      (HL),E          ; Write ScorePtr
+                INC     HL
+                LD      (HL),D
+                XOR     A
+                INC     HL
+                LD      (HL),A          ; Clear ScoreIdx
+                EI
+                RET
+
+;; Set up a sound to play immediately.
+PlayImm:	EX	DE,HL
 		LD	B,(HL)
 		INC	HL
 		LD	E,(HL)
@@ -453,7 +476,7 @@ UnpackD_1:      RRC     D
                 RET                     ; And rotate into bottom position.
 
 ;; Look-up table of note lengths.
-NoteLens:	DEFB $01,$02,$04,$06,$08,$0C,$10,$20
+NoteLens:       DEFB $01,$02,$04,$06,$08,$0C,$10,$20
 
 ;; Flags for SndCtrl:
 ;; $02 - start score
@@ -483,68 +506,67 @@ SND_WAVELEN_TGT:	EQU 6
 SND_WAVELENGTH:		EQU 8
 SND_LEN:		EQU 10
 SND_WAVELEN_DELTA:	EQU 11
-        
-        
-	;; FIXME: Some constants seem to overlap with the table?
-SoundTable:		DEFW $98E1,$98DD,$98CB,L9909,L9914
-			DEFW L991F,L9932,L993D,L994A,L994D,L9950,L9958,L996A
-			DEFW L995B,L9903,L9906,L9954,L9972,L9983,L99DD,L999E
-			DEFW L99A9,L98F7,L99CD,L99D5
 
-L98F7:	DEFB $10,$95,$6A,$62,$6A,$7D,$6D,$04
+SoundTable:     DEFW SoundTable0,SoundTable1,SoundTable2
+
+SoundTable2:    DEFW S_80,S_81,S_82,S_83,S_84,S_85,S_86,S_87,S_88
+SoundTable1:    DEFW S_47,S_48
+SoundTable0:    DEFW S_04,S_05
+SoundTable3:    DEFW S_C0,S_C1,S_C2,S_C3,S_C4,S_C5,S_C6,S_C7,S_C8
+
+S_C6:	DEFB $10,$95,$6A,$62,$6A,$7D,$6D,$04
 	DEFB $8D,$96,$FF,$FF
 
-L9903:	DEFB $16,$90,$00
+S_04:	DEFB $16,$90,$00
 
-L9906:	DEFB $14,$00,$02
+S_05:	DEFB $14,$00,$02
 
-L9909:	DEFB $82,$31,$52,$41,$2A,$31
+S_80:	DEFB $82,$31,$52,$41,$2A,$31
 	DEFB $1A,$29,$42,$FF,$00
 
-L9914:	DEFB $82,$31,$51,$41,$29,$31,$19,$29,$41,$FF,$00
+S_81:	DEFB $82,$31,$51,$41,$29,$31,$19,$29,$41,$FF,$00
 	
-L991F:	DEFB $22,$F3,$EB,$E3,$DB,$EB,$E3,$DB,$D3,$E3,$DB,$D3,$CB,$DB,$D3,$CB
+S_82:	DEFB $22,$F3,$EB,$E3,$DB,$EB,$E3,$DB,$D3,$E3,$DB,$D3,$CB,$DB,$D3,$CB
 	DEFB $C3,$FF,$00
 
-L9932:	DEFB $22,$BB,$A3,$8B,$73,$5B,$43,$2B,$23,$FF,$00
+S_83:	DEFB $22,$BB,$A3,$8B,$73,$5B,$43,$2B,$23,$FF,$00
 
-L993D:	DEFB $22,$13
+S_84:	DEFB $22,$13
 	DEFB $33,$53,$73,$93,$B3,$D3,$DB,$E3,$EE,$FF,$00
 
-L994A:	DEFB $64,$80,$00
+S_85:	DEFB $64,$80,$00
 
-L994D:	DEFB $46,$A0
-	DEFB $00
+S_86:	DEFB $46,$A0,$00
 
-L9950:	DEFB $31,$DA,$65,$F4 ; Fall through?
+S_87:	DEFB $31,$DA,$65,$F4 ; Fall through?
 
-L9954:	DEFB $01,$01,$FF,$FF
+S_C0:	DEFB $01,$01,$FF,$FF
 
-L9958:	DEFB $46,$D0,$00 	; Fall through?
+S_88:	DEFB $46,$D0,$00 	; Fall through?
 
-L995B:	DEFB $01,$51,$BB,$FF 	; Fall through?
-L995F:	DEFB $08,$04,$30,$04,$28,$04,$20,$04,$18,$FF,$FF
+S_48:	DEFB $01,$51,$BB,$FF
+	DEFB $08,$04,$30,$04,$28,$04,$20,$04,$18,$FF,$FF
 
-L996A:	DEFB $41,$10,$5C,$5C,$43
+S_47:	DEFB $41,$10,$5C,$5C,$43
 	DEFB $07,$FF,$FF
 
-L9972:	DEFB $61,$0C,$36,$FF,$60,$35,$35,$35,$45,$35,$45,$FF,$61
+S_C1:	DEFB $61,$0C,$36,$FF,$60,$35,$35,$35,$45,$35,$45,$FF,$61
 	DEFB $56,$56,$FF,$FF
-L9983:	DEFB $30,$B2,$BA,$CC,$34,$34,$6A,$5A,$52,$6A,$92,$8A
+S_C2:	DEFB $30,$B2,$BA,$CC,$34,$34,$6A,$5A,$52,$6A,$92,$8A
 	DEFB $94,$C2,$CA,$DC,$44,$44,$A2,$92,$8A,$92,$8A,$7A,$6E,$FF,$FF
 
-L999E:	DEFB $11
+S_C4:	DEFB $11
 	DEFB $30,$52,$01,$19,$3A,$01,$09,$22,$FF,$FF
 
-L99A9:	DEFB $20,$45,$FF,$80,$7B,$73
+S_C5:	DEFB $20,$45,$FF,$80,$7B,$73
 	DEFB $7B,$6B,$FF,$20,$2D,$FF,$80,$63,$5B,$63,$53,$FF,$20,$0D,$FF,$80
 	DEFB $43,$3B,$43,$33,$FF,$20,$1D,$FF,$80,$53,$4B,$53,$FF,$FF
 
-L99CD:	DEFB $41,$09,$3E,$5E,$CE,$F6,$FF,$FF
+S_C7:	DEFB $41,$09,$3E,$5E,$CE,$F6,$FF,$FF
 
-L99D5:	DEFB $41,$F0,$A6,$5E,$3E,$0E,$FF,$FF
+S_C8:	DEFB $41,$F0,$A6,$5E,$3E,$0E,$FF,$FF
 
-L99DD:	DEFB $02,$52
+S_C3:	DEFB $02,$52
 	DEFB $32,$54,$6A,$52,$6C,$82,$6A,$7A,$92,$FF,$61,$F6,$00,$FF,$2A,$52
 	DEFB $32,$54,$6A,$52,$6C,$82,$6A,$7A,$92,$FF,$89,$32,$0A,$32,$32,$00
 	DEFB $FF,$3A,$52,$32,$54,$6A,$52,$6C,$82,$6A,$7A,$92,$FF,$99,$F6,$FF
