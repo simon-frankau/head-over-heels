@@ -42,54 +42,62 @@ ScaleTable:     DEFW 1316,1241,1171,1105,1042,983,927,875,825,778,734,692
 ;; (Overwritten by 128K patch)
 PlaySound:
         ;; Exit early if sound is disabled.
-		LD	A,(SndEnable)
-		RLA
-		RET	NC
+                LD      A,(SndEnable)
+                RLA
+                RET     NC
         ;; If sound is currently playing, don't play again.
-		LD	HL,IntSnd
-		LD	A,(HL)
-		CP	B
-		RET	Z
-        ;;
-		LD	A,B
-		AND	$3F
-		CP	$3F
-		JR	NZ,PS_2
-		INC	B
-		JR	Z,PS_1
-		LD	A,(HL)
-		AND	A
-		RET	Z
-		LD	A,B
-		DEC	A
-		XOR	(HL)
-		AND	$C0
-		RET	NZ
+                LD      HL,IntSnd
+                LD      A,(HL)
+                CP      B
+                RET     Z
+        ;; If the bottom 6 bits are not all set, play...
+                LD      A,B
+                AND     $3F
+                CP      $3F
+                JR      NZ,PS_2
+        ;; If B is $FF, stop playing...
+                INC     B
+                JR      Z,PS_1
+        ;; If IntSnd is 0, return immediately.
+                LD      A,(HL)
+                AND     A
+                RET     Z
+        ;; Otherwise, only if the current top bits match, do we stop
+        ;; playing. i.e. It's a more selective stop.
+                LD      A,B
+                DEC     A
+                XOR     (HL)
+                AND     $C0
+                RET     NZ
         ;; Set IntSnd to $FF to stop playing.
-PS_1:		LD	A,$FF
-		LD	(HL),A
-		RET
+PS_1:           LD      A,$FF
+                LD      (HL),A
+                RET
         ;; At this point, masked sound in A, unmasked in B.
-PS_2:		LD	C,A
-		LD	A,B
-		LD	D,$00
-		DEC	HL      ; HL = CurrSnd
-		LD	(HL),A  ; Store unmasked sound id.
-		RLCA
-		RLCA
-		AND	$03
-		LD	B,A     ; Store top 2 bits at the bottom of B.
-		CP	$03
-		JR	NZ,PS_3
+PS_2:           LD      C,A
+                LD      A,B
+                LD      D,$00
+                DEC     HL      ; HL = CurrSnd
+                LD      (HL),A  ; Store unmasked sound id.
+                RLCA
+                RLCA
+                AND     $03
+                LD      B,A     ; Store top 2 bits at the bottom of B.
+                CP      $03
+                JR      NZ,PS_3
         ;; Top two bits set - use SoundTable3 directly.
+        ;; Note that SoundTable3 bypasses the silencing...
+        ;; And once the sound finishes playing the silencing is no
+        ;; longer in place?
                 XOR     A
                 LD      (HL),A
                 LD      HL,SoundTable3
                 JR      PS_6
-        ;; Look up into the SoundTable list, with weird adjustments.
+        ;; If IntSnd == 0, return.
 PS_3:           LD      A,(IntSnd)
                 AND     A
-                RET     Z       ; Return if IntSnd == 0
+                RET     Z
+        ;; Look up into the SoundTable list, with weird adjustments.
                 LD      A,B
                 CP      $02
                 JR      Z,PS_5  ; Top two bits = $02 - go indirect.
