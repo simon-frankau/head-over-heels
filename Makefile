@@ -8,8 +8,13 @@ BIN_FILES = $(wildcard bin/*)
 # Strip off the actually directory-free part for making call graphs.
 ASM_FILE_NAMES = $(addprefix out/graphs/,$(notdir $(ASM_FILES)))
 
+SOUND_FILES = $(basename $(notdir $(wildcard bin/sound/*.bin)))
+
+out/sound/%.txt : bin/sound/%.bin
+
+
 .PHONY: all
-all: diss_check check graphics call_graphs
+all: diss_check check graphics sounds call_graphs
 
 ########################################################################
 # Rules to disassemble the memory image.
@@ -99,6 +104,17 @@ out/screen.gif: bin/screen.scr
 graphics: out/img_3x56.xbm out/img_3x32.xbm out/img_3x24.xbm \
           out/img_4x28.xbm out/img_2x24.xbm out/img_chars.xbm \
           out/img_walls.xbm out/img_2x6.xbm out/screen.gif
+
+########################################################################
+# Sound files
+#
+
+out/sound/%.txt : bin/sound/%.bin
+	mkdir -p out/sound
+	lua tools/analyse_sound.lua $< > $@
+
+.PHONY: sounds
+sounds: $(addsuffix .txt, $(addprefix out/sound/, $(SOUND_FILES)))
 
 ########################################################################
 # Call graph generation
