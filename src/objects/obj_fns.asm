@@ -118,7 +118,7 @@ ObjFnTeleport:	BIT	5,(IY+$0C)
 		RET	NZ
 		CALL	FaceAndAnimate
 		CALL	ObjDraw
-		LD	B,$47
+		LD	B,$47           ; Teleporter waiting noise
 		JP	PlaySound 	; Tail call
 
 ObjFn36Val:	DEFB $60
@@ -129,7 +129,7 @@ ObjFn36:	LD		HL,ObjFn36Val
 		LD		(HL),$60
 		LD		(IY+$0B),~$08
 		LD		(IY+O_FUNC),OBJFN_FIRE
-		LD		A,$05
+		LD		A,$05 ; TODO: Actually 04?
 		JP		SetSound
 
 ObjFn35Val:	DEFB 0
@@ -319,7 +319,7 @@ TestAndFade:	RET	Z
 	;; NB: Fall through
 
         ;; Set to use ObjFnFade
-Fadeify:	LD	A,$05
+Fadeify:	LD	A,$05   ; TODO: 04?
 		CALL	SetSound
 		LD	A,(IY+O_FUNC)
 		AND	$80
@@ -349,7 +349,7 @@ ObjFnSpring:	LD		B,(IY+$08)
 		CP		B
 		JR		NZ,ObjFnPushable
 		LD		(IY+$0F),$50
-		LD		A,$04
+		LD		A,$04 ; TODO: ?
 		CALL	SetSound
 		JR		ObjFnStuff
 OFSp1:	AND		$07
@@ -467,7 +467,7 @@ TurnRandomly:	PUSH	HL
 
 HeliPadDir:	DEFB 0
         ;; Running heliplat
-ObjFnHeliplat3:	LD	A,$01
+ObjFnHeliplat3:	LD	A,$01   ; TODO: $01? Is that even a sound?
 		CALL	SetSound
 		CALL	FaceAndAnimate
 		LD	A,(IY+$11)
@@ -733,7 +733,7 @@ OA6c:		LD		A,(ObjDir)
 		RET		Z
         ;; NB: Fall through
         
-ObjAgain7:	LD		A,$06
+ObjAgain7:	LD		A,$06 ; TODO: ??
 		JP		SetSound
 
         ;; TODO: Called quite a lot.
@@ -758,7 +758,7 @@ OA9c:		PUSH	AF
 		CALL	UpdateObjExtents
 		RES		5,(IY+$0B)
 		INC		(IY+O_Z)
-		LD		A,$03
+		LD		A,$03 ; TODO: ??
 		CALL	SetSound
 		POP		AF
 		RET		C

@@ -46,7 +46,7 @@ CrownScreen:    LD      A,STR_EMPIRE_BLURB
 WaitKey:        CALL    WaitInputClear
                 CALL    WaitKeyPressed
                 CALL    ScreenWipe
-                LD      B,$C1
+                LD      B,$C1           ; "Tada" noise
                 JP      PlaySound       ; NB: Tail call
 
 WaitKeyPressed: LD      HL,$A800

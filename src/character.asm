@@ -137,7 +137,7 @@ DoFire:		LD	A,(FirePressed)
 	;; Use up a donut
 		LD	A,$06
 		CALL	DecCount
-		LD	B,$48
+		LD	B,$48                   ; Donut firing noise
 		CALL	PlaySound
 		LD	A,(Donuts)
 		AND	A
@@ -325,7 +325,7 @@ CharThing3:	AND	$01
 CharThing4:	CALL	GetCharObj
 		PUSH	HL
 		POP	IY
-		LD	A,$3F
+		LD	A,$3F   ; Stop 0x0X noise
 		LD	(OtherSoundId),A
 		LD	A,(SavedObjListIdx)
 		CALL	SetObjList
@@ -345,11 +345,11 @@ EPIC_31:	DEC	(HL)
 		CALL	ChkSatOn
 		JR	C,EPIC_32
 		DEC	(IY+$07)
-		LD	A,$84
+		LD	A,$84   ; TODO: Repeated rising sequence
 		CALL	SetOtherSound
 		JR	EPIC_33
 EPIC_32:	EX	AF,AF'
-		LD	A,$88
+		LD	A,$88   ; TODO: Menu blip
 		BIT	4,(IY+$0B)
 		SET	4,(IY+$0B)
 		CALL	Z,SetOtherSound
@@ -382,7 +382,7 @@ EPIC_38:	LD	A,(NextRoom)
 		RLA
 		JR	NC,EPIC_39
 		LD	(IY+$0C),$FF
-EPIC_39:	LD	A,$86
+EPIC_39:	LD	A,$86   ; TODO High blip
 		BIT	5,(IY+$0B)
 		SET	5,(IY+$0B)
 		CALL	Z,SetOtherSound 		; NB: Tail call
@@ -393,7 +393,7 @@ EPIC_39:	LD	A,$86
 		CALL	ChkSatOn
 		JR	NC,EPIC_40
 		JR	NZ,EPIC_40
-		LD	A,$88
+		LD	A,$88   ; TODO Menu blip
 		CALL	SetOtherSound
 		JR	EPIC_41
 EPIC_40:	DEC	(IY+$07)
@@ -529,7 +529,7 @@ CharThing24:	LD	C,A
 EPIC_59:	INC	(IY+$07)
 		AND	A
 		JR	NZ,EPIC_61
-		LD	A,$82
+		LD	A,$82   ; TODO: Faster falling noise
 		CALL	SetOtherSound
 		LD	HL,LA293
 		LD	A,(HL)
@@ -539,7 +539,7 @@ EPIC_59:	INC	(IY+$07)
 		LD	A,(CharDir)
 		JR	EPIC_62
 EPIC_60:	INC	(IY+$07)
-EPIC_61:	LD	A,$83
+EPIC_61:	LD	A,$83   ; TODO: Slower falling noise
 		CALL	SetOtherSound
 		LD	A,(CurrDir)
 		RRA
@@ -570,7 +570,7 @@ MoveChar:	OR	$F0
 		EX	AF,AF'
 		XOR	A
 		LD	(IsStill),A
-		LD	A,$80
+		LD	A,$80   ; TODO: Slower walking sound
 		CALL	SetOtherSound
 		EX	AF,AF'
 		LD	HL,CharDir
@@ -590,7 +590,7 @@ MC_2:		PUSH	AF
 		LD	A,(IY+$0B)
 		OR	$F0
 		INC	A
-		LD	A,$88
+		LD	A,$88   ; TODO: Menu blip
 		CALL	NZ,SetOtherSound
 MC_3:		POP	AF
 		LD	A,(IY+$0B)
@@ -629,7 +629,7 @@ MC_6:           LD      HL,Speed ; We're fast if we have Speed or are Heels...
                 LD      A,$00
                 CALL    DecCount
         ;; Do the sound bit...
-MC_7:           LD      A,$81
+MC_7:           LD      A,$81   ; TODO: Running sound.
                 CALL    SetOtherSound
         ;; Convert bitmap to direction.
                 POP     AF
@@ -644,7 +644,7 @@ MC_7:           LD      A,$81
                 POP     HL
                 JP      NC,UpdatePos
         ;; Failing to move...
-                LD      A,$88
+                LD      A,$88           ; TODO: Menu blip
                 JP      SetOtherSound   ; NB: Tail call
 
 ;; The TickTock counter cycles down from 2. Reset it.
@@ -711,7 +711,7 @@ DJ_7:		LD	A,C
 		JR	NZ,DJ_8
 		LD	A,$0A
 DJ_8:		LD	(LA29F),A
-		LD	A,$85
+		LD	A,$85   ; TODO: High blip
 		DEC	B
 		JR	NZ,DJ_9
 		LD	HL,LA293
@@ -719,7 +719,7 @@ DJ_8:		LD	(LA29F),A
 DJ_9:		JP	SetOtherSound 	; NB: Tail call
 DJ_10:		LD	HL,$080C        ; TODO
 		LD	(LA296),HL
-		LD	B,$C7
+		LD	B,$C7           ; Teleporter beam up noise
 		JP	PlaySound
 
 
@@ -735,7 +735,7 @@ PurseNope:	JP	NC,NopeNoise 		; Tail call
 		LD	A,(Character)
 		AND	$01
 		JR	Z,PurseNope 		; Check if heels is present
-		LD	A,$87			; FIXME: ???
+		LD	A,$87			; FIXME: Sweep down and up
 		CALL	SetOtherSound
 		LD	A,(Carrying+1)
 		AND	A
@@ -903,7 +903,7 @@ EPIC_90:	INC	DE
 		LD	A,(DE)
 		SUB	$06
 		LD	(DE),A
-EPIC_91:	LD	B,$C8
+EPIC_91:	LD	B,$C8           ; Teleport beam down noise
 		CALL	PlaySound
 		JR	EPIC_96
 EPIC_92:	LD	HL,L8ADF

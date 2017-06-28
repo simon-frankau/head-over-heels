@@ -78,7 +78,7 @@ EnterRoom2:     CALL    EnterRoom
 ER2_1:          LD      (WorldIdSnd),A
                 OR      $40
                 LD      B,A
-                CALL    PlaySound
+                CALL    PlaySound       ; $40-$46 are world noises?
 ER2_2:          CALL    DrawBlacked
                 CALL    CharThing15
         ;; NB: Fall through

@@ -243,7 +243,7 @@ DCO_3:		LD	A,B
 		LD	A,(NextRoom)
 		AND	A
 		CALL	NZ,BoostInvuln2
-		LD	B,$C6
+		LD	B,$C6           ; Death noise
 		JP	PlaySound 	; Tail call.
 
 ;; Make the special object disappear and call the associated function.

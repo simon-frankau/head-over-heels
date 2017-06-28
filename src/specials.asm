@@ -192,7 +192,7 @@ GSP_2:          DEC     HL
                 JP      (HL)
 
 GSPRet:         LD      B,$C5 ; Self-modifying code?
-                JP      PlaySound
+                JP      PlaySound ; TODO: Sound?
 
  ;; Array of function pointers for actions when picking up a special.
 SpecialFns      ;; Purse, hooter, donuts, bunny
@@ -211,7 +211,7 @@ PickUp2:        LD      A,D
 PickUp:         LD      HL,Inventory
                 CALL    SetBit
                 CALL    DrawScreenPeriphery
-                LD      B,$C2
+                LD      B,$C2           ; Hornpipe
                 JP      PlaySound
 
 BoostDonuts:    LD      A,(Character)
@@ -288,12 +288,12 @@ GetCrown:	LD	A,D
 		SUB	$09
 		LD	HL,WorldMask
 		CALL	SetBit
-		LD	B,$C1
+		LD	B,$C1                   ; Tada! noise
 		CALL	PlaySound
 		JP	CrownScreenCont         ; NB: Tail call
 
 	;; FIXME: Decode!
-SaveContinue:	LD	B,$C2
+SaveContinue:	LD	B,$C2                   ; Hornpipe noise
 		CALL	PlaySound
 		CALL	GetContinueData
 		LD	IX,Specials

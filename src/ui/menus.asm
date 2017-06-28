@@ -196,7 +196,7 @@ GOS_3:          CALL    PlayTune        ; Loop here until key pressed.
                 CALL    GetInputEntSh
                 JR      C,GOS_3
                 LD      B,$C0
-                JP      PlaySound
+                JP      PlaySound       ; Silence noise.
 
 ;; Clear out the screen area and move the cursor for editing a
 ;; keyboard control setting
@@ -247,7 +247,7 @@ MenuStepCore:   AND     A
 MSC_1:          LD      (IX+MENU_CUR_ITEM),A
         ;; And play a nice little sound!
                 PUSH    IX
-                LD      B,$88
+                LD      B,$88           ; Teleport beam down noise
                 CALL    PlaySound
                 POP     IX
         ;; NB: Fall through

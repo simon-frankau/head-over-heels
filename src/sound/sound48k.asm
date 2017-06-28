@@ -25,7 +25,7 @@ SndEnable:      DEFB $80
 PlayTune:       LD      A,(IntSnd)
                 CP      $00
                 RET     Z               ; Don't play if disabled.
-                LD      B,$C3
+                LD      B,$C3           ; Play the HoH theme music
                 JP      PlaySound
 
 ;; (Overwritten by 128K patch)
@@ -497,6 +497,8 @@ UnpackD_1:      RRC     D
                 RET                     ; And rotate into bottom position.
 
 ;; Look-up table of note lengths.
+;; At 50Hz, assuming $04 = crotchet, we're at a somewhat insane 750
+;; BPM. This conversion factor may be inappropriate!
 NoteLens:       DEFB $01,$02,$04,$06,$08,$0C,$10,$20
 
 ;; Flags for SndCtrl:

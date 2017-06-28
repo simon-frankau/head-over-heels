@@ -105,7 +105,7 @@ DoVictoryRoom:
                 INC     A
                 JP      Z,FinishGame
         ;; Play sound
-                LD      B,$C1
+                LD      B,$C1   ; "TADA" noise
                 CP      $30
                 PUSH    AF
                 CALL    Z,PlaySound
@@ -170,7 +170,7 @@ WaitFrame:      LD      A,(FrameCounter)
 CheckPause:     CALL    IsHPressed
                 RET     NZ
         ;; Play pause sound
-                LD      B,$C0
+                LD      B,$C0           ; Pause sound is silence!
                 CALL    PlaySound
         ;; Display pause message...
                 CALL    WaitInputClear
@@ -271,7 +271,7 @@ KT:             BIT     1,(HL)          ; If bit 1 set, already processed alread
                 RET
 
 ;; Played when we can't do something.
-NopeNoise:      LD      B,$C4
+NopeNoise:      LD      B,$C4           ; "Nope" noise
                 JP      PlaySound
 
 ;; Checks if 'swop' has just been pressed, and if it has, do it.
